@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "npx tsx scripts/migrate-neon.ts",
+    "db:seed": "npx tsx scripts/seed-neon.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
