@@ -79,8 +79,8 @@ export default function WorkspaceLayout({
         }
       }
 
-      // If not authenticated, redirect to login
-      router.push("/login");
+      // If not authenticated, redirect to staff login
+      router.push("/staff/login");
     }
 
     checkAuth();
@@ -95,7 +95,7 @@ export default function WorkspaceLayout({
     if (typeof window !== "undefined") {
       localStorage.removeItem("hotelgest_user");
     }
-    router.push("/login");
+    router.push("/staff/login");
   };
 
   const handleEmulateUser = (userIndex: number) => {

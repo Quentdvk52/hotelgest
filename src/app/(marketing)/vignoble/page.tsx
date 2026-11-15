@@ -19,6 +19,11 @@ export default function VignobleShowcasePage() {
             <p className="text-xs text-stone-500 font-medium">Groupe Hôtelier Pilote — République du Bénin</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/cave-a-vin">
+              <Button variant="outline" size="sm">
+                Cave à vin
+              </Button>
+            </Link>
             <Link href="/catering-equipment">
               <Button variant="gold" size="sm">
                 Service Traiteur
@@ -26,7 +31,7 @@ export default function VignobleShowcasePage() {
             </Link>
             <Link href="/login">
               <Button variant="primary" size="sm">
-                Login
+                Login Client
               </Button>
             </Link>
           </div>

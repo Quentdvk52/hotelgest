@@ -127,7 +127,7 @@ export function LuxuryFooter() {
             {/* Official Dedicated Staff Portal Link as required by the user */}
             <div className="pt-4 border-t border-stone-800/80">
               <Link
-                href="/login"
+                href="/staff/login"
                 className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 hover:text-white border border-stone-800 text-xs font-semibold transition-all hover:border-[#184f28]"
                 aria-label="Accès Espace Direction et Personnel"
               >
@@ -145,7 +145,7 @@ export function LuxuryFooter() {
             <span className="hover:text-white cursor-pointer">Mentions Légales</span>
             <span className="hover:text-white cursor-pointer">Politique de Confidentialité</span>
             <span className="hover:text-white cursor-pointer">Conditions Générales de Séjour</span>
-            <Link href="/login" className="text-stone-300 hover:text-[#d4af37] transition-colors">
+            <Link href="/staff/login" className="text-stone-300 hover:text-[#d4af37] transition-colors">
               Espace Staff
             </Link>
           </div>

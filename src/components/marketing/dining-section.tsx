@@ -78,10 +78,19 @@ export function DiningSection() {
                   <h3 className="text-xl font-bold font-serif text-white mb-2">
                     {cat.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-stone-400 leading-relaxed font-light">
+                  <p className="text-xs sm:text-sm text-stone-400 leading-relaxed font-light mb-4">
                     {cat.description}
                   </p>
                 </div>
+                {idx === 2 && (
+                  <Link
+                    href="/cave-a-vin"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#d4af37] hover:text-[#e4c26e] font-semibold pt-2 border-t border-stone-800"
+                  >
+                    <Wine className="w-3.5 h-3.5" />
+                    <span>Visiter la Boutique Cave à vin →</span>
+                  </Link>
+                )}
               </div>
             </div>
           ))}
