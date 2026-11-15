@@ -48,7 +48,7 @@ export default function MarketingPage() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/dashboard">
+            <Link href="/login">
               <Button variant="primary" size="md">
                 Espace Direction / Staff
               </Button>
@@ -271,7 +271,7 @@ export default function MarketingPage() {
           <div className="flex gap-6 text-sm">
             <Link href="/vignoble" className="hover:text-white transition-colors">Le Vignoble</Link>
             <Link href="/catering-equipment" className="hover:text-white transition-colors">Traiteur & Matériel</Link>
-            <Link href="/dashboard" className="hover:text-white transition-colors">Console Staff</Link>
+            <Link href="/login" className="hover:text-white transition-colors">Console Staff</Link>
           </div>
         </div>
       </footer>

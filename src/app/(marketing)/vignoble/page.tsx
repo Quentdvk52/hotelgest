@@ -18,11 +18,18 @@ export default function VignobleShowcasePage() {
             <h1 className="text-2xl font-extrabold text-[#7c3c46] tracking-tight">Hôtel Le Vignoble</h1>
             <p className="text-xs text-stone-500 font-medium">Groupe Hôtelier Pilote — République du Bénin</p>
           </div>
-          <Link href="/catering-equipment">
-            <Button variant="gold" size="sm">
-              Service Traiteur
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/catering-equipment">
+              <Button variant="gold" size="sm">
+                Service Traiteur
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="primary" size="sm">
+                Espace Direction / Staff
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
