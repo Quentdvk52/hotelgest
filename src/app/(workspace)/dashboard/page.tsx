@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Hotel,
   DollarSign,
@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Building,
   TrendingUp,
+  TrendingDown,
   Bed,
   Wine,
   Calendar,
@@ -36,6 +37,10 @@ import {
   Eye,
   ImageIcon,
   ShieldAlert,
+  Activity,
+  Zap,
+  BarChart3,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   SEED_PROPERTIES,
@@ -138,16 +143,19 @@ export interface CashTransaction {
   category: string;
 }
 
-export default function PromoterDashboardPage() {
-  const [activeTab, setActiveTab] = useState<
-    "COCKPIT" | "CHAMBRES" | "CAVE" | "REPAS" | "LOCATION" | "TRAITEUR" | "PERSONNEL" | "TRESORERIE" | "CHARIOW"
-  >("COCKPIT");
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const currentView = (searchParams.get("view") || "cockpit").toLowerCase();
 
-  // Search filter
+  // Multi-Angle Filters for "Vue d'ensemble"
+  const [agencyAngle, setAgencyAngle] = useState<"ALL" | "BOH" | "ABM" | "ABC" | "ZOG">("ALL");
+  const [poleAngle, setPoleAngle] = useState<"ALL" | "ROOMS" | "FOOD" | "WINE" | "RENTAL" | "CATERING">("ALL");
+  const [timeframe, setTimeframe] = useState<"1D" | "7D" | "30D" | "1Y">("7D");
+  const [signalFilter, setSignalFilter] = useState<"ALL" | "VIP" | "CAVE" | "TRAITEUR" | "ALERTS">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
   // =========================================================================
-  // 1. STATE: CHAMBRES
+  // 1. DATA: CHAMBRES
   // =========================================================================
   const [rooms, setRooms] = useState<RoomRecord[]>([
     {
@@ -204,7 +212,6 @@ export default function PromoterDashboardPage() {
     },
   ]);
 
-  // Modal Room state
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<RoomRecord | null>(null);
   const [roomForm, setRoomForm] = useState<Partial<RoomRecord>>({
@@ -220,7 +227,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 2. STATE: CAVE A VIN
+  // 2. DATA: CAVE A VIN
   // =========================================================================
   const [wines, setWines] = useState<WineRecord[]>([
     {
@@ -297,7 +304,6 @@ export default function PromoterDashboardPage() {
     },
   ]);
 
-  // Modal Wine state
   const [wineModalOpen, setWineModalOpen] = useState(false);
   const [editingWine, setEditingWine] = useState<WineRecord | null>(null);
   const [wineForm, setWineForm] = useState<Partial<WineRecord>>({
@@ -313,7 +319,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 3. STATE: REPAS (RESTAURANT & ACCOMPAGNEMENTS)
+  // 3. DATA: REPAS
   // =========================================================================
   const [meals, setMeals] = useState<MealRecord[]>([
     {
@@ -373,7 +379,6 @@ export default function PromoterDashboardPage() {
     },
   ]);
 
-  // Modal Meal state
   const [mealModalOpen, setMealModalOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<MealRecord | null>(null);
   const [mealForm, setMealForm] = useState<Partial<MealRecord>>({
@@ -388,7 +393,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 4. STATE: LOCATION (VEHICULES & MATERIEL)
+  // 4. DATA: LOCATION
   // =========================================================================
   const [rentals, setRentals] = useState<RentalRecord[]>([
     {
@@ -448,7 +453,6 @@ export default function PromoterDashboardPage() {
     },
   ]);
 
-  // Modal Rental state
   const [rentalModalOpen, setRentalModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<RentalRecord | null>(null);
   const [rentalForm, setRentalForm] = useState<Partial<RentalRecord>>({
@@ -463,7 +467,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 5. STATE: SERVICE TRAITEUR
+  // 5. DATA: TRAITEUR
   // =========================================================================
   const [cateringFormulas, setCateringFormulas] = useState<CateringRecord[]>([
     {
@@ -495,7 +499,6 @@ export default function PromoterDashboardPage() {
     },
   ]);
 
-  // Modal Catering state
   const [cateringModalOpen, setCateringModalOpen] = useState(false);
   const [editingCatering, setEditingCatering] = useState<CateringRecord | null>(null);
   const [cateringForm, setCateringForm] = useState<Partial<CateringRecord>>({
@@ -508,7 +511,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 6. STATE: PERSONNEL & DROITS (20 COLLABORATEURS)
+  // 6. DATA: PERSONNEL (20 COMPTES)
   // =========================================================================
   const [staffList, setStaffList] = useState<StaffRecord[]>(
     SEED_USERS.map((u) => {
@@ -524,12 +527,11 @@ export default function PromoterDashboardPage() {
         maxDiscount: u.maxDiscount,
         phone: "+229 97 00 00 00",
         status: "ACTIF",
-        avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80`,
+        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
       };
     })
   );
 
-  // Modal Staff state
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffRecord | null>(null);
   const [staffForm, setStaffForm] = useState<Partial<StaffRecord>>({
@@ -546,7 +548,7 @@ export default function PromoterDashboardPage() {
   });
 
   // =========================================================================
-  // 7. STATE: TRESORERIE & COMPTES
+  // 7. DATA: TRESORERIE
   // =========================================================================
   const [treasuryAccounts, setTreasuryAccounts] = useState<TreasuryAccount[]>([
     {
@@ -606,19 +608,8 @@ export default function PromoterDashboardPage() {
       accountLabel: "Caisse Centrale",
       category: "Approvisionnement Cuisine",
     },
-    {
-      id: "tx-04",
-      date: "Hier, 18:00",
-      label: "Acompte Devis Traiteur Séminaire UAC (TRT-004)",
-      type: "ENTREE",
-      amountXof: 350000,
-      accountId: "acc-boa-01",
-      accountLabel: "BOA Bénin",
-      category: "Service Traiteur",
-    },
   ]);
 
-  // Modal Treasury state
   const [treasuryModalOpen, setTreasuryModalOpen] = useState(false);
   const [treasuryForm, setTreasuryForm] = useState({
     label: "",
@@ -628,594 +619,528 @@ export default function PromoterDashboardPage() {
     category: "Recette",
   });
 
-  // Calculate total treasury
   const totalTreasuryBalance = treasuryAccounts.reduce((acc, curr) => acc + curr.balanceXof, 0);
 
-  // =========================================================================
-  // HANDLERS: CHAMBRES CRUD
-  // =========================================================================
-  const handleOpenCreateRoom = () => {
-    setEditingRoom(null);
-    setRoomForm({
-      number: `${rooms.length + 101}`,
-      name: "Nouvelle Suite Supérieure",
-      propertyId: "prop-bohicon-001",
-      type: "SUPERIEURE",
-      basePriceXof: 45000,
-      capacity: 2,
-      amenities: ["Climatisation", "Wi-Fi Dédié", "Douche italienne"],
-      status: "DISPONIBLE",
-      imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-    });
-    setRoomModalOpen(true);
-  };
+  // Filtered lists for individual views
+  const filteredRooms = searchQuery
+    ? rooms.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()) || r.number.includes(searchQuery))
+    : rooms;
 
-  const handleOpenEditRoom = (room: RoomRecord) => {
-    setEditingRoom(room);
-    setRoomForm(room);
-    setRoomModalOpen(true);
-  };
+  const filteredWines = searchQuery
+    ? wines.filter((w) => w.name.toLowerCase().includes(searchQuery.toLowerCase()) || w.origin.toLowerCase().includes(searchQuery.toLowerCase()))
+    : wines;
 
-  const handleSaveRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    const prop = SEED_PROPERTIES.find((p) => p.id === roomForm.propertyId) || SEED_PROPERTIES[0];
-
-    if (editingRoom) {
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === editingRoom.id
-            ? ({
-                ...r,
-                ...roomForm,
-                propertyName: prop.name,
-              } as RoomRecord)
-            : r
-        )
-      );
-    } else {
-      const newRoom: RoomRecord = {
-        id: `rm-${Date.now()}`,
-        number: roomForm.number || "999",
-        name: roomForm.name || "Chambre Grand Confort",
-        propertyId: prop.id,
-        propertyName: prop.name,
-        type: (roomForm.type as any) || "STANDARD",
-        basePriceXof: Number(roomForm.basePriceXof) || 30000,
-        capacity: Number(roomForm.capacity) || 2,
-        amenities: roomForm.amenities || ["Climatisation", "Wi-Fi"],
-        status: (roomForm.status as any) || "DISPONIBLE",
-        imageUrl:
-          roomForm.imageUrl ||
-          "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-      };
-      setRooms((prev) => [newRoom, ...prev]);
-    }
-    setRoomModalOpen(false);
-  };
-
-  const handleDeleteRoom = (id: string) => {
-    if (confirm("Confirmez-vous la suppression définitive de cette chambre ?")) {
-      setRooms((prev) => prev.filter((r) => r.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: CAVE CRUD & REPLENISH
-  // =========================================================================
-  const handleOpenCreateWine = () => {
-    setEditingWine(null);
-    setWineForm({
-      name: "",
-      category: "ROUGE",
-      origin: "France / Terroir",
-      millesime: "2020",
-      priceXof: 35000,
-      stockBottles: 12,
-      minStockAlert: 5,
-      pairings: "Viandes braisées, fromages",
-      imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
-    });
-    setWineModalOpen(true);
-  };
-
-  const handleOpenEditWine = (wine: WineRecord) => {
-    setEditingWine(wine);
-    setWineForm(wine);
-    setWineModalOpen(true);
-  };
-
-  const handleSaveWine = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingWine) {
-      setWines((prev) =>
-        prev.map((w) =>
-          w.id === editingWine.id ? ({ ...w, ...wineForm } as WineRecord) : w
-        )
-      );
-    } else {
-      const newWine: WineRecord = {
-        id: `w-${Date.now()}`,
-        name: wineForm.name || "Nouveau Cru",
-        category: (wineForm.category as any) || "ROUGE",
-        origin: wineForm.origin || "Appellation Protégée",
-        millesime: wineForm.millesime || "NV",
-        priceXof: Number(wineForm.priceXof) || 25000,
-        stockBottles: Number(wineForm.stockBottles) || 10,
-        minStockAlert: Number(wineForm.minStockAlert) || 4,
-        pairings: wineForm.pairings || "Repas gastronomique",
-        imageUrl:
-          wineForm.imageUrl ||
-          "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
-      };
-      setWines((prev) => [newWine, ...prev]);
-    }
-    setWineModalOpen(false);
-  };
-
-  const handleReplenishWineStock = (id: string, delta: number) => {
-    setWines((prev) =>
-      prev.map((w) =>
-        w.id === id ? { ...w, stockBottles: Math.max(0, w.stockBottles + delta) } : w
-      )
-    );
-  };
-
-  const handleDeleteWine = (id: string) => {
-    if (confirm("Supprimer cette bouteille de la carte de la cave à vin ?")) {
-      setWines((prev) => prev.filter((w) => w.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: REPAS CRUD
-  // =========================================================================
-  const handleOpenCreateMeal = () => {
-    setEditingMeal(null);
-    setMealForm({
-      name: "",
-      category: "PLAT_TRADITIONNEL",
-      priceXof: 7500,
-      prepTimeMinutes: 20,
-      accompaniments: ["Alloco", "Piment frais", "Sauce tomate"],
-      description: "",
-      available: true,
-      imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80",
-    });
-    setMealModalOpen(true);
-  };
-
-  const handleOpenEditMeal = (meal: MealRecord) => {
-    setEditingMeal(meal);
-    setMealForm(meal);
-    setMealModalOpen(true);
-  };
-
-  const handleSaveMeal = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingMeal) {
-      setMeals((prev) =>
-        prev.map((m) =>
-          m.id === editingMeal.id ? ({ ...m, ...mealForm } as MealRecord) : m
-        )
-      );
-    } else {
-      const newMeal: MealRecord = {
-        id: `m-${Date.now()}`,
-        name: mealForm.name || "Nouveau Plat",
-        category: (mealForm.category as any) || "PLAT_TRADITIONNEL",
-        priceXof: Number(mealForm.priceXof) || 5000,
-        prepTimeMinutes: Number(mealForm.prepTimeMinutes) || 15,
-        accompaniments: mealForm.accompaniments || ["Alloco"],
-        description: mealForm.description || "Spécialité culinaire du terroir.",
-        available: true,
-        imageUrl:
-          mealForm.imageUrl ||
-          "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80",
-      };
-      setMeals((prev) => [newMeal, ...prev]);
-    }
-    setMealModalOpen(false);
-  };
-
-  const handleDeleteMeal = (id: string) => {
-    if (confirm("Supprimer ce plat de la carte du restaurant ?")) {
-      setMeals((prev) => prev.filter((m) => m.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: LOCATION CRUD
-  // =========================================================================
-  const handleOpenCreateRental = () => {
-    setEditingRental(null);
-    setRentalForm({
-      name: "",
-      type: "VEHICULE_VIP",
-      dailyPriceXof: 75000,
-      depositXof: 100000,
-      totalQuantity: 1,
-      availableQuantity: 1,
-      specs: "",
-      imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
-    });
-    setRentalModalOpen(true);
-  };
-
-  const handleOpenEditRental = (rental: RentalRecord) => {
-    setEditingRental(rental);
-    setRentalForm(rental);
-    setRentalModalOpen(true);
-  };
-
-  const handleSaveRental = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingRental) {
-      setRentals((prev) =>
-        prev.map((r) =>
-          r.id === editingRental.id ? ({ ...r, ...rentalForm } as RentalRecord) : r
-        )
-      );
-    } else {
-      const newRental: RentalRecord = {
-        id: `r-${Date.now()}`,
-        name: rentalForm.name || "Nouveau Véhicule ou Matériel",
-        type: (rentalForm.type as any) || "VEHICULE_VIP",
-        dailyPriceXof: Number(rentalForm.dailyPriceXof) || 50000,
-        depositXof: Number(rentalForm.depositXof) || 50000,
-        totalQuantity: Number(rentalForm.totalQuantity) || 1,
-        availableQuantity: Number(rentalForm.availableQuantity) || 1,
-        specs: rentalForm.specs || "Équipement haut standing",
-        imageUrl:
-          rentalForm.imageUrl ||
-          "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
-      };
-      setRentals((prev) => [newRental, ...prev]);
-    }
-    setRentalModalOpen(false);
-  };
-
-  const handleDeleteRental = (id: string) => {
-    if (confirm("Supprimer ce bien du catalogue de location ?")) {
-      setRentals((prev) => prev.filter((r) => r.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: TRAITEUR CRUD
-  // =========================================================================
-  const handleOpenCreateCatering = () => {
-    setEditingCatering(null);
-    setCateringForm({
-      name: "",
-      pricePerPersonXof: 15000,
-      minGuests: 30,
-      inclusions: ["Cocktail d'accueil", "Entrée", "Plat principal", "Dessert"],
-      serviceLevel: "Personnel en tenue, chauffe-plats et nappage inclus",
-      imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
-    });
-    setCateringModalOpen(true);
-  };
-
-  const handleOpenEditCatering = (cat: CateringRecord) => {
-    setEditingCatering(cat);
-    setCateringForm(cat);
-    setCateringModalOpen(true);
-  };
-
-  const handleSaveCatering = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingCatering) {
-      setCateringFormulas((prev) =>
-        prev.map((c) =>
-          c.id === editingCatering.id ? ({ ...c, ...cateringForm } as CateringRecord) : c
-        )
-      );
-    } else {
-      const newCat: CateringRecord = {
-        id: `cat-${Date.now()}`,
-        name: cateringForm.name || "Nouvelle Formule Traiteur",
-        pricePerPersonXof: Number(cateringForm.pricePerPersonXof) || 12000,
-        minGuests: Number(cateringForm.minGuests) || 25,
-        inclusions: cateringForm.inclusions || ["Buffet complet"],
-        serviceLevel: cateringForm.serviceLevel || "Clé en main",
-        imageUrl:
-          cateringForm.imageUrl ||
-          "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
-      };
-      setCateringFormulas((prev) => [newCat, ...prev]);
-    }
-    setCateringModalOpen(false);
-  };
-
-  const handleDeleteCatering = (id: string) => {
-    if (confirm("Supprimer cette formule du service traiteur ?")) {
-      setCateringFormulas((prev) => prev.filter((c) => c.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: PERSONNEL CRUD
-  // =========================================================================
-  const handleOpenCreateStaff = () => {
-    setEditingStaff(null);
-    setStaffForm({
-      fullName: "",
-      email: "",
-      roleName: "Réceptionniste",
-      roleCode: "RECEPTIONIST",
-      propertyName: "Hôtel Le Vignoble - Bohicon",
-      propertyId: "prop-bohicon-001",
-      maxDiscount: "10",
-      phone: "+229 97 00 00 00",
-      status: "ACTIF",
-      avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-    });
-    setStaffModalOpen(true);
-  };
-
-  const handleOpenEditStaff = (stf: StaffRecord) => {
-    setEditingStaff(stf);
-    setStaffForm(stf);
-    setStaffModalOpen(true);
-  };
-
-  const handleSaveStaff = (e: React.FormEvent) => {
-    e.preventDefault();
-    const prop = SEED_PROPERTIES.find((p) => p.id === staffForm.propertyId) || SEED_PROPERTIES[0];
-    if (editingStaff) {
-      setStaffList((prev) =>
-        prev.map((s) =>
-          s.id === editingStaff.id
-            ? ({
-                ...s,
-                ...staffForm,
-                propertyName: prop.name,
-              } as StaffRecord)
-            : s
-        )
-      );
-    } else {
-      const newStaff: StaffRecord = {
-        id: `stf-${Date.now()}`,
-        fullName: staffForm.fullName || "Nouveau Collaborateur",
-        email: staffForm.email || `collaborateur.${Date.now()}@hotel-levignoble.bj`,
-        roleName: staffForm.roleName || "Réceptionniste",
-        roleCode: staffForm.roleCode || "RECEPTIONIST",
-        propertyName: prop.name,
-        propertyId: prop.id,
-        maxDiscount: staffForm.maxDiscount || "10",
-        phone: staffForm.phone || "+229 97 00 00 00",
-        status: "ACTIF",
-        avatarUrl:
-          staffForm.avatarUrl ||
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-      };
-      setStaffList((prev) => [newStaff, ...prev]);
-    }
-    setStaffModalOpen(false);
-  };
-
-  const handleDeleteStaff = (id: string) => {
-    if (confirm("Enlever ce collaborateur de l'équipe et désactiver ses accès ?")) {
-      setStaffList((prev) => prev.filter((s) => s.id !== id));
-    }
-  };
-
-  // =========================================================================
-  // HANDLERS: TRESORERIE
-  // =========================================================================
-  const handleSaveTreasuryTransaction = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetAcc = treasuryAccounts.find((a) => a.id === treasuryForm.accountId) || treasuryAccounts[0];
-
-    const delta = treasuryForm.type === "ENTREE" ? treasuryForm.amountXof : -treasuryForm.amountXof;
-
-    // Update account balance
-    setTreasuryAccounts((prev) =>
-      prev.map((a) => (a.id === targetAcc.id ? { ...a, balanceXof: a.balanceXof + delta } : a))
-    );
-
-    // Add transaction to journal
-    const newTx: CashTransaction = {
-      id: `tx-${Date.now()}`,
-      date: "À l'instant",
-      label: treasuryForm.label || "Mouvement de trésorerie",
-      type: treasuryForm.type,
-      amountXof: treasuryForm.amountXof,
-      accountId: targetAcc.id,
-      accountLabel: targetAcc.label,
-      category: treasuryForm.category,
-    };
-
-    setCashTransactions((prev) => [newTx, ...prev]);
-    setTreasuryModalOpen(false);
-  };
+  const filteredMeals = searchQuery
+    ? meals.filter((m) => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : meals;
 
   return (
-    <div className="space-y-8 pb-16">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-stone-900 via-stone-950 to-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#184f28]/20 blur-3xl rounded-full pointer-events-none" />
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white p-2 shadow-xl shadow-black/40 border border-white/20 flex items-center justify-center flex-shrink-0">
-              <Image
-                src="/logo-vignoble-transparent.png"
-                alt="Logo Hôtel Le Vignoble"
-                width={56}
-                height={56}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs uppercase tracking-widest text-[#d4af37] font-bold">
-                  Direction Générale & Promoteur
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-[#184f28]/60 text-emerald-300 border border-[#184f28] text-[10px] font-bold uppercase">
-                  Multi-Sites Live
-                </span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-white">
-                Espace Exécutif du Promoteur
-              </h1>
-              <p className="text-xs text-stone-400 mt-1">
-                Gestion globale des 4 établissements • Bohicon • Abomey • Abomey-Calavi • Zogbodomey
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="bg-stone-900/90 border border-stone-800 rounded-2xl p-3 flex items-center gap-3 text-xs text-stone-300">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Trésorerie disponible :</span>
-              <span className="text-base font-extrabold text-[#d4af37]">
-                {totalTreasuryBalance.toLocaleString("fr-FR")} XOF
+    <div className="space-y-6">
+      {/* =========================================================================
+          VIEW 1: VUE D'ENSEMBLE (COCKPIT ANALYTIQUE COINTRAIL-GRADE)
+         ========================================================================= */}
+      {currentView === "cockpit" && (
+        <div className="space-y-6 text-stone-100">
+          {/* Top Multi-Angle Filter Bar (À la Cointrail) */}
+          <div className="bg-[#0b0f17] border border-[#1a2335] rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            {/* Angle 1: Établissement Scope */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 mr-1 flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-[#d4af37]" /> Établissement :
               </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Primary Navigation Tabs */}
-      <div className="flex overflow-x-auto gap-2 border-b border-stone-200 pb-2 scrollbar-none">
-        {[
-          { id: "COCKPIT", label: "Vue Globale", icon: TrendingUp },
-          { id: "CHAMBRES", label: "Chambres", icon: Bed, count: rooms.length },
-          { id: "CAVE", label: "Cave à Vin & Stocks", icon: Wine, count: wines.length },
-          { id: "REPAS", label: "Repas & Carte", icon: UtensilsCrossed, count: meals.length },
-          { id: "LOCATION", label: "Location", icon: Car, count: rentals.length },
-          { id: "TRAITEUR", label: "Service Traiteur", icon: Sparkles, count: cateringFormulas.length },
-          { id: "PERSONNEL", label: "Personnel", icon: Users, count: staffList.length },
-          { id: "TRESORERIE", label: "Trésorerie & Comptes", icon: Wallet },
-          { id: "CHARIOW", label: "Abonnement Logiciel", icon: ShieldCheck },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
-                isActive
-                  ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 scale-[1.02]"
-                  : "bg-white text-stone-600 hover:text-stone-900 hover:bg-stone-100 border border-stone-200/80"
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? "text-[#d4af37]" : "text-stone-400"}`} />
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    isActive ? "bg-white/20 text-white" : "bg-stone-100 text-stone-600"
+              {[
+                { id: "ALL", label: "Consolidé (4 Agences)" },
+                { id: "BOH", label: "Bohicon (Siège)" },
+                { id: "ABM", label: "Abomey (Cité)" },
+                { id: "ABC", label: "Abomey-Calavi" },
+                { id: "ZOG", label: "Zogbodomey" },
+              ].map((ag) => (
+                <button
+                  key={ag.id}
+                  onClick={() => setAgencyAngle(ag.id as any)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    agencyAngle === ag.id
+                      ? "bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/40 shadow-sm"
+                      : "bg-[#131926] text-stone-400 hover:text-white border border-[#1e273a]"
                   }`}
                 >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                  {ag.label}
+                </button>
+              ))}
+            </div>
 
-      {/* =========================================================================
-          TAB 1: COCKPIT (VUE GLOBALE DU GROUPE)
-         ========================================================================= */}
-      {activeTab === "COCKPIT" && (
-        <div className="space-y-8 animate-in fade-in duration-150">
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/80 shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
-                Occupation Totale
-              </span>
-              <div className="text-3xl font-black text-stone-900">78%</div>
-              <p className="text-xs text-stone-500 mt-1">39 chambres occupées sur 50</p>
-            </div>
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/80 shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
-                Réservations en Cours
-              </span>
-              <div className="text-3xl font-black text-blue-600">28 dossiers</div>
-              <p className="text-xs text-blue-600 font-medium mt-1">Arrivées prévues : +8 aujourd&apos;hui</p>
-            </div>
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/80 shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
-                Recettes Consolidées Jour
-              </span>
-              <div className="text-3xl font-black text-[#184f28]">1 555 000 XOF</div>
-              <p className="text-xs text-emerald-600 font-medium mt-1">KkiaPay + Caisse + BOA</p>
-            </div>
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/80 shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
-                Trésorerie Disponible
-              </span>
-              <div className="text-3xl font-black text-[#d4af37]">
-                {totalTreasuryBalance.toLocaleString("fr-FR")} XOF
+            {/* Angle 2 & 3: Pôles & Timeframe */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Pôle Selector */}
+              <div className="flex items-center gap-1.5 bg-[#131926] border border-[#1e273a] rounded-xl px-2.5 py-1 text-xs">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#d4af37]" />
+                <select
+                  value={poleAngle}
+                  onChange={(e) => setPoleAngle(e.target.value as any)}
+                  className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL" className="bg-[#0b0f17]">Tous les Flux & Pôles</option>
+                  <option value="ROOMS" className="bg-[#0b0f17]">Hébergement & Suites</option>
+                  <option value="FOOD" className="bg-[#0b0f17]">Restauration & Bar</option>
+                  <option value="WINE" className="bg-[#0b0f17]">Cave à Vins & Champagnes</option>
+                  <option value="RENTAL" className="bg-[#0b0f17]">Location Véhicules VIP</option>
+                  <option value="CATERING" className="bg-[#0b0f17]">Service Traiteur & Banquets</option>
+                </select>
               </div>
-              <p className="text-xs text-stone-500 mt-1">3 comptes réconciliés</p>
+
+              {/* Timeframe Toggles */}
+              <div className="bg-[#131926] border border-[#1e273a] p-1 rounded-xl flex items-center text-xs font-bold">
+                {[
+                  { id: "1D", label: "1J" },
+                  { id: "7D", label: "7J" },
+                  { id: "30D", label: "30J" },
+                  { id: "1Y", label: "1A" },
+                ].map((tf) => (
+                  <button
+                    key={tf.id}
+                    onClick={() => setTimeframe(tf.id as any)}
+                    className={`px-3 py-1 rounded-lg transition-all ${
+                      timeframe === tf.id
+                        ? "bg-[#10b981] text-stone-950 shadow-md font-black"
+                        : "text-stone-400 hover:text-white"
+                    }`}
+                  >
+                    {tf.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Quick Navigation Cards to Key Modules */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div
-              onClick={() => setActiveTab("CHAMBRES")}
-              className="bg-white rounded-3xl p-6 border border-stone-200/80 shadow-sm hover:border-[#184f28] transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-[#184f28]/10 text-[#184f28] flex items-center justify-center">
-                  <Bed className="w-5 h-5" />
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-stone-400 group-hover:text-[#184f28] transition-colors" />
+          {/* Stat Readouts (Trader-grade KPIs with sparklines & micro deltas) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPI 1: CA Consolidé */}
+            <div className="bg-[#0e131f] border border-[#1c2638] rounded-2xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                  Volume d&apos;Affaires Consolidé
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-[#10b981]/20 text-[#10b981] text-[10px] font-bold flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +18.4%
+                </span>
               </div>
-              <h3 className="font-bold text-stone-900 text-base mb-1">Gérer les Chambres</h3>
-              <p className="text-xs text-stone-500">
-                Créer, modifier les prix, ajouter des photos et suivre les états d&apos;occupation.
-              </p>
-              <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between text-xs font-semibold text-stone-700">
-                <span>{rooms.length} chambres configurées</span>
-                <span className="text-emerald-700">Photos HD incluses</span>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight">
+                4 850 000 <span className="text-xs text-stone-400 font-sans font-medium">XOF</span>
               </div>
-            </div>
-
-            <div
-              onClick={() => setActiveTab("CAVE")}
-              className="bg-white rounded-3xl p-6 border border-stone-200/80 shadow-sm hover:border-[#8c101c] transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-[#8c101c]/10 text-[#8c101c] flex items-center justify-center">
-                  <Wine className="w-5 h-5" />
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-stone-400 group-hover:text-[#8c101c] transition-colors" />
-              </div>
-              <h3 className="font-bold text-stone-900 text-base mb-1">Cave à Vin & Stocks</h3>
-              <p className="text-xs text-stone-500">
-                Suivre les niveaux de stock en temps réel, réapprovisionner et éditer les bouteilles.
-              </p>
-              <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between text-xs font-semibold text-stone-700">
-                <span>{wines.reduce((a, b) => a + b.stockBottles, 0)} bouteilles en stock</span>
-                <span className="text-[#8c101c]">Sommelerie</span>
+              <div className="text-[11px] text-stone-400 mt-2 flex items-center justify-between">
+                <span>RevPAR moyen : <strong className="text-white">38 500 XOF</strong></span>
+                <span className="text-[#10b981]">Record 2026</span>
               </div>
             </div>
 
-            <div
-              onClick={() => setActiveTab("REPAS")}
-              className="bg-white rounded-3xl p-6 border border-stone-200/80 shadow-sm hover:border-amber-600 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
-                  <UtensilsCrossed className="w-5 h-5" />
-                </div>
-                <ArrowUpRight className="w-4 h-4 text-stone-400 group-hover:text-amber-700 transition-colors" />
+            {/* KPI 2: Taux d'Occupation */}
+            <div className="bg-[#0e131f] border border-[#1c2638] rounded-2xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                  Taux d&apos;Occupation Global
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-[#10b981]/20 text-[#10b981] text-[10px] font-bold flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +5.2%
+                </span>
               </div>
-              <h3 className="font-bold text-stone-900 text-base mb-1">Repas & Accompagnements</h3>
-              <p className="text-xs text-stone-500">
-                Carte gastronomique du restaurant, créations des plats, prix et photos des mets.
-              </p>
-              <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between text-xs font-semibold text-stone-700">
-                <span>{meals.length} plats au menu</span>
-                <span className="text-amber-700">Cuisine & Terroir</span>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight">
+                78.2% <span className="text-xs text-stone-400 font-sans font-medium">(39/50 ch.)</span>
+              </div>
+              <div className="text-[11px] text-stone-400 mt-2 flex items-center justify-between">
+                <span>Dossiers actifs : <strong className="text-white">28 réservations</strong></span>
+                <span className="text-[#d4af37]">Fluide</span>
+              </div>
+            </div>
+
+            {/* KPI 3: Dépenses & Sorties */}
+            <div className="bg-[#0e131f] border border-[#1c2638] rounded-2xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                  Dépenses d&apos;Exploitation
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 text-[10px] font-bold flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3" /> -8.2%
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-red-400 tracking-tight">
+                1 920 000 <span className="text-xs text-stone-400 font-sans font-medium">XOF</span>
+              </div>
+              <div className="text-[11px] text-stone-400 mt-2 flex items-center justify-between">
+                <span>Marché vivres, gasoil, pressing</span>
+                <span className="text-stone-400">Maîtrisé</span>
+              </div>
+            </div>
+
+            {/* KPI 4: Marge Nette */}
+            <div className="bg-[#0e131f] border border-[#1c2638] rounded-2xl p-5 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
+                  Marge Nette d&apos;Exploitation
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-[#10b981]/20 text-[#10b981] text-[10px] font-bold">
+                  EBITDA +60.4%
+                </span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-black font-mono text-[#10b981] tracking-tight">
+                +2 930 000 <span className="text-xs text-stone-400 font-sans font-medium">XOF</span>
+              </div>
+              <div className="text-[11px] text-stone-400 mt-2 flex items-center justify-between">
+                <span>Trésorerie disponible :</span>
+                <strong className="text-[#d4af37] font-mono">{totalTreasuryBalance.toLocaleString("fr-FR")} XOF</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Main 2-Column Cointrail Layout: Wide Analytics Column (Left) + Right Rail */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* WIDE ANALYTICS COLUMN (2 COLS) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Main Composite Area Chart with Mint-Green Fill, Gold Trend Line & Volume Bars */}
+              <div className="bg-[#0e131f] border border-[#1c2638] rounded-3xl p-6 shadow-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-bold text-white">Courbe des Flux Financiers & Volumes</span>
+                      <span className="px-2 py-0.5 rounded-md bg-stone-800 text-[10px] font-mono text-stone-300">
+                        {agencyAngle === "ALL" ? "Consolidé Bénin" : `Site ${agencyAngle}`}
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-400 mt-0.5">
+                      Recettes directes (ligne menthe), cible RevPAR (courbe or) et barres de volume quotidiennes
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="flex items-center gap-1.5 font-semibold text-[#10b981]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" /> Recettes Réalisées
+                    </span>
+                    <span className="flex items-center gap-1.5 font-semibold text-[#d4af37]">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#d4af37]" /> Cible RevPAR
+                    </span>
+                    <span className="flex items-center gap-1.5 font-semibold text-red-400">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Pics de Charges
+                    </span>
+                  </div>
+                </div>
+
+                {/* SVG Area Chart with Volume Bars (Cointrail-Grade) */}
+                <div className="h-72 w-full pt-2">
+                  <svg viewBox="0 0 700 250" className="w-full h-full overflow-visible">
+                    <defs>
+                      <linearGradient id="cointrailMintGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                        <stop offset="70%" stopColor="#10b981" stopOpacity="0.05" />
+                        <stop offset="100%" stopColor="#0e131f" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Horizontal Grid */}
+                    <line x1="40" y1="30" x2="680" y2="30" stroke="#1c2638" strokeDasharray="3 3" />
+                    <line x1="40" y1="80" x2="680" y2="80" stroke="#1c2638" strokeDasharray="3 3" />
+                    <line x1="40" y1="130" x2="680" y2="130" stroke="#1c2638" strokeDasharray="3 3" />
+                    <line x1="40" y1="180" x2="680" y2="180" stroke="#1c2638" />
+
+                    {/* Y Axis text */}
+                    <text x="5" y="34" fill="#64748b" fontSize="10" fontFamily="monospace">2.5M</text>
+                    <text x="5" y="84" fill="#64748b" fontSize="10" fontFamily="monospace">1.8M</text>
+                    <text x="5" y="134" fill="#64748b" fontSize="10" fontFamily="monospace">1.0M</text>
+                    <text x="5" y="184" fill="#64748b" fontSize="10" fontFamily="monospace">0.2M</text>
+
+                    {/* Area polygon */}
+                    <polygon
+                      points="60,150 140,110 220,135 300,75 380,60 460,95 540,45 620,35 660,65 660,180 60,180"
+                      fill="url(#cointrailMintGrad)"
+                    />
+
+                    {/* Mint Green Line */}
+                    <polyline
+                      points="60,150 140,110 220,135 300,75 380,60 460,95 540,45 620,35 660,65"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Yellow/Gold Target Line (RevPAR Target) */}
+                    <polyline
+                      points="60,130 140,120 220,110 300,90 380,85 460,80 540,70 620,60 660,55"
+                      fill="none"
+                      stroke="#d4af37"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                    />
+
+                    {/* Red Loss / Peak Expense Marker Points */}
+                    <circle cx="220" cy="135" r="4.5" fill="#f43f5e" stroke="#0e131f" strokeWidth="2" />
+                    <circle cx="460" cy="95" r="4.5" fill="#f43f5e" stroke="#0e131f" strokeWidth="2" />
+
+                    {/* Volume bars below line 180 */}
+                    {[
+                      { x: 60, h: 25, label: "Lun", tx: "24" },
+                      { x: 140, h: 35, label: "Mar", tx: "38" },
+                      { x: 220, h: 30, label: "Mer", tx: "32" },
+                      { x: 300, h: 48, label: "Jeu", tx: "54" },
+                      { x: 380, h: 55, label: "Ven", tx: "68" },
+                      { x: 460, h: 40, label: "Sam", tx: "45" },
+                      { x: 540, h: 60, label: "Dim", tx: "72" },
+                      { x: 620, h: 62, label: "Auj", tx: "80" },
+                    ].map((vb, i) => (
+                      <g key={i}>
+                        {/* Sub-bar */}
+                        <rect
+                          x={vb.x - 12}
+                          y={240 - vb.h}
+                          width="24"
+                          height={vb.h}
+                          rx="3"
+                          fill="#1e293b"
+                          className="hover:fill-[#10b981] transition-colors cursor-pointer"
+                        />
+                        <text
+                          x={vb.x}
+                          y="248"
+                          textAnchor="middle"
+                          fill="#64748b"
+                          fontSize="9"
+                          fontFamily="monospace"
+                        >
+                          {vb.label}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-stone-400 pt-3 border-t border-[#1c2638] mt-2">
+                  <span className="font-mono text-[11px]">80 transactions directes validées aujourd&apos;hui</span>
+                  <span className="text-[#10b981] font-semibold">Tendance haussière confirmée (+18.4%)</span>
+                </div>
+              </div>
+
+              {/* Fund-Flow / Performance Bar Chart across the 4 Establishments */}
+              <div className="bg-[#0e131f] border border-[#1c2638] rounded-3xl p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-white text-base">
+                      Répartition des Flux & Performance par Établissement
+                    </h3>
+                    <p className="text-xs text-stone-400">
+                      Comparaison simultanée des 4 hôtels : Chiffre d&apos;affaires, occupation et chambres actives
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono text-[#d4af37] bg-stone-900 px-2.5 py-1 rounded-lg border border-stone-800">
+                    4 Sites Actifs
+                  </span>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  {[
+                    {
+                      code: "BOH",
+                      name: "Bohicon (Siège Opérationnel)",
+                      revenue: "1 850 000 XOF",
+                      pct: 83,
+                      occupied: "15/18 ch.",
+                      color: "bg-[#10b981]",
+                    },
+                    {
+                      code: "ABM",
+                      name: "Abomey (Cité Royale)",
+                      revenue: "1 120 000 XOF",
+                      pct: 75,
+                      occupied: "9/12 ch.",
+                      color: "bg-[#d4af37]",
+                    },
+                    {
+                      code: "ABC",
+                      name: "Abomey-Calavi (Akassato)",
+                      revenue: "1 280 000 XOF",
+                      pct: 83,
+                      occupied: "10/12 ch.",
+                      color: "bg-blue-500",
+                    },
+                    {
+                      code: "ZOG",
+                      name: "Zogbodomey (Relais)",
+                      revenue: "600 000 XOF",
+                      pct: 63,
+                      occupied: "5/8 ch.",
+                      color: "bg-purple-500",
+                    },
+                  ].map((item, idx) => (
+                    <div key={idx} className="space-y-1.5 p-3 rounded-2xl bg-[#090d14] border border-[#1a2335]">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-200 text-[10px] font-mono font-bold">
+                            {item.code}
+                          </span>
+                          <span className="font-bold text-white">{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-stone-400">{item.occupied}</span>
+                          <span className="font-bold text-[#10b981]">{item.revenue}</span>
+                          <span className="font-bold text-white bg-stone-800 px-2 py-0.5 rounded text-[10px]">
+                            {item.pct}% occ.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-[#1c2638] h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${item.color} rounded-full transition-all duration-500`}
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT RAIL (1 COL) — Live VIP Signal Feed & Economic Calendar */}
+            <div className="space-y-6">
+              {/* Whale Signals / Live Operations Feed */}
+              <div className="bg-[#0e131f] border border-[#1c2638] rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-[#d4af37]" />
+                    <span className="font-bold text-white text-sm">Flux VIP & Signaux Critiques</span>
+                  </div>
+                  <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping" />
+                </div>
+
+                {/* Filter Chips */}
+                <div className="flex flex-wrap gap-1.5 text-[10px]">
+                  {[
+                    { id: "ALL", label: "Tous" },
+                    { id: "VIP", label: "Suites VIP" },
+                    { id: "CAVE", label: "Cave à Vin" },
+                    { id: "TRAITEUR", label: "Traiteur" },
+                    { id: "ALERTS", label: "Alertes" },
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      onClick={() => setSignalFilter(chip.id as any)}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                        signalFilter === chip.id
+                          ? "bg-[#10b981] text-stone-950"
+                          : "bg-[#131926] text-stone-400 hover:text-white border border-[#1e273a]"
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feed Items */}
+                <div className="space-y-3 pt-1 text-xs">
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                        CHECK-IN VIP
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-mono">14:32</span>
+                    </div>
+                    <div className="font-bold text-white">M. Mathieu Dossou • Suite Royale</div>
+                    <div className="text-[11px] text-stone-400">Bohicon (Ch. 101) • 85 000 XOF réglé KkiaPay</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-[#d4af37]/20 text-[#d4af37] text-[10px] font-bold">
+                        COMMANDE CAVE
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-mono">13:10</span>
+                    </div>
+                    <div className="font-bold text-white">2x Dom Pérignon Vintage 2013</div>
+                    <div className="text-[11px] text-stone-400">Total : 420 000 XOF • Sommelier Bohicon</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px] font-bold">
+                        DEVIS TRAITEUR
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-mono">11:45</span>
+                    </div>
+                    <div className="font-bold text-white">Banquet Royal d&apos;Abomey 80 pers.</div>
+                    <div className="text-[11px] text-stone-400">Acompte 350 000 XOF encaissé BOA Bénin</div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-red-900/40 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[10px] font-bold">
+                        ALERTE STOCK
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-mono">09:15</span>
+                    </div>
+                    <div className="font-bold text-white">Chablis Premier Cru sous le seuil</div>
+                    <div className="text-[11px] text-stone-400">3 bouteilles restantes à Abomey (Seuil: 5)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Economic Operational Calendar List (Cointrail-Grade) */}
+              <div className="bg-[#0e131f] border border-[#1c2638] rounded-3xl p-5 shadow-2xl space-y-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#10b981]" />
+                  <span className="font-bold text-white text-sm">Calendrier Opérationnel du Domaine</span>
+                </div>
+
+                <div className="space-y-2.5 text-xs">
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white">Clôture Journalière (Night Audit)</div>
+                      <div className="text-[11px] text-stone-400">Automatisation SYSCOHADA</div>
+                    </div>
+                    <span className="px-2 py-1 rounded-lg bg-stone-800 text-stone-300 font-mono text-[10px] font-bold">
+                      23h30
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white">Arrivée Délégation UAC</div>
+                      <div className="text-[11px] text-stone-400">6 Suites à Abomey-Calavi</div>
+                    </div>
+                    <span className="px-2 py-1 rounded-lg bg-stone-800 text-stone-300 font-mono text-[10px] font-bold">
+                      Demain
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-[#090d14] border border-[#1c2638] flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-white">Réception Gala 150 convives</div>
+                      <div className="text-[11px] text-stone-400">Buffet Terroir & Chaises Napoléon</div>
+                    </div>
+                    <span className="px-2 py-1 rounded-lg bg-[#d4af37]/20 text-[#d4af37] font-mono text-[10px] font-bold">
+                      Samedi
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fast Treasury Card */}
+              <div className="bg-gradient-to-br from-[#0e131f] to-[#121c2d] border border-[#1c2638] rounded-3xl p-5 shadow-2xl space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                  Avoirs Liquides Consolidés
+                </span>
+                <div className="text-2xl font-black font-mono text-[#d4af37]">
+                  {totalTreasuryBalance.toLocaleString("fr-FR")} XOF
+                </div>
+                <div className="text-xs text-stone-400 space-y-1 pt-2 border-t border-[#1c2638]">
+                  <div className="flex justify-between">
+                    <span>BOA Bénin :</span>
+                    <span className="font-mono text-white">8 450 000 XOF</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Caisse Centrale :</span>
+                    <span className="font-mono text-white">1 250 000 XOF</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>KkiaPay Mobile Money :</span>
+                    <span className="font-mono text-[#10b981]">2 750 000 XOF</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1223,9 +1148,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 2: CHAMBRES (CRUD COMPLET AVEC PHOTOS & PRIX)
+          VIEW 2: CHAMBRES (CRUD COMPLET AVEC PHOTOS & PRIX)
          ========================================================================= */}
-      {activeTab === "CHAMBRES" && (
+      {currentView === "chambres" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1237,7 +1162,21 @@ export default function PromoterDashboardPage() {
               </p>
             </div>
             <button
-              onClick={handleOpenCreateRoom}
+              onClick={() => {
+                setEditingRoom(null);
+                setRoomForm({
+                  number: `${rooms.length + 101}`,
+                  name: "Nouvelle Suite",
+                  propertyId: "prop-bohicon-001",
+                  type: "SUPERIEURE",
+                  basePriceXof: 45000,
+                  capacity: 2,
+                  amenities: ["Climatisation", "Wi-Fi Dédié"],
+                  status: "DISPONIBLE",
+                  imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+                });
+                setRoomModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1245,22 +1184,33 @@ export default function PromoterDashboardPage() {
             </button>
           </div>
 
+          {/* Search bar */}
+          <div className="relative max-w-sm">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              placeholder="Rechercher une chambre par nom ou numéro..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-[#184f28]"
+            />
+          </div>
+
           {/* Grid of Rooms with Photo */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <div
                 key={room.id}
                 className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:border-[#184f28] transition-all group"
               >
                 <div>
-                  {/* Room Photo with Badge */}
                   <div className="relative h-48 w-full bg-stone-100 overflow-hidden">
                     <img
                       src={room.imageUrl}
                       alt={room.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3 left-3 flex items-center gap-2">
+                    <div className="absolute top-3 left-3">
                       <span className="px-2.5 py-1 rounded-full bg-stone-900/80 backdrop-blur-md text-white text-[11px] font-bold">
                         Chambre N° {room.number}
                       </span>
@@ -1280,7 +1230,6 @@ export default function PromoterDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Room Details */}
                   <div className="p-5 space-y-3">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-stone-400 block">
@@ -1309,17 +1258,24 @@ export default function PromoterDashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => handleOpenEditRoom(room)}
+                    onClick={() => {
+                      setEditingRoom(room);
+                      setRoomForm(room);
+                      setRoomModalOpen(true);
+                    }}
                     className="flex-1 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Modifier</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteRoom(room.id)}
+                    onClick={() => {
+                      if (confirm("Supprimer cette chambre ?")) {
+                        setRooms((prev) => prev.filter((r) => r.id !== room.id));
+                      }
+                    }}
                     className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
                     title="Supprimer la chambre"
                   >
@@ -1333,9 +1289,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 3: CAVE A VIN & STOCKS (AVEC AJOUT STOCKS, PRIX & PHOTOS)
+          VIEW 3: CAVE A VIN & STOCKS
          ========================================================================= */}
-      {activeTab === "CAVE" && (
+      {currentView === "cave" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1343,11 +1299,25 @@ export default function PromoterDashboardPage() {
                 Cave à Vin, Champagnes & Gestion des Stocks ({wines.length} Références)
               </h2>
               <p className="text-xs text-stone-500">
-                Consultez les stocks en temps réel, ajoutez des bouteilles, réapprovisionnez et éditez les photos.
+                Consultez les stocks en direct, réapprovisionnez en un clic (+6, +12, +24) et ajoutez de nouvelles bouteilles avec photos.
               </p>
             </div>
             <button
-              onClick={handleOpenCreateWine}
+              onClick={() => {
+                setEditingWine(null);
+                setWineForm({
+                  name: "",
+                  category: "ROUGE",
+                  origin: "France / Terroir",
+                  millesime: "2020",
+                  priceXof: 35000,
+                  stockBottles: 12,
+                  minStockAlert: 5,
+                  pairings: "Viandes braisées, fromages",
+                  imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
+                });
+                setWineModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#8c101c] hover:bg-[#6e0d16] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1355,15 +1325,13 @@ export default function PromoterDashboardPage() {
             </button>
           </div>
 
-          {/* Wine Items Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {wines.map((wine) => (
+            {filteredWines.map((wine) => (
               <div
                 key={wine.id}
                 className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:border-[#8c101c] transition-all group"
               >
                 <div>
-                  {/* Photo */}
                   <div className="relative h-48 w-full bg-stone-100 overflow-hidden">
                     <img
                       src={wine.imageUrl}
@@ -1388,7 +1356,6 @@ export default function PromoterDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Wine details */}
                   <div className="p-5 space-y-3">
                     <div>
                       <div className="flex items-center justify-between text-[11px] text-stone-400">
@@ -1411,42 +1378,46 @@ export default function PromoterDashboardPage() {
                   </div>
                 </div>
 
-                {/* Stock replenisher & actions */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 space-y-2">
                   <div className="flex items-center justify-between text-xs font-semibold text-stone-700">
                     <span>Réapprovisionner Stock :</span>
                     <div className="flex gap-1.5">
-                      <button
-                        onClick={() => handleReplenishWineStock(wine.id, 6)}
-                        className="px-2 py-1 rounded-lg bg-white border border-stone-200 text-stone-800 text-[11px] hover:bg-[#8c101c] hover:text-white transition-colors"
-                      >
-                        +6
-                      </button>
-                      <button
-                        onClick={() => handleReplenishWineStock(wine.id, 12)}
-                        className="px-2 py-1 rounded-lg bg-white border border-stone-200 text-stone-800 text-[11px] hover:bg-[#8c101c] hover:text-white transition-colors"
-                      >
-                        +12
-                      </button>
-                      <button
-                        onClick={() => handleReplenishWineStock(wine.id, 24)}
-                        className="px-2 py-1 rounded-lg bg-white border border-stone-200 text-stone-800 text-[11px] hover:bg-[#8c101c] hover:text-white transition-colors"
-                      >
-                        +24
-                      </button>
+                      {[6, 12, 24].map((delta) => (
+                        <button
+                          key={delta}
+                          onClick={() => {
+                            setWines((prev) =>
+                              prev.map((w) =>
+                                w.id === wine.id ? { ...w, stockBottles: w.stockBottles + delta } : w
+                              )
+                            );
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white border border-stone-200 text-stone-800 text-[11px] hover:bg-[#8c101c] hover:text-white transition-colors"
+                        >
+                          +{delta}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-200/60">
                     <button
-                      onClick={() => handleOpenEditWine(wine)}
+                      onClick={() => {
+                        setEditingWine(wine);
+                        setWineForm(wine);
+                        setWineModalOpen(true);
+                      }}
                       className="flex-1 py-1.5 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Modifier</span>
                     </button>
                     <button
-                      onClick={() => handleDeleteWine(wine.id)}
+                      onClick={() => {
+                        if (confirm("Supprimer cette bouteille ?")) {
+                          setWines((prev) => prev.filter((w) => w.id !== wine.id));
+                        }
+                      }}
                       className="p-1.5 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
                       title="Supprimer le produit"
                     >
@@ -1461,9 +1432,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 4: REPAS & ACCOMPAGNEMENTS (AVEC PLATS, PRIX & PHOTOS)
+          VIEW 4: REPAS & CARTE
          ========================================================================= */}
-      {activeTab === "REPAS" && (
+      {currentView === "repas" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1471,11 +1442,24 @@ export default function PromoterDashboardPage() {
                 Carte du Restaurant & Accompagnements ({meals.length} Mets)
               </h2>
               <p className="text-xs text-stone-500">
-                Créez les plats traditionnels, les accompagnements (Amiwo, Djenkoumé, Alloco...), fixez les prix et photos.
+                Créez les plats traditionnels béninois, les accompagnements (Amiwo, Djenkoumé, Alloco...), fixez les prix et photos.
               </p>
             </div>
             <button
-              onClick={handleOpenCreateMeal}
+              onClick={() => {
+                setEditingMeal(null);
+                setMealForm({
+                  name: "",
+                  category: "PLAT_TRADITIONNEL",
+                  priceXof: 7500,
+                  prepTimeMinutes: 20,
+                  accompaniments: ["Alloco", "Piment frais"],
+                  description: "",
+                  available: true,
+                  imageUrl: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80",
+                });
+                setMealModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1483,15 +1467,13 @@ export default function PromoterDashboardPage() {
             </button>
           </div>
 
-          {/* Meals Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {meals.map((meal) => (
+            {filteredMeals.map((meal) => (
               <div
                 key={meal.id}
                 className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:border-amber-600 transition-all group"
               >
                 <div>
-                  {/* Meal Photo */}
                   <div className="relative h-48 w-full bg-stone-100 overflow-hidden">
                     <img
                       src={meal.imageUrl}
@@ -1509,7 +1491,6 @@ export default function PromoterDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Meal Details */}
                   <div className="p-5 space-y-3">
                     <h4 className="text-base font-bold text-stone-900">{meal.name}</h4>
                     <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">
@@ -1525,7 +1506,7 @@ export default function PromoterDashboardPage() {
 
                     <div className="pt-2 border-t border-stone-100">
                       <span className="text-[10px] font-bold uppercase text-stone-400 block mb-1">
-                        Accompagnements inclus / suggérés :
+                        Accompagnements :
                       </span>
                       <div className="flex flex-wrap gap-1">
                         {meal.accompaniments.map((acc, i) => (
@@ -1541,17 +1522,24 @@ export default function PromoterDashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => handleOpenEditMeal(meal)}
+                    onClick={() => {
+                      setEditingMeal(meal);
+                      setMealForm(meal);
+                      setMealModalOpen(true);
+                    }}
                     className="flex-1 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Modifier Plat</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteMeal(meal.id)}
+                    onClick={() => {
+                      if (confirm("Supprimer ce plat ?")) {
+                        setMeals((prev) => prev.filter((m) => m.id !== meal.id));
+                      }
+                    }}
                     className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
                     title="Supprimer le plat"
                   >
@@ -1565,9 +1553,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 5: LOCATION (VEHICULES VIP & MATERIEL AVEC PHOTOS)
+          VIEW 5: LOCATION (VEHICULES & MATERIEL)
          ========================================================================= */}
-      {activeTab === "LOCATION" && (
+      {currentView === "location" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1575,11 +1563,24 @@ export default function PromoterDashboardPage() {
                 Location de Véhicules VIP & Matériel Événementiel ({rentals.length})
               </h2>
               <p className="text-xs text-stone-500">
-                Gérez la flotte de véhicules de prestige avec chauffeur, les tentes et le mobilier événementiel.
+                Gérez la flotte de véhicules de prestige avec chauffeur, les chapiteaux et le mobilier événementiel avec photos.
               </p>
             </div>
             <button
-              onClick={handleOpenCreateRental}
+              onClick={() => {
+                setEditingRental(null);
+                setRentalForm({
+                  name: "",
+                  type: "VEHICULE_VIP",
+                  dailyPriceXof: 75000,
+                  depositXof: 100000,
+                  totalQuantity: 1,
+                  availableQuantity: 1,
+                  specs: "",
+                  imageUrl: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
+                });
+                setRentalModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1587,7 +1588,6 @@ export default function PromoterDashboardPage() {
             </button>
           </div>
 
-          {/* Rentals Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rentals.map((rental) => (
               <div
@@ -1595,7 +1595,6 @@ export default function PromoterDashboardPage() {
                 className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:border-blue-600 transition-all group"
               >
                 <div>
-                  {/* Photo */}
                   <div className="relative h-48 w-full bg-stone-100 overflow-hidden">
                     <img
                       src={rental.imageUrl}
@@ -1614,7 +1613,6 @@ export default function PromoterDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Details */}
                   <div className="p-5 space-y-3">
                     <h4 className="text-base font-bold text-stone-900">{rental.name}</h4>
                     <p className="text-xs text-stone-500 line-clamp-2">{rental.specs}</p>
@@ -1635,17 +1633,24 @@ export default function PromoterDashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => handleOpenEditRental(rental)}
+                    onClick={() => {
+                      setEditingRental(rental);
+                      setRentalForm(rental);
+                      setRentalModalOpen(true);
+                    }}
                     className="flex-1 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Modifier</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteRental(rental.id)}
+                    onClick={() => {
+                      if (confirm("Supprimer cette location ?")) {
+                        setRentals((prev) => prev.filter((r) => r.id !== rental.id));
+                      }
+                    }}
                     className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
                     title="Supprimer la location"
                   >
@@ -1659,9 +1664,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 6: SERVICE TRAITEUR (FORMULES, PRIX PAR PERSONNE & PHOTOS)
+          VIEW 6: TRAITEUR
          ========================================================================= */}
-      {activeTab === "TRAITEUR" && (
+      {currentView === "traiteur" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1669,11 +1674,22 @@ export default function PromoterDashboardPage() {
                 Service Traiteur & Banquets Clé en Main ({cateringFormulas.length})
               </h2>
               <p className="text-xs text-stone-500">
-                Configurez les forfaits de réceptions, mariages et galas avec prix par personne et photos.
+                Configurez les forfaits de banquets, mariages et galas avec prix par personne et photos.
               </p>
             </div>
             <button
-              onClick={handleOpenCreateCatering}
+              onClick={() => {
+                setEditingCatering(null);
+                setCateringForm({
+                  name: "",
+                  pricePerPersonXof: 15000,
+                  minGuests: 30,
+                  inclusions: ["Cocktail d'accueil", "Entrée", "Plat principal", "Dessert"],
+                  serviceLevel: "Personnel en tenue, chauffe-plats et nappage inclus",
+                  imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
+                });
+                setCateringModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1681,7 +1697,6 @@ export default function PromoterDashboardPage() {
             </button>
           </div>
 
-          {/* Catering Formulas Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cateringFormulas.map((cat) => (
               <div
@@ -1689,7 +1704,6 @@ export default function PromoterDashboardPage() {
                 className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:border-purple-600 transition-all group"
               >
                 <div>
-                  {/* Photo */}
                   <div className="relative h-48 w-full bg-stone-100 overflow-hidden">
                     <img
                       src={cat.imageUrl}
@@ -1703,7 +1717,6 @@ export default function PromoterDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Details */}
                   <div className="p-5 space-y-3">
                     <h4 className="text-base font-bold text-stone-900">{cat.name}</h4>
                     <p className="text-xs text-stone-500">{cat.serviceLevel}</p>
@@ -1731,17 +1744,24 @@ export default function PromoterDashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
                   <button
-                    onClick={() => handleOpenEditCatering(cat)}
+                    onClick={() => {
+                      setEditingCatering(cat);
+                      setCateringForm(cat);
+                      setCateringModalOpen(true);
+                    }}
                     className="flex-1 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                     <span>Modifier</span>
                   </button>
                   <button
-                    onClick={() => handleDeleteCatering(cat.id)}
+                    onClick={() => {
+                      if (confirm("Supprimer cette formule ?")) {
+                        setCateringFormulas((prev) => prev.filter((c) => c.id !== cat.id));
+                      }
+                    }}
                     className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
                     title="Supprimer la formule"
                   >
@@ -1755,9 +1775,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 7: PERSONNEL (GESTION DES 20 COMPTES & ATTRIBUTIONS)
+          VIEW 7: PERSONNEL (20 COMPTES)
          ========================================================================= */}
-      {activeTab === "PERSONNEL" && (
+      {currentView === "personnel" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1765,11 +1785,26 @@ export default function PromoterDashboardPage() {
                 Gestion des Collaborateurs & Accès RBAC ({staffList.length} Comptes)
               </h2>
               <p className="text-xs text-stone-500">
-                Ajoutez un collaborateur, modifiez son agence ou son rôle, gérez ses plafonds de remise et désactivez des accès.
+                Ajoutez un collaborateur, modifiez son agence ou son rôle, gérez ses remises et enlevez des accès.
               </p>
             </div>
             <button
-              onClick={handleOpenCreateStaff}
+              onClick={() => {
+                setEditingStaff(null);
+                setStaffForm({
+                  fullName: "",
+                  email: "",
+                  roleName: "Réceptionniste",
+                  roleCode: "RECEPTIONIST",
+                  propertyName: "Hôtel Le Vignoble - Bohicon",
+                  propertyId: "prop-bohicon-001",
+                  maxDiscount: "10",
+                  phone: "+229 97 00 00 00",
+                  status: "ACTIF",
+                  avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+                });
+                setStaffModalOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
@@ -1825,13 +1860,21 @@ export default function PromoterDashboardPage() {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => handleOpenEditStaff(stf)}
+                            onClick={() => {
+                              setEditingStaff(stf);
+                              setStaffForm(stf);
+                              setStaffModalOpen(true);
+                            }}
                             className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition-colors"
                           >
                             Modifier
                           </button>
                           <button
-                            onClick={() => handleDeleteStaff(stf.id)}
+                            onClick={() => {
+                              if (confirm("Enlever ce collaborateur et révoquer ses accès ?")) {
+                                setStaffList((prev) => prev.filter((s) => s.id !== stf.id));
+                              }
+                            }}
                             className="p-1 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
                             title="Enlever le collaborateur"
                           >
@@ -1849,9 +1892,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 8: TRESORERIE & COMPTES (SITUATION FINANCIERE EN DIRECT)
+          VIEW 8: TRESORERIE & COMPTES
          ========================================================================= */}
-      {activeTab === "TRESORERIE" && (
+      {currentView === "tresorerie" && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1859,7 +1902,7 @@ export default function PromoterDashboardPage() {
                 Situation des Comptes & Trésorerie
               </h2>
               <p className="text-xs text-stone-500">
-                Suivi consolidé des avoirs bancaires, caisses physiques et soldes agrégateurs Mobile Money.
+                Suivi consolidé des avoirs bancaires (BOA), caisses physiques et soldes agrégateurs Mobile Money (KkiaPay).
               </p>
             </div>
             <button
@@ -1867,11 +1910,10 @@ export default function PromoterDashboardPage() {
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Enregistrer un Mouvement de Caisse</span>
+              <span>Enregistrer une Opération de Caisse</span>
             </button>
           </div>
 
-          {/* Account Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {treasuryAccounts.map((acc) => (
               <div
@@ -1897,7 +1939,6 @@ export default function PromoterDashboardPage() {
             ))}
           </div>
 
-          {/* Recent Cashflow Transactions Table */}
           <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 space-y-4">
             <h3 className="text-base font-bold text-stone-900">
               Journal Récent des Flux Financiers
@@ -1945,9 +1986,9 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          TAB 9: ABONNEMENT LOGICIEL (CHARIOW)
+          VIEW 9: ABONNEMENT LOGICIEL (CHARIOW)
          ========================================================================= */}
-      {activeTab === "CHARIOW" && (
+      {currentView === "abonnement" && (
         <div className="max-w-2xl mx-auto bg-stone-900 text-white rounded-3xl border border-stone-800 p-6 sm:p-8 space-y-6 animate-in fade-in duration-150">
           <div className="flex items-center justify-between border-b border-stone-800 pb-4">
             <div className="flex items-center gap-3">
@@ -1995,10 +2036,10 @@ export default function PromoterDashboardPage() {
       )}
 
       {/* =========================================================================
-          MODALS DE CRÉATION & MODIFICATION (AVEC PHOTOS)
+          SHARED MODALS (CHAMBRE, CAVE, REPAS, LOCATION, TRAITEUR, STAFF, TRESORERIE)
          ========================================================================= */}
 
-      {/* 1. MODAL CHAMBRE */}
+      {/* MODAL CHAMBRE */}
       {roomModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
@@ -2006,20 +2047,44 @@ export default function PromoterDashboardPage() {
               <h3 className="text-lg font-bold text-stone-900">
                 {editingRoom ? "Modifier la Chambre" : "Ajouter une Nouvelle Chambre"}
               </h3>
-              <button
-                onClick={() => setRoomModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setRoomModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveRoom} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === roomForm.propertyId) || SEED_PROPERTIES[0];
+                if (editingRoom) {
+                  setRooms((prev) =>
+                    prev.map((r) =>
+                      r.id === editingRoom.id ? ({ ...r, ...roomForm, propertyName: prop.name } as RoomRecord) : r
+                    )
+                  );
+                } else {
+                  const newRoom: RoomRecord = {
+                    id: `rm-${Date.now()}`,
+                    number: roomForm.number || "999",
+                    name: roomForm.name || "Chambre Grand Confort",
+                    propertyId: prop.id,
+                    propertyName: prop.name,
+                    type: (roomForm.type as any) || "STANDARD",
+                    basePriceXof: Number(roomForm.basePriceXof) || 30000,
+                    capacity: Number(roomForm.capacity) || 2,
+                    amenities: roomForm.amenities || ["Climatisation", "Wi-Fi"],
+                    status: (roomForm.status as any) || "DISPONIBLE",
+                    imageUrl: roomForm.imageUrl || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+                  };
+                  setRooms((prev) => [newRoom, ...prev]);
+                }
+                setRoomModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Numéro de Chambre
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Numéro de Chambre</label>
                   <input
                     type="text"
                     required
@@ -2029,27 +2094,21 @@ export default function PromoterDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Établissement
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Établissement</label>
                   <select
                     value={roomForm.propertyId}
                     onChange={(e) => setRoomForm({ ...roomForm, propertyId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-xl bg-white"
                   >
                     {SEED_PROPERTIES.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Nom commercial de la chambre
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Nom commercial</label>
                 <input
                   type="text"
                   required
@@ -2062,9 +2121,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Prix par nuit (XOF)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Prix par nuit (XOF)</label>
                   <input
                     type="number"
                     required
@@ -2074,9 +2131,7 @@ export default function PromoterDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Capacité (personnes)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Capacité (personnes)</label>
                   <input
                     type="number"
                     min="1"
@@ -2088,15 +2143,8 @@ export default function PromoterDashboardPage() {
                 </div>
               </div>
 
-              {/* Photo Input & Live Preview */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-stone-500" />
-                    <span>URL de la Photo HD</span>
-                  </span>
-                  <span className="text-[10px] text-stone-400">Aperçu en direct</span>
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo HD (URL avec prévisualisation)</label>
                 <input
                   type="url"
                   required
@@ -2105,14 +2153,9 @@ export default function PromoterDashboardPage() {
                   placeholder="https://..."
                   className="w-full px-3 py-2 border rounded-xl"
                 />
-
                 {roomForm.imageUrl && (
-                  <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50 relative">
-                    <img
-                      src={roomForm.imageUrl}
-                      alt="Aperçu chambre"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
+                    <img src={roomForm.imageUrl} alt="Aperçu" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -2137,27 +2180,47 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 2. MODAL CAVE A VIN */}
+      {/* MODAL CAVE */}
       {wineModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
               <h3 className="text-lg font-bold text-stone-900">
-                {editingWine ? "Modifier le Vin / Boisson" : "Ajouter un Cru à la Cave"}
+                {editingWine ? "Modifier la Bouteille" : "Ajouter un Cru à la Cave"}
               </h3>
-              <button
-                onClick={() => setWineModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setWineModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveWine} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingWine) {
+                  setWines((prev) =>
+                    prev.map((w) => (w.id === editingWine.id ? ({ ...w, ...wineForm } as WineRecord) : w))
+                  );
+                } else {
+                  const newWine: WineRecord = {
+                    id: `w-${Date.now()}`,
+                    name: wineForm.name || "Nouveau Cru",
+                    category: (wineForm.category as any) || "ROUGE",
+                    origin: wineForm.origin || "Appellation Protégée",
+                    millesime: wineForm.millesime || "NV",
+                    priceXof: Number(wineForm.priceXof) || 25000,
+                    stockBottles: Number(wineForm.stockBottles) || 10,
+                    minStockAlert: Number(wineForm.minStockAlert) || 4,
+                    pairings: wineForm.pairings || "Repas gastronomique",
+                    imageUrl: wineForm.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
+                  };
+                  setWines((prev) => [newWine, ...prev]);
+                }
+                setWineModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Nom de la bouteille / cru
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Nom du Cru / Bouteille</label>
                 <input
                   type="text"
                   required
@@ -2170,9 +2233,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Catégorie
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Catégorie</label>
                   <select
                     value={wineForm.category}
                     onChange={(e) => setWineForm({ ...wineForm, category: e.target.value as any })}
@@ -2186,14 +2247,11 @@ export default function PromoterDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Millésime
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Millésime</label>
                   <input
                     type="text"
                     value={wineForm.millesime}
                     onChange={(e) => setWineForm({ ...wineForm, millesime: e.target.value })}
-                    placeholder="Ex: 2018 ou Brut NV"
                     className="w-full px-3 py-2 border rounded-xl"
                   />
                 </div>
@@ -2201,9 +2259,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Prix de Vente (XOF)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Prix de Vente (XOF)</label>
                   <input
                     type="number"
                     required
@@ -2213,9 +2269,7 @@ export default function PromoterDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Stock Initial (bouteilles)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Stock Initial (bouteilles)</label>
                   <input
                     type="number"
                     required
@@ -2226,14 +2280,8 @@ export default function PromoterDashboardPage() {
                 </div>
               </div>
 
-              {/* Photo Input & Live Preview */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-stone-500" />
-                    <span>Photo de la Bouteille (URL)</span>
-                  </span>
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo de la Bouteille (URL)</label>
                 <input
                   type="url"
                   required
@@ -2242,14 +2290,9 @@ export default function PromoterDashboardPage() {
                   placeholder="https://..."
                   className="w-full px-3 py-2 border rounded-xl"
                 />
-
                 {wineForm.imageUrl && (
                   <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
-                    <img
-                      src={wineForm.imageUrl}
-                      alt="Aperçu bouteille"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={wineForm.imageUrl} alt="Aperçu bouteille" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -2274,42 +2317,59 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 3. MODAL REPAS & ACCOMPAGNEMENTS */}
+      {/* MODAL REPAS */}
       {mealModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
               <h3 className="text-lg font-bold text-stone-900">
-                {editingMeal ? "Modifier le Plat" : "Créer un Nouveau Plat / Accompagnement"}
+                {editingMeal ? "Modifier le Plat" : "Créer un Nouveau Plat"}
               </h3>
-              <button
-                onClick={() => setMealModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setMealModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveMeal} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingMeal) {
+                  setMeals((prev) =>
+                    prev.map((m) => (m.id === editingMeal.id ? ({ ...m, ...mealForm } as MealRecord) : m))
+                  );
+                } else {
+                  const newMeal: MealRecord = {
+                    id: `m-${Date.now()}`,
+                    name: mealForm.name || "Nouveau Plat",
+                    category: (mealForm.category as any) || "PLAT_TRADITIONNEL",
+                    priceXof: Number(mealForm.priceXof) || 5000,
+                    prepTimeMinutes: Number(mealForm.prepTimeMinutes) || 15,
+                    accompaniments: mealForm.accompaniments || ["Alloco"],
+                    description: mealForm.description || "Spécialité gastronomique.",
+                    available: true,
+                    imageUrl: mealForm.imageUrl || "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=800&q=80",
+                  };
+                  setMeals((prev) => [newMeal, ...prev]);
+                }
+                setMealModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Nom du Plat ou Accompagnement
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Nom du Plat ou Accompagnement</label>
                 <input
                   type="text"
                   required
                   value={mealForm.name}
                   onChange={(e) => setMealForm({ ...mealForm, name: e.target.value })}
-                  placeholder="Ex: Amiwo Royal ou Alloco Plantain"
+                  placeholder="Ex: Amiwo Royal au Poulet"
                   className="w-full px-3 py-2 border rounded-xl"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Catégorie
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Catégorie</label>
                   <select
                     value={mealForm.category}
                     onChange={(e) => setMealForm({ ...mealForm, category: e.target.value as any })}
@@ -2323,9 +2383,7 @@ export default function PromoterDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Prix de Vente (XOF)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Prix de Vente (XOF)</label>
                   <input
                     type="number"
                     required
@@ -2337,26 +2395,7 @@ export default function PromoterDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Description du plat & ingrédients clés
-                </label>
-                <textarea
-                  rows={2}
-                  value={mealForm.description}
-                  onChange={(e) => setMealForm({ ...mealForm, description: e.target.value })}
-                  placeholder="Description appétissante pour le menu..."
-                  className="w-full px-3 py-2 border rounded-xl"
-                />
-              </div>
-
-              {/* Photo Input & Live Preview */}
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5 text-stone-500" />
-                    <span>Photo du Plat (URL)</span>
-                  </span>
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo du Plat (URL)</label>
                 <input
                   type="url"
                   required
@@ -2365,14 +2404,9 @@ export default function PromoterDashboardPage() {
                   placeholder="https://..."
                   className="w-full px-3 py-2 border rounded-xl"
                 />
-
                 {mealForm.imageUrl && (
                   <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
-                    <img
-                      src={mealForm.imageUrl}
-                      alt="Aperçu plat"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={mealForm.imageUrl} alt="Aperçu plat" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -2397,7 +2431,7 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 4. MODAL LOCATION */}
+      {/* MODAL LOCATION */}
       {rentalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
@@ -2405,19 +2439,38 @@ export default function PromoterDashboardPage() {
               <h3 className="text-lg font-bold text-stone-900">
                 {editingRental ? "Modifier la Location" : "Ajouter un Véhicule / Matériel"}
               </h3>
-              <button
-                onClick={() => setRentalModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setRentalModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveRental} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingRental) {
+                  setRentals((prev) =>
+                    prev.map((r) => (r.id === editingRental.id ? ({ ...r, ...rentalForm } as RentalRecord) : r))
+                  );
+                } else {
+                  const newRental: RentalRecord = {
+                    id: `r-${Date.now()}`,
+                    name: rentalForm.name || "Nouveau Véhicule",
+                    type: (rentalForm.type as any) || "VEHICULE_VIP",
+                    dailyPriceXof: Number(rentalForm.dailyPriceXof) || 50000,
+                    depositXof: Number(rentalForm.depositXof) || 50000,
+                    totalQuantity: Number(rentalForm.totalQuantity) || 1,
+                    availableQuantity: Number(rentalForm.availableQuantity) || 1,
+                    specs: rentalForm.specs || "Haut standing",
+                    imageUrl: rentalForm.imageUrl || "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
+                  };
+                  setRentals((prev) => [newRental, ...prev]);
+                }
+                setRentalModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Désignation du véhicule ou équipement
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Désignation du véhicule ou équipement</label>
                 <input
                   type="text"
                   required
@@ -2430,9 +2483,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Type
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Type</label>
                   <select
                     value={rentalForm.type}
                     onChange={(e) => setRentalForm({ ...rentalForm, type: e.target.value as any })}
@@ -2443,9 +2494,7 @@ export default function PromoterDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Tarif Journalier (XOF)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Tarif Journalier (XOF)</label>
                   <input
                     type="number"
                     required
@@ -2456,36 +2505,8 @@ export default function PromoterDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Caution de Garantie (XOF)
-                  </label>
-                  <input
-                    type="number"
-                    value={rentalForm.depositXof}
-                    onChange={(e) => setRentalForm({ ...rentalForm, depositXof: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Quantité Disponible
-                  </label>
-                  <input
-                    type="number"
-                    value={rentalForm.availableQuantity}
-                    onChange={(e) => setRentalForm({ ...rentalForm, availableQuantity: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Photo Input & Live Preview */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Photo du Véhicule ou Matériel (URL)
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo du Véhicule / Matériel (URL)</label>
                 <input
                   type="url"
                   required
@@ -2494,14 +2515,9 @@ export default function PromoterDashboardPage() {
                   placeholder="https://..."
                   className="w-full px-3 py-2 border rounded-xl"
                 />
-
                 {rentalForm.imageUrl && (
                   <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
-                    <img
-                      src={rentalForm.imageUrl}
-                      alt="Aperçu location"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={rentalForm.imageUrl} alt="Aperçu location" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -2526,7 +2542,7 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 5. MODAL TRAITEUR */}
+      {/* MODAL TRAITEUR */}
       {cateringModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
@@ -2534,19 +2550,36 @@ export default function PromoterDashboardPage() {
               <h3 className="text-lg font-bold text-stone-900">
                 {editingCatering ? "Modifier le Forfait Traiteur" : "Créer un Forfait Traiteur"}
               </h3>
-              <button
-                onClick={() => setCateringModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setCateringModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCatering} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editingCatering) {
+                  setCateringFormulas((prev) =>
+                    prev.map((c) => (c.id === editingCatering.id ? ({ ...c, ...cateringForm } as CateringRecord) : c))
+                  );
+                } else {
+                  const newCat: CateringRecord = {
+                    id: `cat-${Date.now()}`,
+                    name: cateringForm.name || "Nouvelle Formule",
+                    pricePerPersonXof: Number(cateringForm.pricePerPersonXof) || 12000,
+                    minGuests: Number(cateringForm.minGuests) || 25,
+                    inclusions: cateringForm.inclusions || ["Buffet complet"],
+                    serviceLevel: cateringForm.serviceLevel || "Clé en main",
+                    imageUrl: cateringForm.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
+                  };
+                  setCateringFormulas((prev) => [newCat, ...prev]);
+                }
+                setCateringModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Nom de la formule traiteur
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Nom de la formule traiteur</label>
                 <input
                   type="text"
                   required
@@ -2559,9 +2592,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Prix par personne (XOF)
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Prix par personne (XOF)</label>
                   <input
                     type="number"
                     required
@@ -2571,9 +2602,7 @@ export default function PromoterDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Nombre minimum de convives
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Minimum de convives</label>
                   <input
                     type="number"
                     value={cateringForm.minGuests}
@@ -2584,23 +2613,7 @@ export default function PromoterDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Services inclus
-                </label>
-                <input
-                  type="text"
-                  value={cateringForm.serviceLevel}
-                  onChange={(e) => setCateringForm({ ...cateringForm, serviceLevel: e.target.value })}
-                  placeholder="Ex: Maîtres d'hôtel, chauffe-plats, arts de la table"
-                  className="w-full px-3 py-2 border rounded-xl"
-                />
-              </div>
-
-              {/* Photo Input & Live Preview */}
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Photo du Buffet / Traiteur (URL)
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo du Buffet / Traiteur (URL)</label>
                 <input
                   type="url"
                   required
@@ -2609,14 +2622,9 @@ export default function PromoterDashboardPage() {
                   placeholder="https://..."
                   className="w-full px-3 py-2 border rounded-xl"
                 />
-
                 {cateringForm.imageUrl && (
                   <div className="mt-2 h-28 w-full rounded-xl overflow-hidden border border-stone-200 bg-stone-50">
-                    <img
-                      src={cateringForm.imageUrl}
-                      alt="Aperçu traiteur"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={cateringForm.imageUrl} alt="Aperçu traiteur" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -2641,7 +2649,7 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 6. MODAL PERSONNEL */}
+      {/* MODAL PERSONNEL */}
       {staffModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
@@ -2649,20 +2657,42 @@ export default function PromoterDashboardPage() {
               <h3 className="text-lg font-bold text-stone-900">
                 {editingStaff ? "Modifier le Collaborateur" : "Nouveau Collaborateur"}
               </h3>
-              <button
-                onClick={() => setStaffModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setStaffModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveStaff} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === staffForm.propertyId) || SEED_PROPERTIES[0];
+                if (editingStaff) {
+                  setStaffList((prev) =>
+                    prev.map((s) => (s.id === editingStaff.id ? ({ ...s, ...staffForm, propertyName: prop.name } as StaffRecord) : s))
+                  );
+                } else {
+                  const newStaff: StaffRecord = {
+                    id: `stf-${Date.now()}`,
+                    fullName: staffForm.fullName || "Collaborateur",
+                    email: staffForm.email || `agent.${Date.now()}@hotel-levignoble.bj`,
+                    roleName: staffForm.roleName || "Réceptionniste",
+                    roleCode: staffForm.roleCode || "RECEPTIONIST",
+                    propertyName: prop.name,
+                    propertyId: prop.id,
+                    maxDiscount: staffForm.maxDiscount || "10",
+                    phone: staffForm.phone || "+229 97 00 00 00",
+                    status: "ACTIF",
+                    avatarUrl: staffForm.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+                  };
+                  setStaffList((prev) => [newStaff, ...prev]);
+                }
+                setStaffModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Nom & Prénom
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Nom & Prénom</label>
                   <input
                     type="text"
                     required
@@ -2673,15 +2703,12 @@ export default function PromoterDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Email Professionnel
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Email Professionnel</label>
                   <input
                     type="email"
                     required
                     value={staffForm.email}
                     onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
-                    placeholder="reception.boh@hotel-levignoble.bj"
                     className="w-full px-3 py-2 border rounded-xl"
                   />
                 </div>
@@ -2689,9 +2716,7 @@ export default function PromoterDashboardPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Rôle
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Rôle</label>
                   <select
                     value={staffForm.roleCode}
                     onChange={(e) => {
@@ -2718,55 +2743,21 @@ export default function PromoterDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Agence Affectée
-                  </label>
+                  <label className="block font-semibold text-stone-700 mb-1">Agence Affectée</label>
                   <select
                     value={staffForm.propertyId || ""}
                     onChange={(e) => setStaffForm({ ...staffForm, propertyId: e.target.value })}
                     className="w-full px-3 py-2 border rounded-xl bg-white"
                   >
                     {SEED_PROPERTIES.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
+                      <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Plafond Remise Max (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={staffForm.maxDiscount}
-                    onChange={(e) => setStaffForm({ ...staffForm, maxDiscount: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl font-bold text-[#184f28]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    value={staffForm.phone}
-                    onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Avatar Photo Input */}
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Photo / Avatar du collaborateur (URL)
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Photo / Avatar (URL)</label>
                 <input
                   type="url"
                   required
@@ -2797,7 +2788,7 @@ export default function PromoterDashboardPage() {
         </div>
       )}
 
-      {/* 7. MODAL TRESORERIE */}
+      {/* MODAL TRESORERIE */}
       {treasuryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200">
@@ -2805,19 +2796,36 @@ export default function PromoterDashboardPage() {
               <h3 className="text-lg font-bold text-stone-900">
                 Enregistrer un Mouvement de Trésorerie
               </h3>
-              <button
-                onClick={() => setTreasuryModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
-              >
+              <button onClick={() => setTreasuryModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveTreasuryTransaction} className="space-y-4 text-xs">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const targetAcc = treasuryAccounts.find((a) => a.id === treasuryForm.accountId) || treasuryAccounts[0];
+                const delta = treasuryForm.type === "ENTREE" ? treasuryForm.amountXof : -treasuryForm.amountXof;
+                setTreasuryAccounts((prev) =>
+                  prev.map((a) => (a.id === targetAcc.id ? { ...a, balanceXof: a.balanceXof + delta } : a))
+                );
+                const newTx: CashTransaction = {
+                  id: `tx-${Date.now()}`,
+                  date: "À l'instant",
+                  label: treasuryForm.label || "Mouvement de trésorerie",
+                  type: treasuryForm.type,
+                  amountXof: treasuryForm.amountXof,
+                  accountId: targetAcc.id,
+                  accountLabel: targetAcc.label,
+                  category: treasuryForm.category,
+                };
+                setCashTransactions((prev) => [newTx, ...prev]);
+                setTreasuryModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Sens de l&apos;opération
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Sens de l&apos;opération</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -2845,9 +2853,7 @@ export default function PromoterDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Montant (XOF)
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Montant (XOF)</label>
                 <input
                   type="number"
                   required
@@ -2858,9 +2864,7 @@ export default function PromoterDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Compte concerné
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Compte concerné</label>
                 <select
                   value={treasuryForm.accountId}
                   onChange={(e) => setTreasuryForm({ ...treasuryForm, accountId: e.target.value })}
@@ -2875,15 +2879,13 @@ export default function PromoterDashboardPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  Motif / Libellé de l&apos;opération
-                </label>
+                <label className="block font-semibold text-stone-700 mb-1">Motif / Libellé</label>
                 <input
                   type="text"
                   required
                   value={treasuryForm.label}
                   onChange={(e) => setTreasuryForm({ ...treasuryForm, label: e.target.value })}
-                  placeholder="Ex: Achat carburant groupe ou règlement traiteur"
+                  placeholder="Ex: Achat carburant ou acompte réservation"
                   className="w-full px-3 py-2 border rounded-xl"
                 />
               </div>
@@ -2908,5 +2910,20 @@ export default function PromoterDashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function WorkspaceDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-stone-400">
+          <div className="w-8 h-8 border-4 border-[#184f28] border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs">Chargement du cockpit analytique...</p>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }
