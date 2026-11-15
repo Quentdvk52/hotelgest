@@ -3,19 +3,27 @@
 @tailwind utilities;
 
 :root {
+  /* Hotel Le Vignoble Official Brand Identity (Extracted from official logo) */
   --background: #fdfcfb;
-  --foreground: #1c1917;
+  --foreground: #111f15;
   --card: #ffffff;
-  --card-foreground: #1c1917;
-  --primary: #7c3c46; /* Vignoble Bordeaux */
+  --card-foreground: #111f15;
+  
+  /* Primary: Deep Forest Vineyard Green (Dominant in logo) */
+  --primary: #184f28;
   --primary-foreground: #ffffff;
-  --secondary: #f5e8e8;
-  --secondary-foreground: #582f36;
-  --muted: #f5f5f4;
-  --muted-foreground: #78716c;
-  --accent: #d9a844; /* Warm Gold */
-  --accent-foreground: #32161b;
-  --border: #e7e5e4;
+  
+  /* Secondary: Ruby Merlot / Grape Wine (Accent in logo) */
+  --secondary: #fcebee;
+  --secondary-foreground: #8c101c;
+  
+  /* Accent: Warm Champagne Gold (Grand Luxury) */
+  --accent: #d4af37;
+  --accent-foreground: #1c1917;
+  
+  --muted: #f4f6f4;
+  --muted-foreground: #526356;
+  --border: #e2e8e3;
   --radius: 0.75rem;
 }
 

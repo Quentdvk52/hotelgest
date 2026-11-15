@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HotelGest — Plateforme SaaS de Gestion Hôtelière & Événementielle",
+  title: "Hôtel Le Vignoble — Écrins Hôteliers d'Exception au Bénin",
   description:
-    "Solution moderne et intégrée de gestion hôtelière multi-sites, restauration, service traiteur et location de matériel événementiel.",
+    "Séjournez dans les établissements de prestige du Groupe Hôtel Le Vignoble à Bohicon, Abomey, Abomey-Calavi et Zogbodomey. Suites royales, haute gastronomie locale, cave climatisée et service personnalisé d'excellence.",
 };
 
 export default function RootLayout({

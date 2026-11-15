@@ -26,7 +26,7 @@ export default function VignobleShowcasePage() {
             </Link>
             <Link href="/login">
               <Button variant="primary" size="sm">
-                Espace Direction / Staff
+                Login
               </Button>
             </Link>
           </div>
@@ -116,7 +116,7 @@ export default function VignobleShowcasePage() {
                     <span className="text-xl font-extrabold text-[#7c3c46]">{rt.basePriceXof.toLocaleString("fr-FR")}</span>
                     <span className="text-xs text-stone-500 ml-1">XOF / nuit</span>
                   </div>
-                  <Link href="/dashboard">
+                  <Link href="/#reserver">
                     <Button variant="primary" size="sm">
                       Réserver
                     </Button>
