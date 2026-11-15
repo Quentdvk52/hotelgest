@@ -1,0 +1,36 @@
+{
+  "name": "hotelgest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HotelGest - Plateforme SaaS de Gestion Hôtelière, Restauration, Traiteur et Matériel Événementiel",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.4",
+    "lucide-react": "^0.475.0",
+    "next": "15.1.7",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "tailwind-merge": "^3.0.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "@types/react": "19.0.8",
+    "@types/react-dom": "19.0.3",
+    "drizzle-kit": "^0.30.4",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}
