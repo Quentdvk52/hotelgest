@@ -108,6 +108,13 @@ class DiscountService {
       throw new Error("PERMISSION_DENIED: Droit d'approbation de remise insuffisant.");
     }
 
+    // Strict Segregation of Duties (SoD): Prohibit self-approval unless Promoter (OWASP ASVS V4.1)
+    if (request.requestedByUserId === context.userId && !context.roles.includes("PROMOTER")) {
+      throw new Error(
+        "PERMISSION_DENIED: Auto-approbation interdite. Une demande de remise doit obligatoirement être validée par un tiers autorisé."
+      );
+    }
+
     // Lookup reviewer's maximum discount threshold
     const reviewer = SEED_USERS.find((u) => u.id === context.userId);
     const maxThreshold = reviewer ? parseInt(reviewer.maxDiscount, 10) : 0;

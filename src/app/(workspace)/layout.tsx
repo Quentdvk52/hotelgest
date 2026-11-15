@@ -305,29 +305,6 @@ export default function WorkspaceLayout({
     router.push("/staff/login");
   };
 
-  const handleEmulateUser = (userIndex: number) => {
-    const selected = SEED_USERS[userIndex];
-    if (selected) {
-      const updatedUser: UserProfile = {
-        id: selected.id,
-        email: selected.email,
-        fullName: selected.fullName,
-        roleCode: selected.roleCode,
-        roleName: selected.roleName,
-        propertyId: selected.propertyId,
-        maxDiscount: selected.maxDiscount,
-        permissions: [],
-      };
-      setCurrentUser(updatedUser);
-      if (selected.propertyId) {
-        setSelectedPropertyId(selected.propertyId);
-      }
-      if (typeof window !== "undefined") {
-        localStorage.setItem("hotelgest_user", JSON.stringify(updatedUser));
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-900 flex flex-col items-center justify-center text-white">
@@ -411,22 +388,32 @@ export default function WorkspaceLayout({
           <SidebarNavContent activeUser={activeUser} activeProperty={activeProperty} />
         </Suspense>
 
-        {/* Quick Role Emulator & Logout */}
+        {/* Authenticated User Profile (Strictly personal & locked) */}
         <div className="p-3 border-t border-stone-850 bg-stone-900/80">
-          <label className="block text-[10px] uppercase font-bold tracking-wider text-stone-400 mb-1 flex items-center gap-1.5">
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" /> Profil Connecté
-          </label>
-          <select
-            value={SEED_USERS.findIndex((u) => u.email === activeUser.email)}
-            onChange={(e) => handleEmulateUser(parseInt(e.target.value, 10))}
-            className="w-full bg-stone-850 border border-stone-800 text-white text-[11px] rounded-lg px-2 py-1.5 focus:outline-none truncate"
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Compte Personnel
+            </span>
+            <span className="text-[9px] bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 px-1.5 py-0.5 rounded font-mono font-semibold">
+              Connecté
+            </span>
+          </div>
+          <div className="bg-stone-850 border border-stone-800 rounded-lg p-2.5 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#184f28] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-inner">
+              {activeUser.fullName.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-white truncate">{activeUser.fullName}</div>
+              <div className="text-[10px] text-stone-400 truncate">{activeUser.roleName}</div>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full mt-2.5 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-medium text-stone-400 hover:text-red-400 hover:bg-stone-850 border border-stone-800/60 hover:border-red-950/50 transition-colors"
           >
-            {SEED_USERS.map((u, idx) => (
-              <option key={u.id} value={idx}>
-                {u.fullName} ({u.roleName})
-              </option>
-            ))}
-          </select>
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Se déconnecter</span>
+          </button>
         </div>
       </aside>
 

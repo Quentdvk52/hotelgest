@@ -19,9 +19,29 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: true, data: { available } });
   }
 
-  const rentals = equipmentService.getRentalsByProperty(propertyId);
-  const items = equipmentService.getItemsByProperty(propertyId);
-  return NextResponse.json({ success: true, data: { rentals, items } });
+  try {
+    const context = await resolveSessionContext(req);
+    const { hasPropertyAccess, checkPermission } = await import("@/lib/auth/rbac");
+    if (
+      !hasPropertyAccess(context, propertyId) ||
+      (!checkPermission(context, "equipment:rentals:create", propertyId) &&
+       !checkPermission(context, "equipment:rentals:manage", propertyId))
+    ) {
+      return NextResponse.json(
+        { success: false, error: "PERMISSION_DENIED: Accès aux contrats de location interdit pour ce site." },
+        { status: 403 }
+      );
+    }
+
+    const rentals = equipmentService.getRentalsByProperty(propertyId);
+    const items = equipmentService.getItemsByProperty(propertyId);
+    return NextResponse.json({ success: true, data: { rentals, items } });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Authentification requise pour consulter les locations." },
+      { status: 401 }
+    );
+  }
 }
 
 export async function POST(req: Request) {

@@ -2,33 +2,33 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().default(
-    "postgresql://neondb_owner:npg_k6BGtLPZj4of@ep-floral-cell-bdyupono-pooler.c-8.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    process.env.DATABASE_URL || "postgresql://hotelgest_user:change_me_local@localhost:5432/hotelgest_db"
   ),
   AWS_ENDPOINT_URL_S3: z.string().default(
-    "https://br-dark-frog-bd3plppa.storage.c-8.us-east-2.aws.neon.tech"
+    process.env.AWS_ENDPOINT_URL_S3 || "https://storage.placeholder.neon.tech"
   ),
-  AWS_ACCESS_KEY_ID: z.string().default("nak_live_70bab7e713bf447dbbf89cd8121c107d"),
+  AWS_ACCESS_KEY_ID: z.string().default(process.env.AWS_ACCESS_KEY_ID || "nak_local_placeholder"),
   AWS_SECRET_ACCESS_KEY: z.string().default(
-    "nsk_live_0305a22b83750084f5d66d72963a0e80bb5f209c63775a2ba00728d37848fa8d"
+    process.env.AWS_SECRET_ACCESS_KEY || "nsk_local_placeholder"
   ),
-  AWS_REGION: z.string().default("us-east-2"),
-  S3_BUCKET_NAME: z.string().default("assets"),
-  CHARIOW_API_KEY: z.string().default(
-    "napi_45n794ezvx4v6ilheny68pwd4zqonoyurrzodeddr4rl8vlfs3u7121pyxq6l7i9"
+  AWS_REGION: z.string().default(process.env.AWS_REGION || "us-east-2"),
+  S3_BUCKET_NAME: z.string().default(process.env.S3_BUCKET_NAME || "assets"),
+  CHARIOW_API_KEY: z.string().default(process.env.CHARIOW_API_KEY || "napi_placeholder_test"),
+  CHARIOW_WEBHOOK_SECRET: z.string().default(
+    process.env.CHARIOW_WEBHOOK_SECRET || "chariow_sec_dev_hotelgest_placeholder"
   ),
-  CHARIOW_WEBHOOK_SECRET: z.string().default("chariow_sec_live_hotelgest_pilot_2026"),
   CHARIOW_PLAN_MONTHLY_XOF: z.coerce.number().default(100000),
   CHARIOW_PLAN_SEMIANNUAL_XOF: z.coerce.number().default(540000),
   CHARIOW_PLAN_ANNUAL_XOF: z.coerce.number().default(840000),
-  KKIAPAY_PUBLIC_KEY: z.string().default("96e1b730129a11eba62483505cf48759"),
-  KKIAPAY_PRIVATE_KEY: z.string().default("tpk_96e1b731129a11eba62483505cf48759"),
-  KKIAPAY_SECRET: z.string().default("tsk_96e1b732129a11eba62483505cf48759"),
-  CREATOR_ADMIN_EMAIL: z.string().default("createur@hotelgest.io"),
-  CREATOR_ADMIN_PASSWORD: z.string().default("HotelGest@Creator#2026!"),
+  KKIAPAY_PUBLIC_KEY: z.string().default(process.env.KKIAPAY_PUBLIC_KEY || "kkiapay_pk_placeholder"),
+  KKIAPAY_PRIVATE_KEY: z.string().default(process.env.KKIAPAY_PRIVATE_KEY || "kkiapay_tpk_placeholder"),
+  KKIAPAY_SECRET: z.string().default(process.env.KKIAPAY_SECRET || "kkiapay_tsk_placeholder"),
+  CREATOR_ADMIN_EMAIL: z.string().default(process.env.CREATOR_ADMIN_EMAIL || "createur@hotelgest.io"),
+  CREATOR_ADMIN_PASSWORD: z.string().default(process.env.CREATOR_ADMIN_PASSWORD || "HotelGest@Creator#2026!"),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_DEFAULT_CURRENCY: z.enum(["XOF", "EUR", "USD"]).default("XOF"),
   NEXT_PUBLIC_DEFAULT_LOCALE: z.string().default("fr"),
-  JWT_SECRET: z.string().default("hotelgest-production-ready-jwt-secret-key-32-chars-long"),
+  JWT_SECRET: z.string().default(process.env.JWT_SECRET || "hotelgest-default-dev-jwt-secret-key-32-chars-long"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

@@ -97,6 +97,12 @@ class OrderService {
     const lines: OrderLineItem[] = [];
 
     for (const item of dto.items) {
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0 || item.quantity > 50) {
+        throw new Error(
+          `VALIDATION_ERROR: Quantité invalide pour l'article (${item.quantity}). Doit être un entier compris entre 1 et 50.`
+        );
+      }
+
       const menuItem = SEED_MENU_ITEMS.find((m) => m.id === item.menuItemId);
       if (!menuItem) {
         throw new Error(`NOT_FOUND: Article introuvable (${item.menuItemId})`);

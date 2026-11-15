@@ -21,7 +21,10 @@ dist/
 ~$*
 
 # Local env files
+.env
 .env*.local
+.env.production
+.env.staging
 !.env.example
 
 # Vercel

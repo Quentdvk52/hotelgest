@@ -1,8 +1,9 @@
 import * as crypto from "crypto";
-import { SEED_USERS } from "../../lib/db/seed";
+import { SEED_USERS, SEED_TENANT } from "../../lib/db/seed";
 import { ENTERPRISE_PASSWORDS } from "../../lib/auth/passwords";
 import { RoleCode, getRoleDefaultPermissions } from "../../lib/auth/rbac";
 import { envConfig } from "../../lib/config";
+import { createAuditLogEntry } from "../../lib/audit/logger";
 
 export interface AuthenticatedUser {
   id: string;
@@ -19,6 +20,11 @@ export interface SessionPayload extends AuthenticatedUser {
   iat: number;
   exp: number;
 }
+
+// In-memory rate limiting tracker: email -> { count: number, resetAt: number }
+const loginAttemptTracker = new Map<string, { count: number; resetAt: number }>();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
 export function getDefaultRedirectForRole(roleCode: RoleCode): string {
   switch (roleCode) {
@@ -49,6 +55,15 @@ export function getDefaultRedirectForRole(roleCode: RoleCode): string {
 
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+/**
+ * Constant-time password comparison to prevent timing attacks (OWASP ASVS V2.1 / V6.2)
+ */
+function secureCompare(a: string, b: string): boolean {
+  const hashA = crypto.createHash("sha256").update(a).digest();
+  const hashB = crypto.createHash("sha256").update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 export function signSessionToken(user: AuthenticatedUser): string {
@@ -91,21 +106,56 @@ export function verifySessionToken(token: string): SessionPayload | null {
 
 export async function loginWithCredentials(
   emailInput: string,
-  passwordInput: string
+  passwordInput: string,
+  ipAddress?: string
 ): Promise<{ user: AuthenticatedUser; redirectUrl: string; token: string } | null> {
   const normalizedEmail = emailInput.trim().toLowerCase();
+  const now = Date.now();
+
+  // Rate Limiting Check (Brute-Force & Credential Stuffing Prevention)
+  const tracker = loginAttemptTracker.get(normalizedEmail);
+  if (tracker && tracker.resetAt > now && tracker.count >= MAX_FAILED_ATTEMPTS) {
+    createAuditLogEntry({
+      tenantId: SEED_TENANT.id,
+      action: "AUTH_LOGIN_RATE_LIMITED",
+      entityType: "USER_AUTH",
+      details: { email: normalizedEmail, attempts: tracker.count },
+      ipAddress,
+    });
+    return null;
+  }
 
   // Find user in seed users
   const user = SEED_USERS.find((u) => u.email.toLowerCase() === normalizedEmail);
   if (!user) {
+    // Record failed attempt
+    const current = loginAttemptTracker.get(normalizedEmail) || { count: 0, resetAt: now + LOCKOUT_WINDOW_MS };
+    loginAttemptTracker.set(normalizedEmail, { count: current.count + 1, resetAt: now + LOCKOUT_WINDOW_MS });
     return null;
   }
 
-  // Check expected password
+  // Check expected password with constant-time comparison
   const expectedPassword = ENTERPRISE_PASSWORDS[user.email] || "Vignoble#2026";
-  if (passwordInput !== expectedPassword) {
+  const isValid = secureCompare(passwordInput, expectedPassword);
+
+  if (!isValid) {
+    const current = loginAttemptTracker.get(normalizedEmail) || { count: 0, resetAt: now + LOCKOUT_WINDOW_MS };
+    loginAttemptTracker.set(normalizedEmail, { count: current.count + 1, resetAt: now + LOCKOUT_WINDOW_MS });
+
+    createAuditLogEntry({
+      tenantId: SEED_TENANT.id,
+      propertyId: user.propertyId || undefined,
+      userId: user.id,
+      action: "AUTH_LOGIN_FAILED",
+      entityType: "USER_AUTH",
+      details: { email: user.email, reason: "INVALID_CREDENTIALS" },
+      ipAddress,
+    });
     return null;
   }
+
+  // Reset rate limiting on successful authentication
+  loginAttemptTracker.delete(normalizedEmail);
 
   const roleCode = user.roleCode as RoleCode;
   const authenticatedUser: AuthenticatedUser = {
@@ -121,6 +171,16 @@ export async function loginWithCredentials(
 
   const redirectUrl = getDefaultRedirectForRole(roleCode);
   const token = signSessionToken(authenticatedUser);
+
+  createAuditLogEntry({
+    tenantId: SEED_TENANT.id,
+    propertyId: user.propertyId || undefined,
+    userId: user.id,
+    action: "AUTH_LOGIN_SUCCESS",
+    entityType: "USER_AUTH",
+    details: { email: user.email, role: roleCode },
+    ipAddress,
+  });
 
   return {
     user: authenticatedUser,

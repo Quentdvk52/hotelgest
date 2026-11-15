@@ -2,9 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { chariowService } from "@/modules/subscription/chariow-service";
 import { envConfig } from "@/lib/config";
 import { createAuditLogEntry } from "@/lib/audit/logger";
+import { verifyCreatorToken } from "../../../../modules/auth/creator-auth";
+
+function checkCreatorAuth(req: NextRequest): boolean {
+  const cookie = req.cookies.get("hotelgest_creator_session")?.value;
+  if (cookie && verifyCreatorToken(cookie)) return true;
+  const authHeader = req.headers.get("authorization");
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return verifyCreatorToken(authHeader.substring(7));
+  }
+  return false;
+}
 
 export async function GET(req: NextRequest) {
   try {
+    if (!checkCreatorAuth(req)) {
+      return NextResponse.json(
+        { success: false, error: "UNAUTHORIZED: Authentification créateur requise." },
+        { status: 401 }
+      );
+    }
+
     const metrics = chariowService.getPlatformMetrics();
     const subscriptions = chariowService.listAllSubscriptions();
 
@@ -30,6 +48,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!checkCreatorAuth(req)) {
+      return NextResponse.json(
+        { success: false, error: "UNAUTHORIZED: Authentification créateur requise." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { action, tenantId, planCode, status } = body;
 

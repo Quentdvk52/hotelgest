@@ -8,13 +8,31 @@ export async function GET(req: Request) {
   const checkIn = searchParams.get("checkIn");
   const checkOut = searchParams.get("checkOut");
 
+  // Public availability search (guest booking engine)
   if (checkIn && checkOut) {
     const available = await pmsService.getAvailableUnits(propertyId, checkIn, checkOut);
     return NextResponse.json({ success: true, data: available });
   }
 
-  const reservations = pmsService.getReservationsByProperty(propertyId);
-  return NextResponse.json({ success: true, data: reservations });
+  // Listing reservations contains PII (guest names & phones): requires staff auth
+  try {
+    const context = await resolveSessionContext(req);
+    const { hasPropertyAccess, checkPermission } = await import("@/lib/auth/rbac");
+    if (!hasPropertyAccess(context, propertyId) || !checkPermission(context, "pms:reservations:read", propertyId)) {
+      return NextResponse.json(
+        { success: false, error: "PERMISSION_DENIED: Accès aux réservations interdit pour ce site." },
+        { status: 403 }
+      );
+    }
+
+    const reservations = pmsService.getReservationsByProperty(propertyId);
+    return NextResponse.json({ success: true, data: reservations });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Authentification requise pour consulter les réservations." },
+      { status: 401 }
+    );
+  }
 }
 
 export async function POST(req: Request) {

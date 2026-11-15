@@ -111,6 +111,10 @@ class FolioService {
       throw new Error("PERMISSION_DENIED: Droit d'ajout de charge au folio insuffisant.");
     }
 
+    if (typeof dto.amountXof !== "number" || isNaN(dto.amountXof) || dto.amountXof <= 0) {
+      throw new Error("VALIDATION_ERROR: Le montant de la charge doit être strictement positif.");
+    }
+
     const line: FolioLineRecord = {
       id: `fline-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       folioId: folio.id,
@@ -150,6 +154,10 @@ class FolioService {
 
     if (!checkPermission(context, "cash:payment:record", folio.propertyId)) {
       throw new Error("PERMISSION_DENIED: Droit d'enregistrement de règlement insuffisant.");
+    }
+
+    if (typeof dto.amountXof !== "number" || isNaN(dto.amountXof) || dto.amountXof <= 0) {
+      throw new Error("VALIDATION_ERROR: Le montant du règlement doit être strictement positif.");
     }
 
     const payment: PaymentRecordItem = {

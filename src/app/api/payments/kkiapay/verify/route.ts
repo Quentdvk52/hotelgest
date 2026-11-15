@@ -59,10 +59,31 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
-  const transactions = kkiapayService.listTransactions();
+export async function GET(req: NextRequest) {
+  const publicKey = kkiapayService.getPublicKey();
+
+  // Protect transactions history: only authenticated staff with reports/cash rights can inspect transactions
+  try {
+    const { resolveSessionContext } = await import("@/lib/auth/session");
+    const { checkPermission } = await import("@/lib/auth/rbac");
+    const context = await resolveSessionContext(req);
+
+    if (
+      checkPermission(context, "reports:view") ||
+      checkPermission(context, "cash:payment:record")
+    ) {
+      const transactions = kkiapayService.listTransactions();
+      return NextResponse.json({
+        publicKey,
+        transactions,
+      });
+    }
+  } catch {
+    // Unauthenticated caller: return public checkout key only without leaking customer records
+  }
+
   return NextResponse.json({
-    publicKey: kkiapayService.getPublicKey(),
-    transactions,
+    publicKey,
+    transactions: [],
   });
 }

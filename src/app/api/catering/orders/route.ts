@@ -3,10 +3,31 @@ import { cateringService } from "@/modules/catering-equipment/catering-service";
 import { resolveSessionContext } from "@/lib/auth/session";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const propertyId = searchParams.get("propertyId") || "prop-bohicon-001";
-  const orders = cateringService.getOrdersByProperty(propertyId);
-  return NextResponse.json({ success: true, data: orders });
+  try {
+    const context = await resolveSessionContext(req);
+    const { searchParams } = new URL(req.url);
+    const propertyId = searchParams.get("propertyId") || context.propertyId;
+
+    const { hasPropertyAccess, checkPermission } = await import("@/lib/auth/rbac");
+    if (
+      !hasPropertyAccess(context, propertyId) ||
+      (!checkPermission(context, "catering:orders:create", propertyId) &&
+       !checkPermission(context, "catering:orders:manage", propertyId))
+    ) {
+      return NextResponse.json(
+        { success: false, error: "PERMISSION_DENIED: Accès aux commandes traiteur interdit pour ce site." },
+        { status: 403 }
+      );
+    }
+
+    const orders = cateringService.getOrdersByProperty(propertyId);
+    return NextResponse.json({ success: true, data: orders });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Authentification requise pour consulter les commandes traiteur." },
+      { status: 401 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
