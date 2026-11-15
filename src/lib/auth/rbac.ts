@@ -2,6 +2,7 @@ import { TenantContext } from "../types/common";
 
 export type RoleCode =
   | "PROMOTER"
+  | "FINANCIAL_DIRECTOR"
   | "PROPERTY_MANAGER"
   | "RECEPTIONIST"
   | "WAITSTAFF"
@@ -9,6 +10,8 @@ export type RoleCode =
   | "BARTENDER"
   | "CASHIER"
   | "ACCOUNTANT"
+  | "CATERING_MANAGER"
+  | "HOUSEKEEPING"
   | "AUDITOR";
 
 export type PermissionCode =
@@ -56,6 +59,28 @@ const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "pos:orders:create",
     "pos:orders:submit",
     "pos:orders:transfer_folio",
+    "pos:stations:kitchen:view",
+    "pos:stations:bar:view",
+    "pos:stations:cellar:view",
+    "catering:orders:create",
+    "catering:orders:manage",
+    "equipment:rentals:create",
+    "equipment:rentals:manage",
+    "equipment:inspections:perform",
+    "cash:session:open",
+    "cash:session:close",
+    "cash:payment:record",
+    "folios:charges:add",
+    "invoices:generate",
+    "discounts:request",
+    "discounts:approve",
+    "night_audit:run",
+    "reports:view",
+    "settings:manage",
+  ],
+  FINANCIAL_DIRECTOR: [
+    "pms:reservations:read",
+    "pms:rooms:manage",
     "pos:stations:kitchen:view",
     "pos:stations:bar:view",
     "pos:stations:cellar:view",
@@ -148,6 +173,20 @@ const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "night_audit:run",
     "reports:view",
   ],
+  CATERING_MANAGER: [
+    "catering:orders:create",
+    "catering:orders:manage",
+    "equipment:rentals:create",
+    "equipment:rentals:manage",
+    "equipment:inspections:perform",
+    "folios:charges:add",
+    "invoices:generate",
+    "reports:view",
+  ],
+  HOUSEKEEPING: [
+    "pms:reservations:read",
+    "pms:rooms:manage",
+  ],
   AUDITOR: [
     "reports:view",
     "pms:reservations:read",
@@ -160,7 +199,12 @@ export function getRoleDefaultPermissions(role: string): string[] {
 }
 
 export function hasPropertyAccess(context: TenantContext, targetPropertyId: string): boolean {
-  if (context.roles.includes("PROMOTER")) {
+  if (
+    context.roles.includes("PROMOTER") ||
+    context.roles.includes("FINANCIAL_DIRECTOR") ||
+    context.roles.includes("ACCOUNTANT") ||
+    context.roles.includes("AUDITOR")
+  ) {
     return true;
   }
   return context.propertyId === targetPropertyId;

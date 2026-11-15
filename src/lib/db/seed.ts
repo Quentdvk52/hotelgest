@@ -64,16 +64,44 @@ export const SEED_PROPERTIES = [
 export const SEED_USERS = [
   {
     id: "user-prom-01",
-    email: "promoteur@hotel-levignoble.bj",
-    fullName: "M. Dieudonné Agossou",
+    email: "gnacadjaeddy@gmail.com",
+    fullName: "Eddy GNACADJA",
     roleName: "Promoteur",
     roleCode: "PROMOTER",
     propertyId: null, // Full group scope
     maxDiscount: "100",
   },
   {
+    id: "user-daf-01",
+    email: "daf@hotel-levignoble.bj",
+    fullName: "Marcelin AGBIDINOUKOUN",
+    roleName: "Directeur Administratif et Financier (DAF)",
+    roleCode: "FINANCIAL_DIRECTOR",
+    propertyId: null, // Full group scope
+    maxDiscount: "50",
+  },
+  {
+    id: "user-cpt-01",
+    email: "comptable@hotel-levignoble.bj",
+    fullName: "Félicienne BIOKOU",
+    roleName: "Comptable Central",
+    roleCode: "ACCOUNTANT",
+    propertyId: null, // Full group scope
+    maxDiscount: "0",
+  },
+  {
+    id: "user-cai-01",
+    email: "caisse.centrale@hotel-levignoble.bj",
+    fullName: "Théodore HOUNGBO",
+    roleName: "Caissier Central",
+    roleCode: "CASHIER",
+    propertyId: null, // Full group scope
+    maxDiscount: "0",
+  },
+  // Gérants des 4 agences
+  {
     id: "user-dir-boh",
-    email: "dir.bohicon@hotel-levignoble.bj",
+    email: "gerant.bohicon@hotel-levignoble.bj",
     fullName: "Aimée Hounsinou",
     roleName: "Directeur de Site",
     roleCode: "PROPERTY_MANAGER",
@@ -81,14 +109,33 @@ export const SEED_USERS = [
     maxDiscount: "25",
   },
   {
-    id: "user-rec-boh",
-    email: "reception.boh@hotel-levignoble.bj",
-    fullName: "Gaston Dossou",
-    roleName: "Réceptionniste",
-    roleCode: "RECEPTIONIST",
-    propertyId: "prop-bohicon-001",
-    maxDiscount: "5",
+    id: "user-dir-abm",
+    email: "gerant.abomey@hotel-levignoble.bj",
+    fullName: "Sylvain KPOFFON",
+    roleName: "Gérant Agence Abomey",
+    roleCode: "PROPERTY_MANAGER",
+    propertyId: "prop-abomey-002",
+    maxDiscount: "25",
   },
+  {
+    id: "user-dir-abc",
+    email: "gerant.calavi@hotel-levignoble.bj",
+    fullName: "Brice DOSSOU-YOVO",
+    roleName: "Gérant Agence Abomey-Calavi",
+    roleCode: "PROPERTY_MANAGER",
+    propertyId: "prop-calavi-003",
+    maxDiscount: "25",
+  },
+  {
+    id: "user-dir-zog",
+    email: "gerant.zogbo@hotel-levignoble.bj",
+    fullName: "Clarisse ALLAGBE",
+    roleName: "Gérant Agence Zogbodomey",
+    roleCode: "PROPERTY_MANAGER",
+    propertyId: "prop-zogbo-004",
+    maxDiscount: "25",
+  },
+  // Serveuses pour tous les restaurants-bars des agences
   {
     id: "user-srv-boh",
     email: "serveuse.boh@hotel-levignoble.bj",
@@ -99,6 +146,53 @@ export const SEED_USERS = [
     maxDiscount: "0",
   },
   {
+    id: "user-srv-abm",
+    email: "serveuse.abm@hotel-levignoble.bj",
+    fullName: "Estelle AHOUANDJINOU",
+    roleName: "Serveuse Restaurant Abomey",
+    roleCode: "WAITSTAFF",
+    propertyId: "prop-abomey-002",
+    maxDiscount: "0",
+  },
+  {
+    id: "user-srv-abc",
+    email: "serveuse.abc@hotel-levignoble.bj",
+    fullName: "Prudence HOUNTONDJI",
+    roleName: "Serveuse Restaurant Abomey-Calavi",
+    roleCode: "WAITSTAFF",
+    propertyId: "prop-calavi-003",
+    maxDiscount: "0",
+  },
+  {
+    id: "user-srv-zog",
+    email: "serveuse.zog@hotel-levignoble.bj",
+    fullName: "Viviane SOGLO",
+    roleName: "Serveuse Restaurant Zogbodomey",
+    roleCode: "WAITSTAFF",
+    propertyId: "prop-zogbo-004",
+    maxDiscount: "0",
+  },
+  // Réceptionnistes
+  {
+    id: "user-rec-boh",
+    email: "reception.boh@hotel-levignoble.bj",
+    fullName: "Gaston Dossou",
+    roleName: "Réceptionniste",
+    roleCode: "RECEPTIONIST",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "5",
+  },
+  {
+    id: "user-rec-abc",
+    email: "reception.abc@hotel-levignoble.bj",
+    fullName: "Nadine ADANHOU",
+    roleName: "Réceptionniste Abomey-Calavi",
+    roleCode: "RECEPTIONIST",
+    propertyId: "prop-calavi-003",
+    maxDiscount: "5",
+  },
+  // Chefs Cuisiniers
+  {
     id: "user-cui-boh",
     email: "chef.boh@hotel-levignoble.bj",
     fullName: "Chef Rodrigue Mensah",
@@ -108,12 +202,51 @@ export const SEED_USERS = [
     maxDiscount: "0",
   },
   {
+    id: "user-cui-abc",
+    email: "chef.abc@hotel-levignoble.bj",
+    fullName: "Chef Barnabé TCHIBOZO",
+    roleName: "Chef Cuisinier Calavi",
+    roleCode: "CHEF",
+    propertyId: "prop-calavi-003",
+    maxDiscount: "0",
+  },
+  // Barmen / Sommeliers
+  {
     id: "user-bar-boh",
     email: "barman.boh@hotel-levignoble.bj",
     fullName: "Marc Kpadonou",
     roleName: "Barman",
     roleCode: "BARTENDER",
     propertyId: "prop-bohicon-001",
+    maxDiscount: "0",
+  },
+  {
+    id: "user-bar-abc",
+    email: "barman.abc@hotel-levignoble.bj",
+    fullName: "Fabrice GBEGNON",
+    roleName: "Barman Abomey-Calavi",
+    roleCode: "BARTENDER",
+    propertyId: "prop-calavi-003",
+    maxDiscount: "0",
+  },
+  // Responsable Traiteur & Matériel Événementiel
+  {
+    id: "user-event-01",
+    email: "traiteur.event@hotel-levignoble.bj",
+    fullName: "Mathurin VODOUNOU",
+    roleName: "Responsable Traiteur & Matériel Événementiel",
+    roleCode: "CATERING_MANAGER",
+    propertyId: null, // Multi-sites
+    maxDiscount: "10",
+  },
+  // Gouvernante Générale / Housekeeping
+  {
+    id: "user-hsk-01",
+    email: "housekeeping@hotel-levignoble.bj",
+    fullName: "Henriette DEDJI",
+    roleName: "Gouvernante Générale (Housekeeping)",
+    roleCode: "HOUSEKEEPING",
+    propertyId: null, // Multi-sites
     maxDiscount: "0",
   },
 ];
