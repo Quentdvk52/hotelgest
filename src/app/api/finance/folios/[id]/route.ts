@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { folioService } from "@/modules/finance/folio-service";
+import { resolveSessionContext } from "@/lib/auth/session";
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const folio = folioService.getFolioById(id);
+  if (!folio) {
+    return NextResponse.json({ success: false, error: "Folio introuvable" }, { status: 404 });
+  }
+  return NextResponse.json({ success: true, data: folio });
+}
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const context = await resolveSessionContext(req);
+    const body = await req.json();
+
+    const line = await folioService.addCharge(context, id, body);
+    return NextResponse.json({ success: true, data: line });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || "Erreur d'ajout de charge" },
+      { status: 400 }
+    );
+  }
+}
