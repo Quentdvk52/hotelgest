@@ -248,16 +248,27 @@ export default function StaffLoginPage() {
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-stone-800 text-center">
-            <span className="text-xs text-stone-400 block mb-1">
-              Vous êtes un client ou visiteur de l&apos;hôtel ?
-            </span>
-            <Link
-              href="/login"
-              className="text-xs text-[#d4af37] hover:underline font-semibold"
-            >
-              Accéder à l&apos;Espace Client & Réservations →
-            </Link>
+          <div className="mt-6 pt-4 border-t border-stone-800 text-center space-y-2">
+            <div>
+              <span className="text-xs text-stone-400 block mb-1">
+                Vous êtes un client ou visiteur de l&apos;hôtel ?
+              </span>
+              <Link
+                href="/login"
+                className="text-xs text-[#d4af37] hover:underline font-semibold"
+              >
+                Accéder à l&apos;Espace Client & Réservations →
+              </Link>
+            </div>
+
+            <div className="pt-2 border-t border-stone-900">
+              <Link
+                href="/creator/login"
+                className="text-[11px] text-blue-400 hover:text-blue-300 font-medium"
+              >
+                Concepteur & Éditeur du Logiciel ? Console Créateur (Chariow) →
+              </Link>
+            </div>
           </div>
         </div>
 

@@ -124,15 +124,24 @@ export function LuxuryFooter() {
               </div>
             </div>
 
-            {/* Official Dedicated Staff Portal Link as required by the user */}
-            <div className="pt-4 border-t border-stone-800/80">
+            {/* Official Dedicated Staff Portal Link & Creator Console */}
+            <div className="pt-4 border-t border-stone-800/80 space-y-2">
               <Link
                 href="/staff/login"
-                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 hover:text-white border border-stone-800 text-xs font-semibold transition-all hover:border-[#184f28]"
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 hover:text-white border border-stone-800 text-xs font-semibold transition-all hover:border-[#184f28] w-full justify-center"
                 aria-label="Accès Espace Direction et Personnel"
               >
                 <Lock className="w-3.5 h-3.5 text-[#d4af37]" />
                 <span>Espace Direction / Staff</span>
+              </Link>
+
+              <Link
+                href="/creator/login"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-stone-950 hover:bg-stone-900 text-stone-400 hover:text-blue-400 border border-stone-800/60 text-[11px] font-medium transition-all w-full justify-center"
+                aria-label="Accès Concepteur & Éditeur Logiciel"
+              >
+                <Shield className="w-3 h-3 text-blue-400" />
+                <span>Console Créateur Logiciel (Abonnements)</span>
               </Link>
             </div>
           </div>
@@ -147,6 +156,9 @@ export function LuxuryFooter() {
             <span className="hover:text-white cursor-pointer">Conditions Générales de Séjour</span>
             <Link href="/staff/login" className="text-stone-300 hover:text-[#d4af37] transition-colors">
               Espace Staff
+            </Link>
+            <Link href="/creator/login" className="text-stone-400 hover:text-blue-400 transition-colors">
+              Créateur Logiciel
             </Link>
           </div>
         </div>

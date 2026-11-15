@@ -15,7 +15,9 @@ import {
   X,
   ArrowRight,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
+import { KkiapayButton } from "@/components/payments/kkiapay-button";
 
 export function BookingEngine() {
   const [selectedPropertyId, setSelectedPropertyId] = useState(SEED_PROPERTIES[0].id);
@@ -350,17 +352,35 @@ export function BookingEngine() {
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-stone-400">
-                    Règlement sur place à l&apos;arrivée ou par Mobile Money / Virement validé par la réception. Aucune carte bancaire requise immédiatement.
-                  </p>
+                  <div className="space-y-3 pt-2">
+                    {/* Option 1: Immediate KkiaPay Online Payment */}
+                    <KkiapayButton
+                      amount={bookingModalRoom.basePriceXof * nights * Number(rooms)}
+                      type="ROOM_BOOKING"
+                      referenceId={`RES-${selectedProperty.code}-${Date.now().toString().slice(-6)}`}
+                      customerName={guestName || "Client Hôtel Le Vignoble"}
+                      customerPhone={guestPhone}
+                      customerEmail={guestEmail}
+                      label={`Payer en Ligne avec KkiaPay (${(bookingModalRoom.basePriceXof * nights * Number(rooms)).toLocaleString("fr-FR")} XOF)`}
+                      onSuccess={() => {
+                        setBookingSuccess(true);
+                      }}
+                      className="w-full py-3.5"
+                    />
 
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d9a844] to-[#c59b27] hover:opacity-95 text-stone-950 font-bold text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 mt-4"
-                  >
-                    <span>Confirmer la demande de séjour</span>
-                    <ArrowRight className="w-4 h-4 text-stone-950" />
-                  </button>
+                    {/* Option 2: Pay at reception on arrival */}
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <span>Ou Réserver sans paiement immédiat (Règlement sur place)</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-stone-500 text-center">
+                    Paiements en ligne sécurisés par l&apos;agrégateur KkiaPay (MTN MoMo, Moov Flooz, Celtiis, Visa, Mastercard).
+                  </p>
                 </form>
               </div>
             ) : (

@@ -21,6 +21,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
+import { KkiapayButton } from "@/components/payments/kkiapay-button";
 import {
   SEED_PROPERTIES,
   SEED_CATERING_MENUS,
@@ -541,18 +542,35 @@ export default function CateringEquipmentPage() {
                   )}
                 </div>
 
-                <Button
-                  type="submit"
-                  variant="gold"
-                  size="lg"
-                  className="w-full mt-6 shadow-md"
-                  disabled={submitting}
-                >
-                  {submitting ? "Traitement..." : "Envoyer la demande de devis"}
-                </Button>
+                <div className="space-y-3 mt-6">
+                  <Button
+                    type="submit"
+                    variant="gold"
+                    size="lg"
+                    className="w-full shadow-md"
+                    disabled={submitting}
+                  >
+                    {submitting ? "Traitement..." : "Envoyer la demande de devis"}
+                  </Button>
+
+                  {grandTotal > 0 && (
+                    <KkiapayButton
+                      amount={Math.round(grandTotal * 0.3)}
+                      type={activeSection === "EQUIPMENT" ? "EQUIPMENT_RENTAL" : "CATERING_ORDER"}
+                      referenceId={`DEV-TRT-${Date.now().toString().slice(-6)}`}
+                      customerName={clientName || "Client Traiteur"}
+                      customerPhone={clientPhone}
+                      label={`Régler l'Acompte 30% KkiaPay (${Math.round(grandTotal * 0.3).toLocaleString("fr-FR")} XOF)`}
+                      onSuccess={(tx) => {
+                        alert(`Acompte KkiaPay validé avec succès ! Référence : ${tx.transactionId}`);
+                      }}
+                      className="w-full py-3"
+                    />
+                  )}
+                </div>
 
                 <p className="text-[11px] text-stone-400 text-center mt-3">
-                  Aucun paiement en ligne immédiat exigé. Règlement confirmé avec le service commercial.
+                  Paiement sécurisé par agrégateur KkiaPay (Mobile Money MTN / Moov / Celtiis et Carte Bancaire).
                 </p>
               </Card>
             </div>

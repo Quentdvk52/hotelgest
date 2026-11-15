@@ -21,6 +21,7 @@ import {
   Award,
   Filter,
 } from "lucide-react";
+import { KkiapayButton } from "@/components/payments/kkiapay-button";
 
 interface WineItem {
   id: string;
@@ -550,17 +551,34 @@ export default function CaveAVinPage() {
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-stone-400 font-light">
-                      Règlement à la livraison par le sommelier en espèces XOF, Mobile Money ou Carte Bancaire.
-                    </p>
+                    <div className="space-y-3 pt-2">
+                      {/* Option 1: Online direct payment via KkiaPay */}
+                      <KkiapayButton
+                        amount={selectedWineForOrder.priceXof * orderQuantity}
+                        type="WINE_STORE"
+                        referenceId={`CAVE-${Date.now().toString().slice(-6)}`}
+                        customerName={customerName || "Client Cave Le Vignoble"}
+                        customerPhone={customerPhone}
+                        label={`Payer en Ligne via KkiaPay (${(selectedWineForOrder.priceXof * orderQuantity).toLocaleString("fr-FR")} XOF)`}
+                        onSuccess={() => {
+                          setOrderSuccess(true);
+                        }}
+                        className="w-full py-3.5"
+                      />
 
-                    <button
-                      type="submit"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#be9629] text-stone-950 font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 mt-4"
-                    >
-                      <Wine className="w-4 h-4 text-stone-950" />
-                      <span>Valider la commande bouteille</span>
-                    </button>
+                      {/* Option 2: Pay on delivery / service */}
+                      <button
+                        type="submit"
+                        className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <Wine className="w-4 h-4 text-[#d4af37]" />
+                        <span>Commander avec Règlement à la Livraison</span>
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] text-stone-500 text-center font-light">
+                      Paiements directs sécurisés KkiaPay par Mobile Money (MTN MoMo, Moov Flooz, Celtiis) ou Carte Bancaire.
+                    </p>
                   </form>
                 </div>
               ) : (
