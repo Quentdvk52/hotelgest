@@ -1,0 +1,276 @@
+export const SEED_TENANT = {
+  id: "tenant-vignoble-001",
+  name: "Groupe Hôtelier Le Vignoble",
+  slug: "le-vignoble",
+  country: "BJ",
+  defaultCurrency: "XOF",
+};
+
+export const SEED_ORGANIZATION = {
+  id: "org-vignoble-001",
+  tenantId: SEED_TENANT.id,
+  name: "Hôtel Le Vignoble",
+  legalRegistration: "RCCM RB/COT/24 B 12345",
+  taxIdentifier: "IFU 3202412345678",
+};
+
+export const SEED_PROPERTIES = [
+  {
+    id: "prop-bohicon-001",
+    tenantId: SEED_TENANT.id,
+    organizationId: SEED_ORGANIZATION.id,
+    name: "Hôtel Le Vignoble - Bohicon",
+    code: "BOH",
+    city: "Bohicon",
+    address: "Carrefour Dako, Route Inter-États",
+    phone: "+229 97 00 11 22",
+    email: "bohicon@hotel-levignoble.bj",
+  },
+  {
+    id: "prop-abomey-002",
+    tenantId: SEED_TENANT.id,
+    organizationId: SEED_ORGANIZATION.id,
+    name: "Hôtel Le Vignoble - Abomey",
+    code: "ABM",
+    city: "Abomey",
+    address: "Quartier Goho, Face Palais Royaux",
+    phone: "+229 97 00 22 33",
+    email: "abomey@hotel-levignoble.bj",
+  },
+  {
+    id: "prop-calavi-003",
+    tenantId: SEED_TENANT.id,
+    organizationId: SEED_ORGANIZATION.id,
+    name: "Hôtel Le Vignoble - Abomey-Calavi",
+    code: "ABC",
+    city: "Abomey-Calavi",
+    address: "Zone Résidentielle UAC, Arconville",
+    phone: "+229 97 00 33 44",
+    email: "calavi@hotel-levignoble.bj",
+  },
+  {
+    id: "prop-zogbo-004",
+    tenantId: SEED_TENANT.id,
+    organizationId: SEED_ORGANIZATION.id,
+    name: "Hôtel Le Vignoble - Zogbodomey",
+    code: "ZOG",
+    city: "Zogbodomey",
+    address: "Bordure RNIE, Sortie Sud",
+    phone: "+229 97 00 44 55",
+    email: "zogbodomey@hotel-levignoble.bj",
+  },
+];
+
+export const SEED_USERS = [
+  {
+    id: "user-prom-01",
+    email: "promoteur@hotel-levignoble.bj",
+    fullName: "M. Dieudonné Agossou",
+    roleName: "Promoteur",
+    roleCode: "PROMOTER",
+    propertyId: null, // Full group scope
+    maxDiscount: "100",
+  },
+  {
+    id: "user-dir-boh",
+    email: "dir.bohicon@hotel-levignoble.bj",
+    fullName: "Aimée Hounsinou",
+    roleName: "Directeur de Site",
+    roleCode: "PROPERTY_MANAGER",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "25",
+  },
+  {
+    id: "user-rec-boh",
+    email: "reception.boh@hotel-levignoble.bj",
+    fullName: "Gaston Dossou",
+    roleName: "Réceptionniste",
+    roleCode: "RECEPTIONIST",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "5",
+  },
+  {
+    id: "user-srv-boh",
+    email: "serveuse.boh@hotel-levignoble.bj",
+    fullName: "Chantal Tossou",
+    roleName: "Serveuse",
+    roleCode: "WAITSTAFF",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "0",
+  },
+  {
+    id: "user-cui-boh",
+    email: "chef.boh@hotel-levignoble.bj",
+    fullName: "Chef Rodrigue Mensah",
+    roleName: "Cuisinier",
+    roleCode: "CHEF",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "0",
+  },
+  {
+    id: "user-bar-boh",
+    email: "barman.boh@hotel-levignoble.bj",
+    fullName: "Marc Kpadonou",
+    roleName: "Barman",
+    roleCode: "BARTENDER",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: "0",
+  },
+];
+
+export const SEED_ROOM_TYPES = [
+  {
+    id: "rt-std-boh",
+    propertyId: "prop-bohicon-001",
+    name: "Chambre Standard Confort",
+    code: "STD",
+    capacity: 2,
+    basePriceXof: 25000,
+    description: "Chambre climatisée avec lit queen size, bureau et salle de bain privée.",
+  },
+  {
+    id: "rt-dlx-boh",
+    propertyId: "prop-bohicon-001",
+    name: "Chambre Supérieure Vignoble",
+    code: "SUP",
+    capacity: 2,
+    basePriceXof: 38000,
+    description: "Chambre avec balcon privatif vue jardin, mini-bar et smart TV.",
+  },
+  {
+    id: "rt-ste-boh",
+    propertyId: "prop-bohicon-001",
+    name: "Suite Royale Le Vignoble",
+    code: "STE",
+    capacity: 3,
+    basePriceXof: 65000,
+    description: "Grande suite avec salon séparé, lit king size et baignoire d'angle.",
+  },
+];
+
+export const SEED_UNITS = [
+  { id: "unit-101", propertyId: "prop-bohicon-001", roomTypeId: "rt-std-boh", unitNumber: "101", floor: "1" },
+  { id: "unit-102", propertyId: "prop-bohicon-001", roomTypeId: "rt-std-boh", unitNumber: "102", floor: "1" },
+  { id: "unit-103", propertyId: "prop-bohicon-001", roomTypeId: "rt-std-boh", unitNumber: "103", floor: "1" },
+  { id: "unit-201", propertyId: "prop-bohicon-001", roomTypeId: "rt-dlx-boh", unitNumber: "201", floor: "2" },
+  { id: "unit-202", propertyId: "prop-bohicon-001", roomTypeId: "rt-dlx-boh", unitNumber: "202", floor: "2" },
+  { id: "unit-301", propertyId: "prop-bohicon-001", roomTypeId: "rt-ste-boh", unitNumber: "301", floor: "3" },
+];
+
+export const SEED_DINING_TABLES = [
+  { id: "tbl-01", propertyId: "prop-bohicon-001", tableNumber: "Table 1", capacity: 4, zone: "SALLE_INTERIEURE" },
+  { id: "tbl-02", propertyId: "prop-bohicon-001", tableNumber: "Table 2", capacity: 4, zone: "SALLE_INTERIEURE" },
+  { id: "tbl-03", propertyId: "prop-bohicon-001", tableNumber: "Table 3", capacity: 6, zone: "TERRASSE" },
+  { id: "tbl-vip", propertyId: "prop-bohicon-001", tableNumber: "Salon VIP", capacity: 8, zone: "SALON_VIP" },
+];
+
+export const SEED_MENU_ITEMS = [
+  {
+    id: "item-01",
+    propertyId: "prop-bohicon-001",
+    name: "Amiwo au Poulet Bicyclette Braisé",
+    targetStationCode: "CUISINE",
+    priceXof: 5500,
+    description: "Pâte rouge béninoise avec poulet fermier assaisonné aux épices du terroir.",
+    allergens: "aucun",
+  },
+  {
+    id: "item-02",
+    propertyId: "prop-bohicon-001",
+    name: "Sauce Crincrin au Mouton et Akassa",
+    targetStationCode: "CUISINE",
+    priceXof: 4500,
+    description: "Sauce gluante traditionnelle préparée avec viande de mouton tendre.",
+    allergens: "moutarde",
+  },
+  {
+    id: "item-03",
+    propertyId: "prop-bohicon-001",
+    name: "Cocktail Le Vignoble Tropical",
+    targetStationCode: "BAR",
+    priceXof: 3500,
+    description: "Cocktail maison rafraîchissant aux fruits de saison et pointe de rhum local.",
+    allergens: "aucun",
+  },
+  {
+    id: "item-04",
+    propertyId: "prop-bohicon-001",
+    name: "Château Vignoble Réserve Prestige (Bouteille)",
+    targetStationCode: "CAVE",
+    priceXof: 25000,
+    description: "Grand vin de garde sélectionné dans la cave climatisée de l'établissement.",
+    allergens: "sulfites",
+  },
+];
+
+export const SEED_CATERING_MENUS = [
+  {
+    id: "cat-menu-01",
+    propertyId: "prop-bohicon-001",
+    name: "Buffet Prestige Béninois (Événement)",
+    pricePerPersonXof: 12000,
+    minGuests: 20,
+    description: "Assortiment complet d'entrées fraîches, 3 plats chauds (poisson, volaille, mouton), accompagnements variés et desserts tropicaux.",
+  },
+  {
+    id: "cat-menu-02",
+    propertyId: "prop-bohicon-001",
+    name: "Cocktail Dînatoire Le Vignoble",
+    pricePerPersonXof: 8500,
+    minGuests: 15,
+    description: "Pièces salées, brochettes fines, canapés et bouchées sucrées raffinées.",
+  },
+];
+
+export const SEED_EQUIPMENT_ITEMS = [
+  {
+    id: "eq-chaise-nap",
+    propertyId: "prop-bohicon-001",
+    name: "Chaises Napoléon Blanches VIP",
+    category: "CHAISES",
+    totalStock: 300,
+    dailyRentalPriceXof: 700,
+    depositPerUnitXof: 2000,
+    replacementCostXof: 15000,
+  },
+  {
+    id: "eq-table-ronde",
+    propertyId: "prop-bohicon-001",
+    name: "Tables Rondes 10 Personnes (180 cm)",
+    category: "TABLES",
+    totalStock: 40,
+    dailyRentalPriceXof: 4000,
+    depositPerUnitXof: 10000,
+    replacementCostXof: 45000,
+  },
+  {
+    id: "eq-bache-50",
+    propertyId: "prop-bohicon-001",
+    name: "Bâches Événementielles 50m² Imperméables",
+    category: "BACHES",
+    totalStock: 10,
+    dailyRentalPriceXof: 35000,
+    depositPerUnitXof: 50000,
+    replacementCostXof: 250000,
+  },
+  {
+    id: "eq-couverts-dor",
+    propertyId: "prop-bohicon-001",
+    name: "Sets de Couverts Dorés Prestige (4 pièces)",
+    category: "COUVERTS",
+    totalStock: 250,
+    dailyRentalPriceXof: 500,
+    depositPerUnitXof: 1000,
+    replacementCostXof: 6000,
+  },
+  {
+    id: "eq-plats-inox",
+    propertyId: "prop-bohicon-001",
+    name: "Chafing Dish / Plats Chauffants Inox Grand Format",
+    category: "PLATS_VAISSELLE",
+    totalStock: 25,
+    dailyRentalPriceXof: 5000,
+    depositPerUnitXof: 15000,
+    replacementCostXof: 40000,
+  },
+];
