@@ -21,7 +21,7 @@ export interface FolioLineRecord {
   id: string;
   folioId: string;
   departmentCode: "ROOM" | "RESTAURANT" | "BAR" | "CATERING" | "EQUIPMENT";
-  description: text;
+  description: string;
   amountXof: number;
   sourceReference?: string;
   createdAt: Date;

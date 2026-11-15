@@ -109,6 +109,7 @@ const ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
     "pms:reservations:update",
     "pms:checkin:perform",
     "pms:checkout:perform",
+    "pos:orders:transfer_folio",
     "catering:orders:create",
     "equipment:rentals:create",
     "cash:session:open",
@@ -158,11 +159,6 @@ export function getRoleDefaultPermissions(role: string): string[] {
   return ROLE_PERMISSIONS[code] || [];
 }
 
-/**
- * Checks if a context has access to a specific property (site).
- * Promoter has wildcard access to all properties in the tenant.
- * Other roles are strictly restricted to their assigned propertyId.
- */
 export function hasPropertyAccess(context: TenantContext, targetPropertyId: string): boolean {
   if (context.roles.includes("PROMOTER")) {
     return true;
@@ -170,9 +166,6 @@ export function hasPropertyAccess(context: TenantContext, targetPropertyId: stri
   return context.propertyId === targetPropertyId;
 }
 
-/**
- * Check if the user has a permission, scoped to the property if specified.
- */
 export function checkPermission(
   context: TenantContext,
   permission: PermissionCode,
