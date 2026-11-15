@@ -22,7 +22,19 @@ import {
   Users,
   ShieldCheck,
   TrendingUp,
+  MessageSquare,
+  Megaphone,
+  Clock,
+  Key,
+  Camera,
+  Phone,
+  Shield,
+  Mail,
+  User,
+  CheckCircle2,
+  X,
 } from "lucide-react";
+import { NotificationBell } from "@/components/workspace/notification-bell";
 
 interface UserProfile {
   id: string;
@@ -107,6 +119,14 @@ function SidebarNavContent({
       badgeColor: "bg-stone-800 text-stone-300",
     },
     {
+      label: "Permanence & Présence",
+      href: "/dashboard?view=presence",
+      view: "presence",
+      icon: Clock,
+      badge: "Direct",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+    {
       label: "Trésorerie & Comptes",
       href: "/dashboard?view=tresorerie",
       view: "tresorerie",
@@ -122,6 +142,63 @@ function SidebarNavContent({
 
   // Standard operational modules
   const operationalModules = [
+    {
+      label: "Messagerie Interne",
+      href: "/messaging",
+      icon: MessageSquare,
+      roles: [
+        "PROMOTER",
+        "FINANCIAL_DIRECTOR",
+        "PROPERTY_MANAGER",
+        "RECEPTIONIST",
+        "HOUSEKEEPING",
+        "CHEF",
+        "BARTENDER",
+        "WAITSTAFF",
+        "CATERING_MANAGER",
+        "CASHIER",
+        "ACCOUNTANT",
+        "AUDITOR",
+      ],
+    },
+    {
+      label: "Annonces Officielles",
+      href: "/announcements",
+      icon: Megaphone,
+      roles: [
+        "PROMOTER",
+        "FINANCIAL_DIRECTOR",
+        "PROPERTY_MANAGER",
+        "RECEPTIONIST",
+        "HOUSEKEEPING",
+        "CHEF",
+        "BARTENDER",
+        "WAITSTAFF",
+        "CATERING_MANAGER",
+        "CASHIER",
+        "ACCOUNTANT",
+        "AUDITOR",
+      ],
+    },
+    {
+      label: "Permanence & Présence",
+      href: "/dashboard?view=presence",
+      icon: Clock,
+      roles: [
+        "PROMOTER",
+        "FINANCIAL_DIRECTOR",
+        "PROPERTY_MANAGER",
+        "RECEPTIONIST",
+        "HOUSEKEEPING",
+        "CHEF",
+        "BARTENDER",
+        "WAITSTAFF",
+        "CATERING_MANAGER",
+        "CASHIER",
+        "ACCOUNTANT",
+        "AUDITOR",
+      ],
+    },
     {
       label: "PMS & Réception",
       href: "/pms/reception",
@@ -249,6 +326,41 @@ export default function WorkspaceLayout({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPropertyId, setSelectedPropertyId] = useState(SEED_PROPERTIES[0].id);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+  // Profile Modal state
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
+  const [profileErrorMsg, setProfileErrorMsg] = useState("");
+  const [profileForm, setProfileForm] = useState({
+    fullName: "",
+    phone: "",
+    avatarUrl: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  // Fetch unread messages periodically
+  useEffect(() => {
+    async function fetchUnread() {
+      try {
+        const res = await fetch("/api/messaging/conversations");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) {
+            setUnreadMessagesCount(json.unreadMessagesCount || 0);
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load session from API / localStorage
   useEffect(() => {
@@ -303,6 +415,69 @@ export default function WorkspaceLayout({
       localStorage.removeItem("hotelgest_user");
     }
     router.push("/staff/login");
+  };
+
+  const openProfileModal = () => {
+    setProfileForm({
+      fullName: (activeUser && activeUser.fullName) || "",
+      phone: ((activeUser as any)?.phone) || "",
+      avatarUrl: ((activeUser as any)?.avatarUrl) || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setProfileSuccessMsg("");
+    setProfileErrorMsg("");
+    setProfileModalOpen(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileErrorMsg("");
+    setProfileSuccessMsg("");
+
+    if (profileForm.newPassword) {
+      if (profileForm.newPassword.length < 6) {
+        setProfileErrorMsg("Le nouveau mot de passe doit comporter au moins 6 caractères.");
+        return;
+      }
+      if (profileForm.newPassword !== profileForm.confirmPassword) {
+        setProfileErrorMsg("La confirmation du mot de passe ne correspond pas.");
+        return;
+      }
+    }
+
+    setProfileSaving(true);
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: profileForm.fullName,
+          phone: profileForm.phone,
+          avatarUrl: profileForm.avatarUrl,
+          newPassword: profileForm.newPassword || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCurrentUser((prev: any) => ({ ...prev, ...json.user }));
+        if (typeof window !== "undefined") {
+          localStorage.setItem("hotelgest_user", JSON.stringify({ ...activeUser, ...json.user }));
+        }
+        setProfileSuccessMsg(json.message || "Profil mis à jour avec succès !");
+        setTimeout(() => {
+          setProfileModalOpen(false);
+          setProfileSuccessMsg("");
+        }, 1200);
+      } else {
+        setProfileErrorMsg(json.error || "Erreur de mise à jour");
+      }
+    } catch {
+      setProfileErrorMsg("Erreur de connexion au serveur");
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   if (loading) {
@@ -429,26 +604,55 @@ export default function WorkspaceLayout({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Messagerie Interne Icon with Red Unread Badge */}
             <Link
-              href="/order/hg_table_bohicon_tbl01"
-              target="_blank"
-              className="text-xs text-[#184f28] hover:underline font-semibold hidden sm:inline-block"
+              href="/messaging"
+              className="relative p-2 rounded-xl text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors focus:outline-none"
+              title="Messagerie interne du personnel"
+              aria-label="Messagerie interne"
             >
-              Ouvrir Menu QR Client ↗
+              <MessageSquare className="w-5 h-5" />
+              {unreadMessagesCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] text-[10px] font-black text-white bg-red-600 rounded-full px-1 shadow-xs animate-pulse border-2 border-white">
+                  {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
+                </span>
+              )}
             </Link>
-            <div className="flex items-center gap-2 pl-4 border-l border-stone-200">
-              <div className="w-8 h-8 rounded-full bg-[#184f28]/10 text-[#184f28] flex items-center justify-center font-bold text-xs">
-                {activeUser.fullName.charAt(0)}
+
+            {/* Notification Center Bell with Red Badge */}
+            <NotificationBell />
+
+            {/* Interactive Profile Button for All Users */}
+            <button
+              onClick={openProfileModal}
+              className="flex items-center gap-2 pl-3 border-l border-stone-200 text-left hover:bg-stone-50 py-1.5 px-2 rounded-xl transition-colors cursor-pointer group"
+              title="Gérer mon profil, mot de passe et avatar"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#184f28]/10 text-[#184f28] group-hover:bg-[#184f28] group-hover:text-white flex items-center justify-center font-bold text-xs overflow-hidden transition-colors shrink-0 shadow-xs border border-stone-200">
+                {(activeUser as any)?.avatarUrl ? (
+                  <img
+                    src={(activeUser as any).avatarUrl}
+                    alt={activeUser.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  activeUser.fullName.charAt(0)
+                )}
               </div>
               <div className="text-left hidden sm:block">
-                <div className="text-xs font-bold text-stone-900">{activeUser.fullName}</div>
-                <div className="text-[10px] text-stone-500 font-medium">{activeUser.roleName}</div>
+                <div className="text-xs font-bold text-stone-900 group-hover:text-[#184f28] transition-colors">
+                  {activeUser.fullName}
+                </div>
+                <div className="text-[10px] text-stone-500 font-medium">
+                  {activeUser.roleName}
+                </div>
               </div>
-            </div>
+            </button>
+
             <button
               onClick={handleLogout}
-              className="text-xs text-stone-400 hover:text-red-600 flex items-center gap-1 font-medium ml-2"
+              className="text-xs text-stone-400 hover:text-red-600 flex items-center gap-1 font-medium ml-1 p-1.5 rounded-lg hover:bg-stone-100 transition-colors"
               title="Se déconnecter"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -462,6 +666,217 @@ export default function WorkspaceLayout({
           {children}
         </main>
       </div>
+
+      {/* Profile Management Modal (For Everyone) */}
+      {profileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[92vh] overflow-y-auto space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#184f28]/10 text-[#184f28] flex items-center justify-center font-bold">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-stone-900">Gestion de Mon Profil</h3>
+                  <p className="text-[11px] text-stone-500">Avatar, coordonnées et sécurité du mot de passe</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setProfileModalOpen(false)}
+                className="text-stone-400 hover:text-stone-700 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {profileSuccessMsg && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{profileSuccessMsg}</span>
+              </div>
+            )}
+
+            {profileErrorMsg && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold flex items-center gap-2">
+                <X className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{profileErrorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              {/* Avatar Section */}
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-[#184f28] text-white flex items-center justify-center font-bold text-xl overflow-hidden shrink-0 shadow-md">
+                  {profileForm.avatarUrl ? (
+                    <img
+                      src={profileForm.avatarUrl}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    activeUser.fullName.charAt(0)
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <label className="block font-semibold text-stone-700 text-xs">
+                    Photo / Lien de l'Avatar
+                  </label>
+                  <input
+                    type="url"
+                    value={profileForm.avatarUrl}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, avatarUrl: e.target.value })
+                    }
+                    placeholder="https://images.unsplash.com/... ou URL d'image"
+                    className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-[#184f28]"
+                  />
+                  <span className="text-[10px] text-stone-400 block">
+                    Personnalisez votre photo de profil pour les échanges internes et l'en-tête.
+                  </span>
+                </div>
+              </div>
+
+              {/* Personal Information */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500">
+                  Informations Personnelles
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Nom & Prénom *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.fullName}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, fullName: e.target.value })
+                      }
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      value={profileForm.phone}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, phone: e.target.value })
+                      }
+                      placeholder="+229 97 00 00 00"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">
+                    Adresse Email (Identifiant de connexion)
+                  </label>
+                  <input
+                    type="email"
+                    disabled
+                    value={activeUser.email}
+                    className="w-full px-3 py-2 bg-stone-100 border border-stone-200 rounded-xl text-stone-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Role & Property Attributions */}
+              <div className="p-3.5 bg-stone-100/70 rounded-2xl border border-stone-200/80 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-stone-500">
+                    Rôle Attribué
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-[#184f28] text-white font-bold text-[10px]">
+                    {activeUser.roleName} ({activeUser.roleCode})
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-stone-600 text-[11px]">
+                  <span>Site / Établissement :</span>
+                  <span className="font-semibold text-stone-900">
+                    {activeUser.propertyId
+                      ? `${activeProperty.name} (${activeProperty.code})`
+                      : "Direction Générale Groupe (Tous les sites)"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Password Section */}
+              <div className="space-y-3 pt-2 border-t border-stone-200">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-amber-500" /> Modifier mon Mot de Passe
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Nouveau Mot de Passe
+                    </label>
+                    <input
+                      type="password"
+                      value={profileForm.newPassword}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, newPassword: e.target.value })
+                      }
+                      placeholder="Min. 6 caractères"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-stone-700 mb-1">
+                      Confirmer le Mot de Passe
+                    </label>
+                    <input
+                      type="password"
+                      value={profileForm.confirmPassword}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, confirmPassword: e.target.value })
+                      }
+                      placeholder="Répétez le mot de passe"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
+                    />
+                  </div>
+                </div>
+                <span className="text-[10px] text-stone-400 block">
+                  Laissez vide si vous ne souhaitez pas modifier votre mot de passe actuel.
+                </span>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-between pt-4 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Se déconnecter</span>
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setProfileModalOpen(false)}
+                    className="px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 text-xs font-semibold"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={profileSaving}
+                    className="px-5 py-2 bg-[#184f28] hover:bg-[#1f6634] disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-[#184f28]/20 transition-all"
+                  >
+                    {profileSaving ? "Enregistrement..." : "Enregistrer"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
