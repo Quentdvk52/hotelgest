@@ -1,4 +1,4 @@
-export type ProductFulfillmentUnit = "BEVERAGE" | "MEAL";
+export type ProductFulfillmentUnit = "BEVERAGE" | "MEAL" | "WINE";
 
 export interface WaitstaffProduct {
   id: string;

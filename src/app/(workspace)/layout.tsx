@@ -44,6 +44,7 @@ import {
   Layers,
   Scale,
   FileText,
+  Receipt,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -68,10 +69,64 @@ function SidebarNavContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentView = (searchParams.get("view") || "cockpit").toLowerCase();
+  const currentTab = (searchParams.get("tab") || "dashboard").toLowerCase();
 
   const isPromoter = activeUser.roleCode === "PROMOTER" || activeUser.roleCode === "FINANCIAL_DIRECTOR";
   const isManager = activeUser.roleCode === "PROPERTY_MANAGER";
+  const isWaitstaff = activeUser.roleCode === "WAITSTAFF";
   const isBohiconManager = activeUser.propertyId === "prop-bohicon-001";
+
+  // Waitstaff specific direct commands (6 tabs)
+  const waitstaffCommands = [
+    {
+      label: "Tableau de bord",
+      href: "/pos/stations?tab=dashboard",
+      tab: "dashboard",
+      icon: LayoutDashboard,
+      badge: "Shift",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Prendre commande",
+      href: "/pos/stations?tab=orders",
+      tab: "orders",
+      icon: ShoppingCart,
+      badge: "Tactile",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+    {
+      label: "Encaissements & Livraisons",
+      href: "/pos/stations?tab=encaissement",
+      tab: "encaissement",
+      icon: Receipt,
+      badge: "2",
+      badgeColor: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    },
+    {
+      label: "Mon Point Caisse",
+      href: "/pos/stations?tab=remittance",
+      tab: "remittance",
+      icon: Wallet,
+      badge: "Sacoche",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Horaires & Permanence",
+      href: "/pos/stations?tab=permanence",
+      tab: "permanence",
+      icon: Clock,
+      badge: "Planning",
+      badgeColor: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+    },
+    {
+      label: "Mes Notations Clients",
+      href: "/pos/stations?tab=notations",
+      tab: "notations",
+      icon: Star,
+      badge: "Avis",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+  ];
 
   // Promoter & DAF specific direct management commands
   const promoterCommands = [
@@ -422,12 +477,54 @@ function SidebarNavContent({
     },
   ];
 
-  const visibleOperational = operationalModules.filter((m) =>
-    m.roles.includes(activeUser.roleCode)
-  );
+  const visibleOperational = operationalModules.filter((m) => {
+    if (isWaitstaff && (m.href === "/pos/stations" || m.href === "/dashboard?view=presence")) {
+      return false; // Already present in waitstaffCommands
+    }
+    return m.roles.includes(activeUser.roleCode);
+  });
 
   return (
     <nav className="p-3 space-y-4 flex-1 overflow-y-auto">
+      {/* Waitstaff Space Commands Section */}
+      {isWaitstaff && (
+        <div className="space-y-1">
+          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center justify-between">
+            <span>Service en Salle & Buvette</span>
+            <span className="text-[9px] text-stone-500 font-mono">Shift Actif</span>
+          </div>
+          {waitstaffCommands.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === "/pos/stations" && currentTab === item.tab;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 font-bold"
+                    : "text-stone-400 hover:text-white hover:bg-stone-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-4 h-4 ${active ? "text-[#d4af37]" : "text-stone-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      active ? "bg-white/20 text-white" : item.badgeColor
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       {/* Promoter Space Commands Section */}
       {isPromoter && (
         <div className="space-y-1">

@@ -42,7 +42,7 @@ describe("Waitstaff Console & Service Tasks (DebitMaster Port)", () => {
     expect(bohTables.some((t) => t.label === "Table 1")).toBe(true);
   });
 
-  it("should contain authentic Beninese meals and local beverages in catalog", () => {
+  it("should contain authentic Beninese meals, local beverages, and fine wines in catalog", () => {
     const beninoise = WAITSTAFF_CATALOG.find((p) => p.name.includes("Béninoise"));
     expect(beninoise).toBeDefined();
     expect(beninoise?.unit).toBe("BEVERAGE");
@@ -52,6 +52,11 @@ describe("Waitstaff Console & Service Tasks (DebitMaster Port)", () => {
     expect(amiwo).toBeDefined();
     expect(amiwo?.unit).toBe("MEAL");
     expect(amiwo?.targetStationCode).toBe("CUISINE");
+
+    const wine = WAITSTAFF_CATALOG.find((p) => p.name.includes("Château Vignoble") || p.name.includes("Saint-Émilion"));
+    expect(wine).toBeDefined();
+    expect(wine?.unit).toBe("WINE");
+    expect(wine?.targetStationCode).toBe("CAVE");
 
     expect(BENIN_MEAL_ACCOMPANIMENTS).toContain("Alloco fondant (Plantains frits)");
     expect(BENIN_MEAL_ACCOMPANIMENTS).toContain("Igname pilée traditionnelle (Agoun)");

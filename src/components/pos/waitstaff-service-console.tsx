@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Utensils,
   Coffee,
@@ -78,6 +79,17 @@ interface WaitstaffConsoleProps {
 }
 
 export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") as
+    | "dashboard"
+    | "orders"
+    | "encaissement"
+    | "remittance"
+    | "permanence"
+    | "notations"
+    | null;
+
   // Current authenticated waitstaff or fallback to Bohicon seed
   const waitstaffId = activeUser?.id || "user-srv-boh";
   const propertyId = activeUser?.propertyId || "prop-bohicon-001";
@@ -94,13 +106,24 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
   );
   const [ratings, setRatings] = useState<WaitstaffRatingFeedback[]>(() => getWaitstaffRatings());
 
-  // Navigation tab
-  const [activeTab, setActiveTab] = useState<
+  // Navigation tab synchronized with left sidebar (?tab=...)
+  const [activeTab, setActiveTabState] = useState<
     "dashboard" | "orders" | "encaissement" | "remittance" | "permanence" | "notations"
-  >("dashboard");
+  >(tabFromUrl || "dashboard");
 
-  // Filter & Search states in Catalog
-  const [selectedFamily, setSelectedFamily] = useState<"ALL" | "BEVERAGE" | "MEAL">("ALL");
+  const setActiveTab = (tab: "dashboard" | "orders" | "encaissement" | "remittance" | "permanence" | "notations") => {
+    setActiveTabState(tab);
+    router.push(`/pos/stations?tab=${tab}`);
+  };
+
+  useEffect(() => {
+    if (tabFromUrl && ["dashboard", "orders", "encaissement", "remittance", "permanence", "notations"].includes(tabFromUrl)) {
+      setActiveTabState(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  // Filter & Search states in Catalog: 3 Families (BEVERAGE / MEAL / WINE)
+  const [selectedFamily, setSelectedFamily] = useState<"BEVERAGE" | "MEAL" | "WINE">("BEVERAGE");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
 
@@ -147,17 +170,32 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
   const categories = useMemo(() => {
     const set = new Set<string>();
     WAITSTAFF_CATALOG.forEach((p) => {
-      if (selectedFamily === "ALL" || p.unit === selectedFamily) {
+      const isWine = p.unit === "WINE" || p.targetStationCode === "CAVE";
+      const isMeal = p.unit === "MEAL" || p.targetStationCode === "CUISINE";
+      const isBar = p.unit === "BEVERAGE" && p.targetStationCode === "BAR";
+
+      if (
+        (selectedFamily === "WINE" && isWine) ||
+        (selectedFamily === "MEAL" && isMeal) ||
+        (selectedFamily === "BEVERAGE" && isBar)
+      ) {
         set.add(p.category);
       }
     });
     return ["ALL", ...Array.from(set)];
   }, [selectedFamily]);
 
-  // Filtered products
+  // Filtered products across 3 Families
   const filteredProducts = useMemo(() => {
     return WAITSTAFF_CATALOG.filter((p) => {
-      if (selectedFamily !== "ALL" && p.unit !== selectedFamily) return false;
+      const isWine = p.unit === "WINE" || p.targetStationCode === "CAVE";
+      const isMeal = p.unit === "MEAL" || p.targetStationCode === "CUISINE";
+      const isBar = p.unit === "BEVERAGE" && p.targetStationCode === "BAR";
+
+      if (selectedFamily === "WINE" && !isWine) return false;
+      if (selectedFamily === "MEAL" && !isMeal) return false;
+      if (selectedFamily === "BEVERAGE" && !isBar) return false;
+
       if (selectedCategory !== "ALL" && p.category !== selectedCategory) return false;
       if (searchQuery.trim() !== "") {
         const query = searchQuery.toLowerCase();
@@ -185,19 +223,19 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
       return;
     }
 
-    // Beverage direct add
+    const unit = product.unit;
     setCart((prev) => {
       const existing = prev.find(
-        (line) => line.product.id === product.id && line.fulfillmentUnit === "BEVERAGE"
+        (line) => line.product.id === product.id && line.fulfillmentUnit === unit
       );
       if (existing) {
         return prev.map((line) =>
-          line.product.id === product.id && line.fulfillmentUnit === "BEVERAGE"
+          line.product.id === product.id && line.fulfillmentUnit === unit
             ? { ...line, quantity: line.quantity + 1 }
             : line
         );
       }
-      return [...prev, { product, quantity: 1, fulfillmentUnit: "BEVERAGE" }];
+      return [...prev, { product, quantity: 1, fulfillmentUnit: unit }];
     });
   };
 
@@ -230,12 +268,13 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
     });
   };
 
-  // Fast Bulk Add Shortcut (e.g. +3, +6, +12 Casier)
+  // Fast Bulk Add Shortcut (e.g. +3, +6, +12 Casier / +2, +6 Carton pour les vins)
   const handleFastAddQty = (product: WaitstaffProduct, count: number) => {
     if (product.unit === "MEAL") {
       handleAddProduct(product);
       return;
     }
+    const unit = product.unit;
     setCart((prev) => {
       const existing = prev.find((line) => line.product.id === product.id);
       if (existing) {
@@ -243,7 +282,7 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
           line.product.id === product.id ? { ...line, quantity: line.quantity + count } : line
         );
       }
-      return [...prev, { product, quantity: count, fulfillmentUnit: "BEVERAGE" }];
+      return [...prev, { product, quantity: count, fulfillmentUnit: unit }];
     });
   };
 
@@ -442,96 +481,97 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
       </div>
 
       {/* =========================================================================
-          TACTILE NAVIGATION TABS (Mobile Friendly Scrolling Bar)
+          ACTIVE VIEW BREADCRUMB & SECTION TITLE (Classé dans le sidebar vertical gauche)
       ========================================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar border-b border-stone-200">
-        <button
-          type="button"
-          onClick={() => setActiveTab("dashboard")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "dashboard"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>Tableau de bord</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("orders")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "orders"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <Plus className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>Prendre commande</span>
-          {cart.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-stone-950 text-[10px] font-black font-mono">
-              {cartTotalItemsCount}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-white border border-stone-200/90 shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+            Section active :
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-stone-900 font-serif flex items-center gap-1.5 text-sm">
+              {activeTab === "dashboard" && (
+                <>
+                  <Layers className="w-4 h-4 text-[#d4af37]" />
+                  <span>Tableau de bord</span>
+                </>
+              )}
+              {activeTab === "orders" && (
+                <>
+                  <ShoppingBag className="w-4 h-4 text-[#d4af37]" />
+                  <span>Prendre commande</span>
+                </>
+              )}
+              {activeTab === "encaissement" && (
+                <>
+                  <Receipt className="w-4 h-4 text-amber-500" />
+                  <span>Encaissements & Livraisons</span>
+                </>
+              )}
+              {activeTab === "remittance" && (
+                <>
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <span>Mon Point Caisse</span>
+                </>
+              )}
+              {activeTab === "permanence" && (
+                <>
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  <span>Horaires & Permanence</span>
+                </>
+              )}
+              {activeTab === "notations" && (
+                <>
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span>Mes Notations Clients</span>
+                </>
+              )}
             </span>
-          )}
-        </button>
+            <Badge variant="default" className="text-[10px] font-mono text-stone-500 bg-stone-50">
+              Navigable via le menu latéral gauche
+            </Badge>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("encaissement")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "encaissement"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <Receipt className="w-3.5 h-3.5 text-amber-500" />
-          <span>Encaissements & Livraisons</span>
-          {readyItemsCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black font-mono">
-              {readyItemsCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("remittance")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "remittance"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Mon Point Caisse</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("permanence")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "permanence"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <Clock className="w-3.5 h-3.5 text-blue-500" />
-          <span>Horaires & Permanence</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("notations")}
-          className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-            activeTab === "notations"
-              ? "bg-[#184f28] text-white shadow-md shadow-emerald-950/20"
-              : "bg-white text-stone-600 hover:bg-stone-100 border border-stone-200"
-          }`}
-        >
-          <Star className="w-3.5 h-3.5 text-amber-400" />
-          <span>Mes Notations Clients</span>
-        </button>
+        {/* Quick mobile jump buttons on small screens where sidebar is in drawer */}
+        <div className="flex sm:hidden items-center gap-1 overflow-x-auto no-scrollbar pt-1 border-t sm:border-t-0 border-stone-100">
+          <button
+            type="button"
+            onClick={() => setActiveTab("dashboard")}
+            className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+              activeTab === "dashboard" ? "bg-[#184f28] text-white" : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("orders")}
+            className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+              activeTab === "orders" ? "bg-[#184f28] text-white" : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            Commande
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("encaissement")}
+            className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+              activeTab === "encaissement" ? "bg-[#184f28] text-white" : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            Caisse ({orders.filter((o) => o.status !== "PAID").length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("remittance")}
+            className={`px-2 py-1 rounded-lg text-[10px] font-bold ${
+              activeTab === "remittance" ? "bg-[#184f28] text-white" : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            Point
+          </button>
+        </div>
       </div>
 
       {/* Success Notification Banner */}
@@ -769,49 +809,54 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
             {/* Category and Family Filters */}
             <div className="p-4 rounded-3xl bg-white border border-stone-200 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                {/* Family Toggle: ALL / BEVERAGE / MEAL */}
+                {/* 3 Family Buttons: Boissons & Bar / Cuisine & Repas / Cave à vin */}
                 <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-2xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedFamily("ALL");
-                      setSelectedCategory("ALL");
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      selectedFamily === "ALL" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"
-                    }`}
-                  >
-                    Tout ({WAITSTAFF_CATALOG.length})
-                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedFamily("BEVERAGE");
                       setSelectedCategory("ALL");
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                       selectedFamily === "BEVERAGE"
                         ? "bg-[#184f28] text-white shadow-sm"
-                        : "text-stone-500"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
                     }`}
                   >
                     <Coffee className="w-3.5 h-3.5 text-amber-400" />
                     <span>Boissons & Bar</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedFamily("MEAL");
                       setSelectedCategory("ALL");
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                       selectedFamily === "MEAL"
                         ? "bg-[#184f28] text-white shadow-sm"
-                        : "text-stone-500"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
                     }`}
                   >
                     <Utensils className="w-3.5 h-3.5 text-rose-400" />
                     <span>Cuisine & Repas</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFamily("WINE");
+                      setSelectedCategory("ALL");
+                    }}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      selectedFamily === "WINE"
+                        ? "bg-[#8c101c] text-white shadow-sm"
+                        : "text-stone-600 hover:text-stone-900 hover:bg-stone-200/60"
+                    }`}
+                  >
+                    <Wine className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Cave à vin</span>
                   </button>
                 </div>
 
@@ -850,8 +895,9 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
             {/* Product Cards Tactile Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {filteredProducts.map((prod) => {
-                const isBeverage = prod.unit === "BEVERAGE";
-                const isMeal = prod.unit === "MEAL";
+                const isBeverage = prod.unit === "BEVERAGE" && prod.targetStationCode === "BAR";
+                const isWine = prod.unit === "WINE" || prod.targetStationCode === "CAVE";
+                const isMeal = prod.unit === "MEAL" || prod.targetStationCode === "CUISINE";
 
                 return (
                   <div
@@ -862,10 +908,14 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                       <div className="flex items-center justify-between gap-1 mb-1.5">
                         <span
                           className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                            isMeal ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                            isMeal
+                              ? "bg-rose-100 text-rose-800"
+                              : isWine
+                              ? "bg-[#8c101c]/15 text-[#8c101c] font-black border border-[#8c101c]/30"
+                              : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {isMeal ? "Cuisine" : "Bar"}
+                          {isMeal ? "Cuisine" : isWine ? "Cave à vin" : "Bar"}
                         </span>
                         <span className="text-[10px] text-stone-400 font-mono">
                           Stock : {prod.availableStock || 99}
@@ -886,7 +936,11 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                         variant="primary"
                         size="sm"
                         onClick={() => handleAddProduct(prod)}
-                        className="w-full bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs h-8 gap-1"
+                        className={`w-full text-white font-bold text-xs h-8 gap-1 ${
+                          isWine
+                            ? "bg-[#8c101c] hover:bg-[#6e0c15]"
+                            : "bg-[#184f28] hover:bg-[#123c1f]"
+                        }`}
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>{isMeal ? "Choisir Accompagnement" : "Ajouter (+1)"}</span>
@@ -916,6 +970,27 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                             title="Casier de 12 bouteilles"
                           >
                             +12 📦
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Fast wine multipliers (+2 bouteilles, +6 carton 📦) */}
+                      {isWine && (
+                        <div className="grid grid-cols-2 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleFastAddQty(prod, 2)}
+                            className="py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-mono font-bold"
+                          >
+                            +2 Bout.
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFastAddQty(prod, 6)}
+                            className="py-1 rounded-lg bg-[#8c101c]/10 hover:bg-[#8c101c]/20 text-[#8c101c] text-[10px] font-mono font-bold"
+                            title="Carton de 6 bouteilles"
+                          >
+                            +6 📦 Carton
                           </button>
                         </div>
                       )}
