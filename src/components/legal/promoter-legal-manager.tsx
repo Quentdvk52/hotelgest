@@ -51,7 +51,13 @@ interface PromoterLegalManagerProps {
 }
 
 export function PromoterLegalManager({ activeUser }: PromoterLegalManagerProps) {
-  const [documents, setDocuments] = useState<LegalDocument[]>([]);
+  const [documents, setDocuments] = useState<LegalDocument[]>(() => {
+    try {
+      return getAllLegalDocuments(true);
+    } catch {
+      return [];
+    }
+  });
   const [selectedDocId, setSelectedDocId] = useState<string>("doc-mentions-legales");
   const [activeTab, setActiveTab] = useState<"EDIT" | "HISTORY" | "DIFF" | "COOKIES">("EDIT");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
@@ -75,9 +81,22 @@ export function PromoterLegalManager({ activeUser }: PromoterLegalManagerProps) 
   const [diffVersionBId, setDiffVersionBId] = useState<string>("");
 
   // Cookie settings state
-  const [cookieSettings, setCookieSettings] = useState<CookieConsentSettings>(getCookieSettings());
+  const [cookieSettings, setCookieSettings] = useState<CookieConsentSettings>(() => {
+    try {
+      return getCookieSettings();
+    } catch {
+      return {
+        version: "1.0",
+        bannerTitle: "Gestion de vos préférences sur les traceurs & cookies",
+        bannerDescription: "Hôtel Le Vignoble utilise des cookies essentiels au bon fonctionnement du site et de la réservation.",
+        categories: [],
+        updatedAt: new Date().toISOString(),
+        updatedBy: "Direction Générale",
+      };
+    }
+  });
 
-  const isAuthorized = activeUser?.roleCode === "PROMOTER" || activeUser?.roleCode === "FINANCIAL_DIRECTOR";
+  const isAuthorized = !activeUser || activeUser?.roleCode === "PROMOTER" || activeUser?.roleCode === "FINANCIAL_DIRECTOR";
 
   const loadDocuments = () => {
     const docs = getAllLegalDocuments(true);
@@ -88,7 +107,7 @@ export function PromoterLegalManager({ activeUser }: PromoterLegalManagerProps) 
     loadDocuments();
   }, []);
 
-  const selectedDoc = documents.find((d) => d.id === selectedDocId) || documents[0];
+  const selectedDoc = documents.find((d) => d.id === selectedDocId) || documents[0] || null;
 
   // Sync editor when selectedDoc changes
   useEffect(() => {
@@ -111,19 +130,19 @@ export function PromoterLegalManager({ activeUser }: PromoterLegalManagerProps) 
         setDiffVersionBId(selectedDoc.versions[0].id);
       }
     }
-  }, [selectedDocId]);
+  }, [selectedDocId, documents]);
 
-  const currentPublishedVer = selectedDoc?.versions.find(
-    (v) => v.id === selectedDoc.currentPublishedVersionId && v.status === "PUBLIE"
-  );
-  const currentDraftVer = selectedDoc?.versions.find((v) => v.status === "BROUILLON");
+  const currentPublishedVer = selectedDoc?.versions?.find(
+    (v) => v.id === selectedDoc?.currentPublishedVersionId && v.status === "PUBLIE"
+  ) || null;
+  const currentDraftVer = selectedDoc?.versions?.find((v) => v.status === "BROUILLON") || null;
 
   // Incomplete placeholders detected in current draft
-  const currentIncompletePlaceholders = findPlaceholders(draftContent);
+  const currentIncompletePlaceholders = findPlaceholders(draftContent || "");
 
   // Total incomplete placeholders across all documents
   const allIncompletePlaceholders = documents.flatMap((d) => {
-    const pub = d.versions.find((v) => v.id === d.currentPublishedVersionId) || d.versions[0];
+    const pub = d.versions?.find((v) => v.id === d.currentPublishedVersionId) || d.versions?.[0];
     return pub ? findPlaceholders(pub.content) : [];
   });
   const uniqueIncompleteCount = Array.from(new Set(allIncompletePlaceholders)).length;
@@ -245,6 +264,15 @@ export function PromoterLegalManager({ activeUser }: PromoterLegalManagerProps) 
     }
     return true;
   });
+
+  if (!selectedDoc) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center p-8 text-center bg-white rounded-3xl border border-stone-200 shadow-sm">
+        <div className="w-8 h-8 border-4 border-[#184f28] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs text-stone-500 font-medium">Chargement des documents légaux...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">

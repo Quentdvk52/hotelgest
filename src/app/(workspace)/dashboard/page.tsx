@@ -59,6 +59,7 @@ import {
   SEED_USERS,
 } from "@/lib/db/seed";
 import { PromoterLegalManager } from "@/components/legal/promoter-legal-manager";
+import { ErrorBoundary } from "@/components/common/error-boundary";
 
 // Types
 export interface OrderRecord {
@@ -6441,7 +6442,9 @@ function DashboardContent() {
 
       {/* VIEW 17: DOCUMENTS LÉGAUX & COOKIES */}
       {currentView === "legal" && (
-        <PromoterLegalManager activeUser={activeUser} />
+        <ErrorBoundary fallbackTitle="Module de Gestion des Documents Légaux">
+          <PromoterLegalManager activeUser={activeUser} />
+        </ErrorBoundary>
       )}
 
       {/* MODAL CHAMBRE */}
