@@ -7,6 +7,7 @@ import { PropertiesSection } from "@/components/marketing/properties-section";
 import { OffersSection } from "@/components/marketing/offers-section";
 import { RoomsCarousel } from "@/components/marketing/rooms-carousel";
 import { DiningSection } from "@/components/marketing/dining-section";
+import { EventsKestrelCarousel } from "@/components/marketing/events-kestrel-carousel";
 import { VehicleRentalSection } from "@/components/marketing/vehicle-rental-section";
 import { EventsEquipmentSection } from "@/components/marketing/events-equipment-section";
 import { DirectBookingPerks } from "@/components/marketing/direct-booking-perks";
@@ -92,6 +93,9 @@ export default function LuxuryHomePage() {
 
         {/* 6. Section: Restaurant, Bar & Cave à Vin */}
         <DiningSection />
+
+        {/* 6b. Section: Évènements, Galas & Rendez-vous (Carrousel Kestrel) */}
+        <EventsKestrelCarousel />
 
         {/* 7. Section: Location de Véhicules & Chauffeurs VIP */}
         <VehicleRentalSection />

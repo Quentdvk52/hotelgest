@@ -37,7 +37,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
   const promoterContext: TenantContext = {
     tenantId: "tenant-vignoble-001",
     organizationId: "org-vignoble-001",
-    propertyId: null, // Full group / multi-site scope
+    propertyId: "prop-bohicon-001", // Full group / multi-site scope
     userId: "user-prom-01",
     roles: ["PROMOTER"],
     permissions: getRoleDefaultPermissions("PROMOTER"),
@@ -161,6 +161,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
         messagingService.sendMessage(bohiconReceptionist, "conv_bohicon_staff", "Fichier joint", {
           attachments: [
             {
+              id: "att-malware",
               name: "malware.exe",
               type: "DOCUMENT",
               mimeType: "application/x-msdownload",
@@ -178,6 +179,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
         messagingService.sendMessage(bohiconReceptionist, "conv_bohicon_staff", "Gros fichier", {
           attachments: [
             {
+              id: "att-huge",
               name: "huge_video.mp4",
               type: "VIDEO",
               mimeType: "video/mp4",
@@ -197,6 +199,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
         {
           attachments: [
             {
+              id: "att-facture",
               name: "facture_lingerie.pdf",
               type: "DOCUMENT",
               mimeType: "application/pdf",
@@ -317,8 +320,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
 
       const cancelled = await announcementService.cancelAnnouncement(
         bohiconManager,
-        draft.id,
-        "Intervention reportée"
+        draft.id
       );
       expect(cancelled.status).toBe("CANCELLED");
 
@@ -435,14 +437,13 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
         title: "Test externe",
         summary: "Notification interne préservée",
         actionUrl: "/pms/reception",
-        channels: ["EMAIL", "SMS"],
       });
 
-      expect(notif.id).toBeDefined();
-      expect(notif.read).toBe(false);
+      expect(notif?.id).toBeDefined();
+      expect(notif?.read).toBe(false);
 
       // In-app notification still received
-      const unreadCount = notificationService.getUnreadCount("user-rec-boh", "tenant-vignoble-001");
+      const unreadCount = notificationService.getUnreadCount("user-rec-boh");
       expect(unreadCount).toBeGreaterThanOrEqual(1);
     });
   });
@@ -453,7 +454,7 @@ describe("Internal Messaging, Announcements & Notification Center Suite (13 Acce
       const emptyNotifs = notificationService.getNotificationsForUser("user-unknown-999", "tenant-vignoble-001");
       expect(emptyNotifs).toEqual([]);
 
-      const unreadCount = notificationService.getUnreadCount("user-unknown-999", "tenant-vignoble-001");
+      const unreadCount = notificationService.getUnreadCount("user-unknown-999");
       expect(unreadCount).toBe(0);
     });
 

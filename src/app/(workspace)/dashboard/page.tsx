@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -41,6 +41,17 @@ import {
   Zap,
   BarChart3,
   SlidersHorizontal,
+  ShoppingCart,
+  CalendarCheck,
+  ArrowLeftRight,
+  Star,
+  Award,
+  MessageSquare,
+  Send,
+  ThumbsUp,
+  UserCheck,
+  UserX,
+  Tag,
 } from "lucide-react";
 import {
   SEED_PROPERTIES,
@@ -48,6 +59,69 @@ import {
 } from "@/lib/db/seed";
 
 // Types
+export interface OrderRecord {
+  id: string;
+  orderNumber: string;
+  propertyId: string;
+  propertyName: string;
+  orderType: "RESERVATION_CHAMBRE" | "REPAS_BOISSON" | "CAVE_A_VIN" | "LOCATION_MATERIEL" | "SERVICE_TRAITEUR";
+  clientName: string;
+  clientPhone: string;
+  itemsSummary: string;
+  totalAmountXof: number;
+  status: "EN_ATTENTE" | "VALIDEE" | "EN_PREPARATION" | "LIVREE" | "PAYEE" | "ANNULEE";
+  origin: "SERVEUSE" | "RECEPTION" | "CLIENT_SITE_WEB" | "ROOM_SERVICE";
+  createdAt: string;
+}
+
+export interface HotelEventRecord {
+  id: string;
+  title: string;
+  category: "BRUNCH" | "SOIREE_PRESTIGE" | "SEMINAIRE" | "ATELIER" | "MARIAGE" | "GALA";
+  propertyId: string;
+  propertyName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  expectedGuests: number;
+  pricePerPersonXof: number;
+  description: string;
+  imageUrl: string;
+  tags: string[];
+  status: "PLANIFIE" | "EN_COURS" | "TERMINE";
+}
+
+export interface StaffMutationRecord {
+  id: string;
+  staffId: string;
+  staffName: string;
+  fromPropertyId: string;
+  fromPropertyName: string;
+  toPropertyId: string;
+  toPropertyName: string;
+  fromRoleName: string;
+  toRoleName: string;
+  effectiveDate: string;
+  decisionMaker: string;
+  reason: string;
+  status: "EFFECTIVE" | "PLANIFIEE";
+}
+
+export interface StaffRatingRecord {
+  id: string;
+  staffId: string;
+  staffName: string;
+  staffRole: string;
+  propertyId: string;
+  propertyName: string;
+  clientName: string;
+  clientEmail: string;
+  serviceCategory: "ACCUEIL_RECEPTION" | "SERVICE_CHAMBRE" | "RESTAURATION_BAR" | "CHAUFFEUR_VIP" | "SERVICE_TRAITEUR";
+  rating: number; // 1 to 5
+  comment: string;
+  date: string;
+  notifiedRoles: string[];
+}
 export interface RoomRecord {
   id: string;
   number: string;
@@ -205,6 +279,105 @@ function DashboardContent() {
 
   // Rental Specific Filters
   const [rentalCategoryFilter, setRentalCategoryFilter] = useState<string>("ALL");
+
+  // Active User & Manager RBAC Scope
+  const [activeUser, setActiveUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("hotelgest_user");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setActiveUser(parsed);
+          if (parsed.roleCode === "PROPERTY_MANAGER" && parsed.propertyId) {
+            setRoomAgencyFilter(parsed.propertyId);
+            setOrderSiteFilter(parsed.propertyId);
+            setEventSiteFilter(parsed.propertyId);
+            setRatingSiteFilter(parsed.propertyId);
+            setPresenceSiteFilter(parsed.propertyId);
+            const angleMap: Record<string, "BOH" | "ABM" | "ABC" | "ZOG"> = {
+              "prop-bohicon-001": "BOH",
+              "prop-abomey-002": "ABM",
+              "prop-calavi-003": "ABC",
+              "prop-zogbo-004": "ZOG",
+            };
+            if (angleMap[parsed.propertyId]) {
+              setAgencyAngle(angleMap[parsed.propertyId]);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, []);
+
+  const isPromoter = !activeUser || activeUser.roleCode === "PROMOTER" || activeUser.roleCode === "FINANCIAL_DIRECTOR";
+  const isManager = activeUser?.roleCode === "PROPERTY_MANAGER";
+  const managerPropertyId = activeUser?.propertyId;
+  const isBohiconManager = managerPropertyId === "prop-bohicon-001";
+
+  // Commandes Specific States
+  const [orderSiteFilter, setOrderSiteFilter] = useState<string>("ALL");
+  const [orderTypeFilter, setOrderTypeFilter] = useState<string>("ALL");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("ALL");
+  const [orderModalOpen, setOrderModalOpen] = useState(false);
+  const [orderForm, setOrderForm] = useState<Partial<OrderRecord>>({
+    orderType: "REPAS_BOISSON",
+    propertyId: "prop-bohicon-001",
+    clientName: "",
+    clientPhone: "",
+    itemsSummary: "",
+    totalAmountXof: 15000,
+    status: "VALIDEE",
+    origin: "SERVEUSE",
+  });
+
+  // Events Specific States
+  const [eventSiteFilter, setEventSiteFilter] = useState<string>("ALL");
+  const [eventCategoryFilter, setEventCategoryFilter] = useState<string>("ALL");
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<HotelEventRecord | null>(null);
+  const [eventForm, setEventForm] = useState<Partial<HotelEventRecord>>({
+    title: "",
+    category: "BRUNCH",
+    propertyId: "prop-bohicon-001",
+    date: new Date().toISOString().split("T")[0],
+    startTime: "12:00",
+    endTime: "16:00",
+    expectedGuests: 50,
+    pricePerPersonXof: 18500,
+    description: "",
+    imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80",
+    tags: ["#BrunchVignoble"],
+    status: "PLANIFIE",
+  });
+
+  // Mutations Specific States
+  const [mutationModalOpen, setMutationModalOpen] = useState(false);
+  const [mutationForm, setMutationForm] = useState({
+    staffId: "",
+    toPropertyId: "prop-bohicon-001",
+    toRoleName: "Gérant d'Agence",
+    effectiveDate: new Date().toISOString().split("T")[0],
+    reason: "Renfort stratégique et optimisation des équipes régionales",
+  });
+
+  // Notations Specific States
+  const [ratingSiteFilter, setRatingSiteFilter] = useState<string>("ALL");
+  const [ratingCategoryFilter, setRatingCategoryFilter] = useState<string>("ALL");
+  const [ratingMinStars, setRatingMinStars] = useState<number>(0);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [ratingNotificationSent, setRatingNotificationSent] = useState(false);
+  const [ratingForm, setRatingForm] = useState({
+    staffId: "",
+    clientName: "",
+    clientEmail: "",
+    serviceCategory: "ACCUEIL_RECEPTION" as any,
+    rating: 5,
+    comment: "",
+  });
 
   // Permanence & Présence States
   const [presenceSiteFilter, setPresenceSiteFilter] = useState<string>("ALL");
@@ -1043,8 +1216,360 @@ function DashboardContent() {
 
   const totalTreasuryBalance = treasuryAccounts.reduce((acc, curr) => acc + curr.balanceXof, 0);
 
+  // =========================================================================
+  // 8. DATA: COMMANDES (FLUX COMPLET SITES & CLIENTS)
+  // =========================================================================
+  const [orders, setOrders] = useState<OrderRecord[]>([
+    {
+      id: "ord-001",
+      orderNumber: "CMD-2026-089",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      orderType: "RESERVATION_CHAMBRE",
+      clientName: "M. Mathieu DOSSOU",
+      clientPhone: "+229 97 12 34 56",
+      itemsSummary: "Suite Royale N°101 (2 nuitées) + Petit-déjeuner royal",
+      totalAmountXof: 170000,
+      status: "VALIDEE",
+      origin: "CLIENT_SITE_WEB",
+      createdAt: "Aujourd'hui, 14:30",
+    },
+    {
+      id: "ord-002",
+      orderNumber: "CMD-2026-090",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      orderType: "REPAS_BOISSON",
+      clientName: "Table N°4 (Terrasse)",
+      clientPhone: "+229 96 11 22 33",
+      itemsSummary: "2x Amiwo Royal Poulet Bicyclette + 1x Alloco + 2x Jus d'ananas frais",
+      totalAmountXof: 21000,
+      status: "EN_PREPARATION",
+      origin: "SERVEUSE",
+      createdAt: "Aujourd'hui, 13:45",
+    },
+    {
+      id: "ord-003",
+      orderNumber: "CMD-2026-091",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      orderType: "CAVE_A_VIN",
+      clientName: "Mme Clarisse KPADONOU",
+      clientPhone: "+229 95 00 12 45",
+      itemsSummary: "2x Moët & Chandon Brut Impérial + 1x Château Vignoble Réserve",
+      totalAmountXof: 168000,
+      status: "PAYEE",
+      origin: "CLIENT_SITE_WEB",
+      createdAt: "Aujourd'hui, 12:15",
+    },
+    {
+      id: "ord-004",
+      orderNumber: "CMD-2026-092",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      orderType: "LOCATION_MATERIEL",
+      clientName: "Délégation Ministère du Tourisme",
+      clientPhone: "+229 97 88 99 00",
+      itemsSummary: "Toyota Land Cruiser V8 Executive VIP (2 jours avec chauffeur)",
+      totalAmountXof: 240000,
+      status: "EN_PREPARATION",
+      origin: "RECEPTION",
+      createdAt: "Aujourd'hui, 11:20",
+    },
+    {
+      id: "ord-005",
+      orderNumber: "CMD-2026-093",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      orderType: "REPAS_BOISSON",
+      clientName: "Table N°2 (Salon Privé)",
+      clientPhone: "+229 90 22 33 44",
+      itemsSummary: "3x Djenkoumé Royal & Pintade + 1x Agouti braisé",
+      totalAmountXof: 36500,
+      status: "EN_ATTENTE",
+      origin: "SERVEUSE",
+      createdAt: "Aujourd'hui, 11:05",
+    },
+    {
+      id: "ord-006",
+      orderNumber: "CMD-2026-094",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      orderType: "RESERVATION_CHAMBRE",
+      clientName: "Pr. Justin ADANHOUNME",
+      clientPhone: "+229 97 45 67 89",
+      itemsSummary: "Pavillon VIP N°301 (1 nuitée affaires)",
+      totalAmountXof: 55000,
+      status: "LIVREE",
+      origin: "CLIENT_SITE_WEB",
+      createdAt: "Hier, 19:10",
+    },
+    {
+      id: "ord-007",
+      orderNumber: "CMD-2026-095",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      orderType: "SERVICE_TRAITEUR",
+      clientName: "Société Bénin Télécoms",
+      clientPhone: "+229 21 30 00 00",
+      itemsSummary: "Buffet Prestige Terroir (50 convives) + Location Salle de Conférence",
+      totalAmountXof: 725000,
+      status: "VALIDEE",
+      origin: "CLIENT_SITE_WEB",
+      createdAt: "Hier, 16:40",
+    },
+    {
+      id: "ord-008",
+      orderNumber: "CMD-2026-096",
+      propertyId: "prop-zogbo-004",
+      propertyName: "Hôtel Le Vignoble - Zogbodomey",
+      orderType: "RESERVATION_CHAMBRE",
+      clientName: "M. Romain HOUENOU",
+      clientPhone: "+229 94 33 22 11",
+      itemsSummary: "Pavillon N°401 (Séjour détente week-end)",
+      totalAmountXof: 35000,
+      status: "VALIDEE",
+      origin: "CLIENT_SITE_WEB",
+      createdAt: "Hier, 15:00",
+    },
+  ]);
+
+  // =========================================================================
+  // 9. DATA: EVENEMENTS & RENDEZ-VOUS
+  // =========================================================================
+  const [hotelEvents, setHotelEvents] = useState<HotelEventRecord[]>([
+    {
+      id: "evt-01",
+      title: "Le Grand Brunch Dominical du Terroir",
+      category: "BRUNCH",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      date: "2026-11-22",
+      startTime: "11:30",
+      endTime: "16:00",
+      expectedGuests: 120,
+      pricePerPersonXof: 18500,
+      description: "Grand buffet gourmand en plein air, grillades au feu de bois, orchestre acoustique et animation verger.",
+      imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80",
+      tags: ["#BrunchVignoble", "#BuffetTerroir", "#Piscine"],
+      status: "PLANIFIE",
+    },
+    {
+      id: "evt-02",
+      title: "Soirée Prestige Oenologie & Dégustation Grands Crus",
+      category: "SOIREE_PRESTIGE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      date: "2026-11-28",
+      startTime: "19:30",
+      endTime: "23:30",
+      expectedGuests: 40,
+      pricePerPersonXof: 35000,
+      description: "Dégustation animée par un sommelier réputé. 5 crus d'exception et accords mets royaux.",
+      imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80",
+      tags: ["#OenologieVignoble", "#GrandsCrus", "#Sommelier"],
+      status: "PLANIFIE",
+    },
+    {
+      id: "evt-03",
+      title: "Gala Royal & Nuit Historique d'Abomey",
+      category: "GALA",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      date: "2026-12-12",
+      startTime: "20:00",
+      endTime: "02:00",
+      expectedGuests: 250,
+      pricePerPersonXof: 45000,
+      description: "Dîner de gala impérial sous cloche dorée, danses traditionnelles de cour et récital d'artistes royaux.",
+      imageUrl: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1200&q=80",
+      tags: ["#GalaRoyal", "#NuitAbomey", "#Prestige"],
+      status: "PLANIFIE",
+    },
+    {
+      id: "evt-04",
+      title: "Séminaire Exécutif & Sommet des Décideurs",
+      category: "SEMINAIRE",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      date: "2026-12-18",
+      startTime: "08:30",
+      endTime: "18:00",
+      expectedGuests: 80,
+      pricePerPersonXof: 28000,
+      description: "Atelier stratégique d'entreprises, équipement 4K, pauses gourmandes et navettes aéroport dédiées.",
+      imageUrl: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80",
+      tags: ["#SeminaireVIP", "#CalaviBusiness", "#Colloque"],
+      status: "PLANIFIE",
+    },
+    {
+      id: "evt-05",
+      title: "Soirée Romantique aux Chandelles",
+      category: "SOIREE_PRESTIGE",
+      propertyId: "prop-zogbo-004",
+      propertyName: "Hôtel Le Vignoble - Zogbodomey",
+      date: "2026-11-21",
+      startTime: "19:00",
+      endTime: "23:00",
+      expectedGuests: 50,
+      pricePerPersonXof: 22000,
+      description: "Ambiance feutrée aux abords des bassins, menu dégustation deux couverts et violoniste live.",
+      imageUrl: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=1200&q=80",
+      tags: ["#RomanceVignoble", "#DînerAuxChandelles"],
+      status: "PLANIFIE",
+    },
+  ]);
+
+  // =========================================================================
+  // 10. DATA: MUTATIONS DU PERSONNEL (DIRECTION & DAF SEULEMENT)
+  // =========================================================================
+  const [mutations, setMutations] = useState<StaffMutationRecord[]>([
+    {
+      id: "mut-001",
+      staffId: "user-rec-boh",
+      staffName: "Reine KPONHINTO",
+      fromPropertyId: "prop-calavi-003",
+      fromPropertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      toPropertyId: "prop-bohicon-001",
+      toPropertyName: "Hôtel Le Vignoble - Bohicon",
+      fromRoleName: "Réceptionniste",
+      toRoleName: "Réceptionniste Principale Bohicon",
+      effectiveDate: "2026-11-01",
+      decisionMaker: "Eddy GNACADJA (Promoteur)",
+      reason: "Renfort stratégique de l'accueil au siège pour la haute saison touristique.",
+      status: "EFFECTIVE",
+    },
+    {
+      id: "mut-002",
+      staffId: "user-dir-abm",
+      staffName: "Sylvain KPOFFON",
+      fromPropertyId: "prop-bohicon-001",
+      fromPropertyName: "Direction Générale Groupe",
+      toPropertyId: "prop-abomey-002",
+      toPropertyName: "Hôtel Le Vignoble - Abomey",
+      fromRoleName: "Responsable Hébergement",
+      toRoleName: "Gérant Agence Abomey",
+      effectiveDate: "2026-10-15",
+      decisionMaker: "Marcelin AGBIDINOUKOUN (DAF)",
+      reason: "Promotion au poste de direction de site pour dynamiser le complexe historique d'Abomey.",
+      status: "EFFECTIVE",
+    },
+    {
+      id: "mut-003",
+      staffId: "user-srv-boh",
+      staffName: "Prudence DOSSOU",
+      fromPropertyId: "prop-abomey-002",
+      fromPropertyName: "Hôtel Le Vignoble - Abomey",
+      toPropertyId: "prop-bohicon-001",
+      toPropertyName: "Hôtel Le Vignoble - Bohicon",
+      fromRoleName: "Serveuse Bar & Resto",
+      toRoleName: "Chef de Rang Restaurant Royal Bohicon",
+      effectiveDate: "2026-11-10",
+      decisionMaker: "Eddy GNACADJA (Promoteur)",
+      reason: "Affectation pour superviser les banquets et le service traiteur au restaurant central.",
+      status: "EFFECTIVE",
+    },
+  ]);
+
+  // =========================================================================
+  // 11. DATA: NOTATIONS DU PERSONNEL PAR LES CLIENTS
+  // =========================================================================
+  const [ratings, setRatings] = useState<StaffRatingRecord[]>([
+    {
+      id: "rat-001",
+      staffId: "user-rec-boh",
+      staffName: "Reine KPONHINTO",
+      staffRole: "Réceptionniste",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      clientName: "M. Mathieu DOSSOU",
+      clientEmail: "mathieu.dossou@gmail.com",
+      serviceCategory: "ACCUEIL_RECEPTION",
+      rating: 5,
+      comment: "Accueil royal et souriant ! Prise en charge immédiate pour notre arrivée tardive. Elle a été aux petits soins.",
+      date: "15 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Gérant Bohicon", "Reine KPONHINTO"],
+    },
+    {
+      id: "rat-002",
+      staffId: "user-srv-boh",
+      staffName: "Prudence DOSSOU",
+      staffRole: "Serveuse Bar & Resto",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      clientName: "Dr. Armand SOGLO",
+      clientEmail: "armand.soglo@yahoo.fr",
+      serviceCategory: "RESTAURATION_BAR",
+      rating: 5,
+      comment: "Service à table impeccable pour le déjeuner royal. L'Amiwo et le poulet bicyclette servis chauds et avec élégance.",
+      date: "15 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Gérant Bohicon", "Prudence DOSSOU"],
+    },
+    {
+      id: "rat-003",
+      staffId: "user-dir-boh",
+      staffName: "Aimée Hounsinou",
+      staffRole: "Directeur de Site",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      clientName: "Mme Clarisse KPADONOU",
+      clientEmail: "c.kpadonou@banque-atlantique.bj",
+      serviceCategory: "SERVICE_CHAMBRE",
+      rating: 5,
+      comment: "Gestion de notre séjour au cordeau. Le directeur a personnellement veillé au confort de notre suite VIP.",
+      date: "14 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Aimée Hounsinou"],
+    },
+    {
+      id: "rat-004",
+      staffId: "user-srv-abm",
+      staffName: "Béatrice HOUEDANOU",
+      staffRole: "Serveuse Bar & Resto",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      clientName: "M. Christian BOKPE",
+      clientEmail: "christian.b@outlook.com",
+      serviceCategory: "RESTAURATION_BAR",
+      rating: 4,
+      comment: "Très gentille et serviable pour notre dîner sous les étoiles à Abomey. Cadre magique.",
+      date: "14 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Gérant Abomey", "Béatrice HOUEDANOU"],
+    },
+    {
+      id: "rat-005",
+      staffId: "user-srv-abc",
+      staffName: "Chantal AGBOHOUN",
+      staffRole: "Serveuse Bar & Resto",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      clientName: "Pr. Justin ADANHOUNME",
+      clientEmail: "adanhoume.j@uac.bj",
+      serviceCategory: "ACCUEIL_RECEPTION",
+      rating: 5,
+      comment: "Discrétion et ponctualité remarquable pour notre réunion d'affaires à Calavi. Bravo à toute l'équipe.",
+      date: "13 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Gérant Calavi", "Chantal AGBOHOUN"],
+    },
+    {
+      id: "rat-006",
+      staffId: "user-srv-zog",
+      staffName: "Flora TCHIBOZO",
+      staffRole: "Serveuse Bar & Resto",
+      propertyId: "prop-zogbo-004",
+      propertyName: "Hôtel Le Vignoble - Zogbodomey",
+      clientName: "Famille GOMEZ",
+      clientEmail: "famille.gomez@gmail.com",
+      serviceCategory: "SERVICE_TRAITEUR",
+      rating: 5,
+      comment: "Week-end ressourçant à Zogbodomey. Flora a été adorable avec nos enfants lors du petit-déjeuner.",
+      date: "12 Nov 2026",
+      notifiedRoles: ["Promoteur", "DAF", "Gérant Zogbodomey", "Flora TCHIBOZO"],
+    },
+  ]);
+
   // Filtered lists for individual views
   const filteredRooms = rooms.filter((r) => {
+    if (isManager && managerPropertyId && r.propertyId !== managerPropertyId) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const match =
@@ -1058,6 +1583,72 @@ function DashboardContent() {
     if (roomTypeFilter !== "ALL" && r.type !== roomTypeFilter) return false;
     return true;
   });
+
+  const filteredOrders = orders.filter((o) => {
+    if (isManager && managerPropertyId && o.propertyId !== managerPropertyId) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        o.orderNumber.toLowerCase().includes(q) ||
+        o.clientName.toLowerCase().includes(q) ||
+        o.itemsSummary.toLowerCase().includes(q) ||
+        o.propertyName.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (orderSiteFilter !== "ALL" && o.propertyId !== orderSiteFilter) return false;
+    if (orderTypeFilter !== "ALL" && o.orderType !== orderTypeFilter) return false;
+    if (orderStatusFilter !== "ALL" && o.status !== orderStatusFilter) return false;
+    return true;
+  });
+
+  const filteredEvents = hotelEvents.filter((e) => {
+    if (isManager && managerPropertyId && e.propertyId !== managerPropertyId) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        e.title.toLowerCase().includes(q) ||
+        e.description.toLowerCase().includes(q) ||
+        e.propertyName.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (eventSiteFilter !== "ALL" && e.propertyId !== eventSiteFilter) return false;
+    if (eventCategoryFilter !== "ALL" && e.category !== eventCategoryFilter) return false;
+    return true;
+  });
+
+  const filteredMutations = mutations.filter((m) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        m.staffName.toLowerCase().includes(q) ||
+        m.fromPropertyName.toLowerCase().includes(q) ||
+        m.toPropertyName.toLowerCase().includes(q) ||
+        m.reason.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const filteredRatings = ratings.filter((rt) => {
+    if (isManager && managerPropertyId && rt.propertyId !== managerPropertyId) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const match =
+        rt.staffName.toLowerCase().includes(q) ||
+        rt.clientName.toLowerCase().includes(q) ||
+        rt.comment.toLowerCase().includes(q) ||
+        rt.propertyName.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (ratingSiteFilter !== "ALL" && rt.propertyId !== ratingSiteFilter) return false;
+    if (ratingCategoryFilter !== "ALL" && rt.serviceCategory !== ratingCategoryFilter) return false;
+    if (ratingMinStars > 0 && rt.rating < ratingMinStars) return false;
+    return true;
+  });
+
+  const filteredStaff = isManager && managerPropertyId
+    ? staffList.filter((s) => s.propertyId === managerPropertyId)
+    : staffList;
 
   const filteredWines = wines
     .filter((w) => {
@@ -1651,11 +2242,14 @@ function DashboardContent() {
             </div>
             <button
               onClick={() => {
+                const defaultProp = isManager && managerPropertyId
+                  ? SEED_PROPERTIES.find((p) => p.id === managerPropertyId) || SEED_PROPERTIES[0]
+                  : SEED_PROPERTIES[0];
                 setEditingRoom(null);
                 setRoomForm({
                   number: `${rooms.length + 101}`,
                   name: "Nouvelle Suite",
-                  propertyId: "prop-bohicon-001",
+                  propertyId: defaultProp.id,
                   type: "SUPERIEURE",
                   basePriceXof: 45000,
                   capacity: 2,
@@ -1922,17 +2516,19 @@ function DashboardContent() {
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Modifier</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        if (confirm("Supprimer cette chambre ?")) {
-                          setRooms((prev) => prev.filter((r) => r.id !== room.id));
-                        }
-                      }}
-                      className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
-                      title="Supprimer la chambre"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!isManager && (
+                      <button
+                        onClick={() => {
+                          if (confirm("Supprimer cette chambre ?")) {
+                            setRooms((prev) => prev.filter((r) => r.id !== room.id));
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
+                        title="Supprimer la chambre (Promoteur/DAF)"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1955,28 +2551,42 @@ function DashboardContent() {
                 Filtrez par catégorie, tranche de prix ou état de stock. Réapprovisionnez en un clic (+6, +12, +24) et ajoutez de nouvelles bouteilles avec photos.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingWine(null);
-                setWineForm({
-                  name: "",
-                  category: "ROUGE",
-                  origin: "France / Terroir",
-                  millesime: "2020",
-                  priceXof: 35000,
-                  stockBottles: 12,
-                  minStockAlert: 5,
-                  pairings: "Viandes braisées, fromages",
-                  imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
-                });
-                setWineModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#8c101c] hover:bg-[#6e0d16] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ajouter un Cru / Boisson</span>
-            </button>
+            {(!isManager || isBohiconManager) && (
+              <button
+                onClick={() => {
+                  setEditingWine(null);
+                  setWineForm({
+                    name: "",
+                    category: "ROUGE",
+                    origin: "France / Terroir",
+                    millesime: "2020",
+                    priceXof: 35000,
+                    stockBottles: 12,
+                    minStockAlert: 5,
+                    pairings: "Viandes braisées, fromages",
+                    imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
+                  });
+                  setWineModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#8c101c] hover:bg-[#6e0d16] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter un Cru / Boisson</span>
+              </button>
+            )}
           </div>
+
+          {isManager && !isBohiconManager && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Boutique Centrale & Cave de Bohicon</p>
+                <p className="text-amber-700 mt-0.5">
+                  La cave à vin physique et boutique centrale est hébergée au siège de Bohicon. La gestion et l&apos;approvisionnement des stocks sont administrés par le Gérant de Bohicon et la Direction Générale. Votre site a accès au catalogue pour le room service et le restaurant.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Top Filter Toolbar for Cave à Vin */}
           <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3">
@@ -2667,14 +3277,17 @@ function DashboardContent() {
             </div>
             <button
               onClick={() => {
+                const defaultProp = isManager && managerPropertyId
+                  ? SEED_PROPERTIES.find((p) => p.id === managerPropertyId) || SEED_PROPERTIES[0]
+                  : SEED_PROPERTIES[0];
                 setEditingStaff(null);
                 setStaffForm({
                   fullName: "",
                   email: "",
                   roleName: "Réceptionniste",
                   roleCode: "RECEPTIONIST",
-                  propertyName: "Hôtel Le Vignoble - Bohicon",
-                  propertyId: "prop-bohicon-001",
+                  propertyName: defaultProp.name,
+                  propertyId: defaultProp.id,
                   maxDiscount: "10",
                   phone: "+229 97 00 00 00",
                   status: "ACTIF",
@@ -2746,17 +3359,19 @@ function DashboardContent() {
                           >
                             Modifier
                           </button>
-                          <button
-                            onClick={() => {
-                              if (confirm("Enlever ce collaborateur et révoquer ses accès ?")) {
-                                setStaffList((prev) => prev.filter((s) => s.id !== stf.id));
-                              }
-                            }}
-                            className="p-1 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
-                            title="Enlever le collaborateur"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {!isManager && (
+                            <button
+                              onClick={() => {
+                                if (confirm("Enlever ce collaborateur et révoquer ses accès ?")) {
+                                  setStaffList((prev) => prev.filter((s) => s.id !== stf.id));
+                                }
+                              }}
+                              className="p-1 rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-600 transition-colors"
+                              title="Enlever le collaborateur (Promoteur/DAF)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -3410,6 +4025,824 @@ function DashboardContent() {
       )}
 
       {/* =========================================================================
+          VIEW 10: COMMANDES (FLUX DES COMMANDES PAR SERVICE & ETABLISSEMENT)
+         ========================================================================= */}
+      {currentView === "commandes" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">
+                  {isManager ? "Cockpit Établissement" : "Flux Centralisé Multi-Sites"}
+                </span>
+                <span className="text-xs text-stone-400">• Direct Serveuses & Réception</span>
+              </div>
+              <h2 className="text-xl font-bold text-stone-900">
+                {isManager ? "Commandes de l'Établissement" : "Flux Consolidé de Toutes les Commandes"} ({filteredOrders.length})
+              </h2>
+              <p className="text-xs text-stone-500">
+                Répertoire continu des commandes : réservations de chambres, repas & boissons, cave à vin, locations de matériel/véhicules et services traiteur.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setOrderForm({
+                  orderType: "REPAS_BOISSON",
+                  propertyId: isManager && managerPropertyId ? managerPropertyId : "prop-bohicon-001",
+                  clientName: "",
+                  clientPhone: "",
+                  itemsSummary: "",
+                  totalAmountXof: 15000,
+                  status: "EN_ATTENTE",
+                  origin: "SERVEUSE",
+                });
+                setOrderModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Enregistrer une Commande</span>
+            </button>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Total Commandes</span>
+              <div className="text-2xl font-black text-stone-900 mt-1">{filteredOrders.length}</div>
+              <span className="text-[10px] text-blue-600 font-medium">Flux actif</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Volume d&apos;Affaires</span>
+              <div className="text-2xl font-black text-emerald-700 mt-1">
+                {filteredOrders.reduce((sum, o) => sum + o.totalAmountXof, 0).toLocaleString("fr-FR")} <span className="text-xs font-normal">XOF</span>
+              </div>
+              <span className="text-[10px] text-emerald-600 font-medium">Consolidé</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">En Attente / Préparation</span>
+              <div className="text-2xl font-black text-amber-600 mt-1">
+                {filteredOrders.filter((o) => o.status === "EN_ATTENTE" || o.status === "EN_PREPARATION").length}
+              </div>
+              <span className="text-[10px] text-amber-600 font-medium">À traiter en cuisine / régie</span>
+            </div>
+            <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Payées & Encaissées</span>
+              <div className="text-2xl font-black text-[#184f28] mt-1">
+                {filteredOrders.filter((o) => o.status === "PAYEE" || o.status === "LIVREE").length}
+              </div>
+              <span className="text-[10px] text-[#184f28] font-medium">Règlements validés</span>
+            </div>
+          </div>
+
+          {/* Filter Toolbar for Commandes */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Site filter */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-blue-700" /> Établissement
+                </label>
+                <select
+                  disabled={isManager}
+                  value={orderSiteFilter}
+                  onChange={(e) => setOrderSiteFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-blue-700 disabled:opacity-75"
+                >
+                  <option value="ALL">Tous les Établissements</option>
+                  <option value="prop-bohicon-001">Hôtel Le Vignoble - Bohicon</option>
+                  <option value="prop-abomey-002">Hôtel Le Vignoble - Abomey</option>
+                  <option value="prop-calavi-003">Hôtel Le Vignoble - Abomey-Calavi</option>
+                  <option value="prop-zogbo-004">Hôtel Le Vignoble - Zogbodomey</option>
+                </select>
+              </div>
+
+              {/* Service Type filter */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <ShoppingCart className="w-3.5 h-3.5 text-blue-700" /> Nature de Prestation
+                </label>
+                <select
+                  value={orderTypeFilter}
+                  onChange={(e) => setOrderTypeFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-blue-700"
+                >
+                  <option value="ALL">Tous les Services</option>
+                  <option value="RESERVATION_CHAMBRE">Hébergement / Chambres</option>
+                  <option value="REPAS_BOISSON">Restauration & Bar</option>
+                  <option value="CAVE_A_VIN">Cave à Vin & Spiritueux</option>
+                  <option value="LOCATION_MATERIEL">Location Matériel & Véhicules</option>
+                  <option value="SERVICE_TRAITEUR">Service Traiteur & Banquets</option>
+                </select>
+              </div>
+
+              {/* Status filter */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-blue-700" /> Statut Commande
+                </label>
+                <select
+                  value={orderStatusFilter}
+                  onChange={(e) => setOrderStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-blue-700"
+                >
+                  <option value="ALL">Tous les Statuts</option>
+                  <option value="EN_ATTENTE">🟡 En Attente</option>
+                  <option value="VALIDEE">🔵 Validée</option>
+                  <option value="EN_PREPARATION">🟠 En Préparation</option>
+                  <option value="LIVREE">🟣 Livrée</option>
+                  <option value="PAYEE">🟢 Payée / Encaissée</option>
+                  <option value="ANNULEE">⚪ Annulée</option>
+                </select>
+              </div>
+
+              {/* Search input */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5 text-blue-700" /> Recherche
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="N° commande, client, articles..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-blue-700"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Table of Orders */}
+          <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-bold text-[10px]">
+                    <th className="py-3 px-4">Réf & Émission</th>
+                    <th className="py-3 px-4">Client</th>
+                    <th className="py-3 px-4">Établissement</th>
+                    <th className="py-3 px-4">Prestation & Détails</th>
+                    <th className="py-3 px-4">Montant Net</th>
+                    <th className="py-3 px-4">Statut</th>
+                    <th className="py-3 px-4 text-right">Actions Opérationnelles</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-stone-400">
+                        Aucune commande trouvée pour ces critères de filtrage.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredOrders.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-stone-50/70 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono font-bold text-stone-900">{ord.orderNumber}</div>
+                          <div className="text-[10px] text-stone-400 flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3 h-3" /> {ord.createdAt}
+                          </div>
+                          <span className="mt-1 inline-block px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 font-mono text-[9px]">
+                            {ord.origin}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-stone-900">{ord.clientName}</div>
+                          <div className="text-[11px] text-stone-500 font-mono">{ord.clientPhone}</div>
+                        </td>
+                        <td className="py-3.5 px-4 text-stone-600 font-medium">
+                          {ord.propertyName}
+                        </td>
+                        <td className="py-3.5 px-4 max-w-xs">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold mb-1 ${
+                            ord.orderType === "RESERVATION_CHAMBRE"
+                              ? "bg-purple-100 text-purple-700"
+                              : ord.orderType === "REPAS_BOISSON"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : ord.orderType === "CAVE_A_VIN"
+                              ? "bg-rose-100 text-rose-700"
+                              : ord.orderType === "LOCATION_MATERIEL"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}>
+                            {ord.orderType.replace(/_/g, " ")}
+                          </span>
+                          <div className="text-stone-700 truncate font-medium">{ord.itemsSummary}</div>
+                        </td>
+                        <td className="py-3.5 px-4 font-black text-stone-900 whitespace-nowrap">
+                          {ord.totalAmountXof.toLocaleString("fr-FR")} XOF
+                        </td>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            ord.status === "PAYEE"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : ord.status === "LIVREE"
+                              ? "bg-teal-100 text-teal-800"
+                              : ord.status === "VALIDEE"
+                              ? "bg-blue-100 text-blue-800"
+                              : ord.status === "EN_PREPARATION"
+                              ? "bg-amber-100 text-amber-800"
+                              : ord.status === "EN_ATTENTE"
+                              ? "bg-stone-100 text-stone-800"
+                              : "bg-rose-100 text-rose-800"
+                          }`}>
+                            {ord.status === "PAYEE" && <Check className="w-3 h-3 text-emerald-600" />}
+                            {ord.status.replace(/_/g, " ")}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {ord.status === "EN_ATTENTE" && (
+                              <button
+                                onClick={() => {
+                                  setOrders((prev) =>
+                                    prev.map((o) => (o.id === ord.id ? { ...o, status: "VALIDEE" } : o))
+                                  );
+                                }}
+                                className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition-colors"
+                              >
+                                Valider
+                              </button>
+                            )}
+                            {ord.status === "VALIDEE" && (
+                              <button
+                                onClick={() => {
+                                  setOrders((prev) =>
+                                    prev.map((o) => (o.id === ord.id ? { ...o, status: "EN_PREPARATION" } : o))
+                                  );
+                                }}
+                                className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 font-bold hover:bg-amber-100 transition-colors"
+                              >
+                                En Cuisine/Régie
+                              </button>
+                            )}
+                            {(ord.status === "EN_PREPARATION" || ord.status === "VALIDEE") && (
+                              <button
+                                onClick={() => {
+                                  setOrders((prev) =>
+                                    prev.map((o) => (o.id === ord.id ? { ...o, status: "LIVREE" } : o))
+                                  );
+                                }}
+                                className="px-2 py-1 rounded-lg bg-teal-50 text-teal-700 font-bold hover:bg-teal-100 transition-colors"
+                              >
+                                Livrer
+                              </button>
+                            )}
+                            {ord.status !== "PAYEE" && (
+                              <button
+                                onClick={() => {
+                                  setOrders((prev) =>
+                                    prev.map((o) => (o.id === ord.id ? { ...o, status: "PAYEE" } : o))
+                                  );
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors"
+                              >
+                                Encaisser
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 11: EVENEMENTS ET RENDEZ-VOUS (BRUNCHS, SOIREES, SEMINAIRES)
+         ========================================================================= */}
+      {currentView === "events" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-700 text-[10px] font-bold uppercase tracking-wider border border-purple-500/20">
+                  Agenda Prestigieux & Évènements
+                </span>
+                <span className="text-xs text-stone-400">• Vitrine Landing & Organisation</span>
+              </div>
+              <h2 className="text-xl font-bold text-stone-900">
+                {isManager ? "Évènements & Rendez-vous du Site" : "Gestion des Évènements & Célébrations"} ({filteredEvents.length})
+              </h2>
+              <p className="text-xs text-stone-500">
+                Programmez les brunchs dominicaux, soirées dégustation, réunions exécutives, séminaires, ateliers et mariages. Diffusé en direct sur le carrousel de la page d&apos;accueil.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingEvent(null);
+                setEventForm({
+                  title: "",
+                  category: "BRUNCH",
+                  propertyId: isManager && managerPropertyId ? managerPropertyId : "prop-bohicon-001",
+                  date: new Date().toISOString().split("T")[0],
+                  startTime: "12:00",
+                  endTime: "17:00",
+                  expectedGuests: 50,
+                  pricePerPersonXof: 20000,
+                  description: "",
+                  imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80",
+                  tags: ["#LeVignobleEvents"],
+                  status: "PLANIFIE",
+                });
+                setEventModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Programmer un Évènement</span>
+            </button>
+          </div>
+
+          {/* Filters for Events */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-purple-700" /> Établissement
+                </label>
+                <select
+                  disabled={isManager}
+                  value={eventSiteFilter}
+                  onChange={(e) => setEventSiteFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-purple-700 disabled:opacity-75"
+                >
+                  <option value="ALL">Tous les Établissements</option>
+                  <option value="prop-bohicon-001">Hôtel Le Vignoble - Bohicon</option>
+                  <option value="prop-abomey-002">Hôtel Le Vignoble - Abomey</option>
+                  <option value="prop-calavi-003">Hôtel Le Vignoble - Abomey-Calavi</option>
+                  <option value="prop-zogbo-004">Hôtel Le Vignoble - Zogbodomey</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <CalendarCheck className="w-3.5 h-3.5 text-purple-700" /> Catégorie d&apos;Évènement
+                </label>
+                <select
+                  value={eventCategoryFilter}
+                  onChange={(e) => setEventCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-purple-700"
+                >
+                  <option value="ALL">Toutes les Catégories</option>
+                  <option value="BRUNCH">Brunchs Gastronomiques</option>
+                  <option value="SOIREE_PRESTIGE">Soirées Prestige & Dégustation</option>
+                  <option value="SEMINAIRE">Séminaires Exécutifs</option>
+                  <option value="ATELIER">Ateliers de Travail</option>
+                  <option value="MARIAGE">Mariages & Cérémonies Privées</option>
+                  <option value="GALA">Galas & Réceptions Officielles</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5 text-purple-700" /> Recherche
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Titre, descriptif..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-purple-700"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid of Events Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((evt) => (
+              <div
+                key={evt.id}
+                className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
+              >
+                <div className="relative h-48 w-full overflow-hidden bg-stone-100">
+                  <img
+                    src={evt.imageUrl}
+                    alt={evt.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                    <span className="px-2.5 py-1 rounded-full bg-purple-900/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+                      {evt.category.replace(/_/g, " ")}
+                    </span>
+                    <span className="px-2 py-1 rounded-full bg-stone-900/80 backdrop-blur-md text-white text-[10px] font-mono">
+                      {evt.date}
+                    </span>
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <span className="px-2 py-1 rounded-full bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase">
+                      {evt.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block mb-1">
+                      {evt.propertyName} • {evt.startTime} - {evt.endTime}
+                    </span>
+                    <h4 className="text-base font-bold text-stone-900">{evt.title}</h4>
+                    <p className="text-xs text-stone-600 line-clamp-2 mt-1">{evt.description}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-stone-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-stone-500">Tarif / Couvert :</span>
+                      <span className="font-bold text-purple-900 text-sm">
+                        {evt.pricePerPersonXof > 0 ? `${evt.pricePerPersonXof.toLocaleString("fr-FR")} XOF` : "Accès Libre / Sur Devis"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-stone-500">Capacité attendue :</span>
+                      <span className="font-semibold text-stone-700">{evt.expectedGuests} invités</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {evt.tags.map((t, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-mono text-[10px]">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingEvent(evt);
+                      setEventForm(evt);
+                      setEventModalOpen(true);
+                    }}
+                    className="flex-1 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Modifier</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm("Supprimer cet évènement ?")) {
+                        setHotelEvents((prev) => prev.filter((e) => e.id !== evt.id));
+                      }
+                    }}
+                    className="p-2 rounded-xl bg-white hover:bg-red-50 border border-stone-200 text-stone-400 hover:text-red-600 transition-colors"
+                    title="Supprimer l'évènement"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 12: MUTATION DU PERSONNEL (PRIVILEGE EXCLUSIF DAF & PROMOTEUR)
+         ========================================================================= */}
+      {currentView === "mutations" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* RBAC check for site manager: Only DAF & Promoter */}
+          {isManager ? (
+            <div className="max-w-2xl mx-auto bg-stone-900 border border-stone-800 text-white rounded-3xl p-8 space-y-4 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-2">
+                <ShieldAlert className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold font-serif text-white">
+                Accès Restreint : Prérogative Exclusive DAF & Promoteur
+              </h3>
+              <p className="text-xs text-stone-300 leading-relaxed max-w-lg mx-auto">
+                La mutation et la réaffectation inter-agences ou inter-postes des collaborateurs relèvent exclusivement des pouvoirs de la Direction Générale (Promoteur M. Eddy GNACADJA et Directeur Administratif & Financier).
+              </p>
+              <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 text-xs text-stone-400 text-left space-y-2">
+                <div className="font-semibold text-rose-300">Procédure pour le Gérant de site :</div>
+                <p>1. Transmettre votre demande de renfort ou permutation par la Messagerie Interne à la Direction Générale.</p>
+                <p>2. La décision de mutation sera officialisée par le DAF et notifiera automatiquement votre site et l&apos;agent concerné.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-700 text-[10px] font-bold uppercase tracking-wider border border-rose-500/20">
+                      Privilège Exclusif DAF & Promoteur
+                    </span>
+                    <span className="text-xs text-stone-400">• Gouvernance RH Groupe</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-stone-900">
+                    Mutations & Affectations du Personnel ({mutations.length})
+                  </h2>
+                  <p className="text-xs text-stone-500">
+                    Mutez un collaborateur d&apos;une agence à une autre ou d&apos;un poste à un autre. La décision met à jour automatiquement la base RH et notifie le collaborateur, le DAF et les gérants concernés.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMutationForm({
+                      staffId: staffList[0]?.id || "",
+                      toPropertyId: "prop-bohicon-001",
+                      toRoleName: "Gérant d'Agence",
+                      effectiveDate: new Date().toISOString().split("T")[0],
+                      reason: "Renfort opérationnel et réorganisation stratégique",
+                    });
+                    setMutationModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span>+ Muter un Collaborateur</span>
+                </button>
+              </div>
+
+              {/* Quick KPIs on Mutations */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Mutations Enregistrées</span>
+                  <div className="text-2xl font-black text-stone-900 mt-1">{mutations.length}</div>
+                  <span className="text-[10px] text-emerald-600 font-medium">Historique complet RH</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Agences Concernées</span>
+                  <div className="text-2xl font-black text-rose-700 mt-1">4 Établissements</div>
+                  <span className="text-[10px] text-stone-500 font-medium">Bohicon, Abomey, Calavi, Zogbo</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                  <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Autorités de Décision</span>
+                  <div className="text-2xl font-black text-[#184f28] mt-1">Promoteur & DAF</div>
+                  <span className="text-[10px] text-[#184f28] font-medium">Validation stricte</span>
+                </div>
+              </div>
+
+              {/* Mutations Table */}
+              <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 uppercase tracking-wider font-bold text-[10px]">
+                        <th className="py-3 px-4">Date Prise d&apos;Effet</th>
+                        <th className="py-3 px-4">Collaborateur</th>
+                        <th className="py-3 px-4">Agence d&apos;Origine</th>
+                        <th className="py-3 px-4">Nouvelle Agence Affectée</th>
+                        <th className="py-3 px-4">Évolution de Fonction</th>
+                        <th className="py-3 px-4">Motif & Décisionnaire</th>
+                        <th className="py-3 px-4">Statut & Notification</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {filteredMutations.map((m) => (
+                        <tr key={m.id} className="hover:bg-stone-50/70 transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-stone-900 whitespace-nowrap">
+                            {m.effectiveDate}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-bold text-stone-900">{m.staffName}</div>
+                            <span className="text-[10px] text-stone-400 font-mono">ID: {m.staffId}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-stone-600 font-medium">
+                            <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                              {m.fromPropertyName}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 font-semibold text-rose-800">
+                            <div className="flex items-center gap-1.5">
+                              <ArrowLeftRight className="w-3.5 h-3.5 text-rose-600" />
+                              <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200">
+                                {m.toPropertyName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="text-stone-400 line-through text-[11px]">{m.fromRoleName}</div>
+                            <div className="font-bold text-stone-900 text-xs">{m.toRoleName}</div>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <div className="text-stone-800 font-medium">{m.reason}</div>
+                            <div className="text-[10px] text-stone-400 mt-0.5">Par : {m.decisionMaker}</div>
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase mb-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {m.status}
+                            </span>
+                            <div className="text-[10px] text-emerald-700 font-medium">✓ Notifié Promoteur, Agent, DAF</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 13: NOTATION DU PERSONNEL (AVIS CLIENTS & ALERTES MULTI-ROLES)
+         ========================================================================= */}
+      {currentView === "notations" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
+                  Transparence & Qualité de Service
+                </span>
+                <span className="text-xs text-stone-400">• Alertes instantanées aux 4 parties</span>
+              </div>
+              <h2 className="text-xl font-bold text-stone-900">
+                {isManager ? "Avis Clients sur le Personnel du Site" : "Notation du Personnel par les Clients"} ({filteredRatings.length})
+              </h2>
+              <p className="text-xs text-stone-500">
+                Chaque note attribuée par un hôte alerte en direct : le <strong>Promoteur</strong>, l&apos;<strong>Agent concerné</strong>, le <strong>DAF</strong> et le <strong>Gérant du site</strong>.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setRatingForm({
+                  staffId: filteredStaff[0]?.id || "",
+                  clientName: "",
+                  clientEmail: "",
+                  serviceCategory: "ACCUEIL_RECEPTION",
+                  rating: 5,
+                  comment: "",
+                });
+                setRatingModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+            >
+              <Star className="w-4 h-4 fill-white" />
+              <span>+ Enregistrer / Simuler un Avis</span>
+            </button>
+          </div>
+
+          {/* Overall Satisfaction Card */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-stone-900 via-stone-950 to-stone-900 border border-stone-800 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-20 h-20 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black font-serif">4.85</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider">/ 5 ★</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-1 text-amber-400 mb-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                  <span className="text-xs font-bold text-white ml-2">Excellence Hôtelière 97%</span>
+                </div>
+                <h3 className="text-lg font-bold text-white font-serif">Indice de Satisfaction & Accueil</h3>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  Basé sur les évaluations vérifiées de l&apos;ensemble de nos hôtes résidents et convives au restaurant.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <div className="text-xl font-bold text-emerald-400">100%</div>
+                <div className="text-[10px] text-stone-400 uppercase tracking-wider">Traçabilité</div>
+              </div>
+              <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <div className="text-xl font-bold text-[#d4af37]">4 Acteurs</div>
+                <div className="text-[10px] text-stone-400 uppercase tracking-wider">Notifiés</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters for Notations */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-amber-600" /> Établissement
+                </label>
+                <select
+                  disabled={isManager}
+                  value={ratingSiteFilter}
+                  onChange={(e) => setRatingSiteFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-amber-600 disabled:opacity-75"
+                >
+                  <option value="ALL">Tous les Établissements</option>
+                  <option value="prop-bohicon-001">Hôtel Le Vignoble - Bohicon</option>
+                  <option value="prop-abomey-002">Hôtel Le Vignoble - Abomey</option>
+                  <option value="prop-calavi-003">Hôtel Le Vignoble - Abomey-Calavi</option>
+                  <option value="prop-zogbo-004">Hôtel Le Vignoble - Zogbodomey</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-amber-600" /> Pôle de Service
+                </label>
+                <select
+                  value={ratingCategoryFilter}
+                  onChange={(e) => setRatingCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-amber-600"
+                >
+                  <option value="ALL">Tous les Services</option>
+                  <option value="ACCUEIL_RECEPTION">Accueil & Réception</option>
+                  <option value="SERVICE_CHAMBRE">Service de Chambre / Étage</option>
+                  <option value="RESTAURATION_BAR">Restauration & Bar</option>
+                  <option value="CHAUFFEUR_VIP">Chauffeur Privé & Navette</option>
+                  <option value="SERVICE_TRAITEUR">Service Traiteur</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 text-amber-600" /> Étoiles Min.
+                </label>
+                <select
+                  value={ratingMinStars}
+                  onChange={(e) => setRatingMinStars(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-amber-600"
+                >
+                  <option value="0">Toutes les notes</option>
+                  <option value="5">5 Étoiles uniquement ★★★★★</option>
+                  <option value="4">4 Étoiles et plus ★★★★☆</option>
+                  <option value="3">3 Étoiles et plus ★★★☆☆</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5 text-amber-600" /> Recherche
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Nom collaborateur, client..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-amber-600"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cards of Ratings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredRatings.map((rt) => (
+              <div
+                key={rt.id}
+                className="bg-white rounded-3xl border border-stone-200 p-5 shadow-sm space-y-4 hover:border-amber-300 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center font-bold text-stone-700 text-sm">
+                      {rt.staffName.split(" ").map((n) => n[0]).join("")}
+                    </div>
+                    <div>
+                      <div className="font-bold text-stone-900 text-sm">{rt.staffName}</div>
+                      <div className="text-[11px] text-stone-500">{rt.staffRole} • {rt.propertyName}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
+                    <span className="font-black text-amber-800 text-sm">{rt.rating}.0</span>
+                    <div className="flex">
+                      {[...Array(rt.rating)].map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-amber-500 text-amber-500" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-100 space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-stone-800">Client : {rt.clientName}</span>
+                    <span className="text-stone-400 font-mono">{rt.date}</span>
+                  </div>
+                  <p className="text-xs text-stone-600 italic">« {rt.comment} »</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-stone-100 text-[10px]">
+                  <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-600 font-semibold uppercase">
+                    {rt.serviceCategory.replace(/_/g, " ")}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Notifié : Promoteur • Agent • DAF • Gérant {rt.propertyName.split(" - ")[1]}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
           SHARED MODALS (CHAMBRE, CAVE, REPAS, LOCATION, TRAITEUR, STAFF, TRESORERIE)
          ========================================================================= */}
 
@@ -3470,9 +4903,10 @@ function DashboardContent() {
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">Établissement</label>
                   <select
+                    disabled={isManager}
                     value={roomForm.propertyId}
                     onChange={(e) => setRoomForm({ ...roomForm, propertyId: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                    className="w-full px-3 py-2 border rounded-xl bg-white disabled:opacity-75"
                   >
                     {SEED_PROPERTIES.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
@@ -4199,9 +5633,10 @@ function DashboardContent() {
                 <div>
                   <label className="block font-semibold text-stone-700 mb-1">Agence Affectée</label>
                   <select
+                    disabled={isManager}
                     value={staffForm.propertyId || ""}
                     onChange={(e) => setStaffForm({ ...staffForm, propertyId: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                    className="w-full px-3 py-2 border rounded-xl bg-white disabled:opacity-75"
                   >
                     {SEED_PROPERTIES.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
@@ -4521,6 +5956,671 @@ function DashboardContent() {
                   className="flex-1 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] font-semibold text-white shadow-md"
                 >
                   Enregistrer la Permanence
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL COMMANDE */}
+      {orderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <h3 className="text-lg font-bold text-stone-900">
+                Enregistrer une Nouvelle Commande
+              </h3>
+              <button onClick={() => setOrderModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === orderForm.propertyId) || SEED_PROPERTIES[0];
+                const newOrder: OrderRecord = {
+                  id: `ord-${Date.now()}`,
+                  orderNumber: `CMD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+                  propertyId: prop.id,
+                  propertyName: prop.name,
+                  orderType: (orderForm.orderType as any) || "REPAS_BOISSON",
+                  clientName: orderForm.clientName || "Client Comptoir",
+                  clientPhone: orderForm.clientPhone || "+229 97 00 00 00",
+                  itemsSummary: orderForm.itemsSummary || "Consommation directe",
+                  totalAmountXof: Number(orderForm.totalAmountXof) || 10000,
+                  status: (orderForm.status as any) || "EN_ATTENTE",
+                  origin: (orderForm.origin as any) || "SERVEUSE",
+                  createdAt: "À l'instant",
+                };
+                setOrders((prev) => [newOrder, ...prev]);
+                setOrderModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Prestation</label>
+                  <select
+                    value={orderForm.orderType}
+                    onChange={(e) => setOrderForm({ ...orderForm, orderType: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="REPAS_BOISSON">Restauration & Bar</option>
+                    <option value="RESERVATION_CHAMBRE">Hébergement / Chambre</option>
+                    <option value="CAVE_A_VIN">Cave à Vin & Spiritueux</option>
+                    <option value="LOCATION_MATERIEL">Location Matériel/Véhicule</option>
+                    <option value="SERVICE_TRAITEUR">Service Traiteur</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Établissement</label>
+                  <select
+                    disabled={isManager}
+                    value={orderForm.propertyId}
+                    onChange={(e) => setOrderForm({ ...orderForm, propertyId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white disabled:opacity-75"
+                  >
+                    {SEED_PROPERTIES.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Nom du Client / Hôte</label>
+                  <input
+                    type="text"
+                    required
+                    value={orderForm.clientName}
+                    onChange={(e) => setOrderForm({ ...orderForm, clientName: e.target.value })}
+                    placeholder="M. Bio KANHO"
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Téléphone Client</label>
+                  <input
+                    type="tel"
+                    required
+                    value={orderForm.clientPhone}
+                    onChange={(e) => setOrderForm({ ...orderForm, clientPhone: e.target.value })}
+                    placeholder="+229 97 12 34 56"
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Détails des Articles / Prestations</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={orderForm.itemsSummary}
+                  onChange={(e) => setOrderForm({ ...orderForm, itemsSummary: e.target.value })}
+                  placeholder="Ex: 2x Pintade braisée royale, 1x Bouteille Château Margaux, 2x Eau minérale Possotomè"
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Montant Total (XOF)</label>
+                  <input
+                    type="number"
+                    required
+                    min={500}
+                    value={orderForm.totalAmountXof}
+                    onChange={(e) => setOrderForm({ ...orderForm, totalAmountXof: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl font-bold text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Statut Initial</label>
+                  <select
+                    value={orderForm.status}
+                    onChange={(e) => setOrderForm({ ...orderForm, status: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="EN_ATTENTE">En attente</option>
+                    <option value="VALIDEE">Validée</option>
+                    <option value="EN_PREPARATION">En préparation</option>
+                    <option value="LIVREE">Livrée</option>
+                    <option value="PAYEE">Payée</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Canal Émetteur</label>
+                  <select
+                    value={orderForm.origin}
+                    onChange={(e) => setOrderForm({ ...orderForm, origin: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="SERVEUSE">Serveuse</option>
+                    <option value="RECEPTION">Réception</option>
+                    <option value="CLIENT_SITE_WEB">Client Web</option>
+                    <option value="ROOM_SERVICE">Room Service</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setOrderModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-blue-700 hover:bg-blue-800 font-semibold text-white shadow-md"
+                >
+                  Valider la Commande
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EVENEMENT */}
+      {eventModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <h3 className="text-lg font-bold text-stone-900">
+                {editingEvent ? "Modifier l'Évènement" : "Programmer un Nouvel Évènement"}
+              </h3>
+              <button onClick={() => setEventModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === eventForm.propertyId) || SEED_PROPERTIES[0];
+                if (editingEvent) {
+                  setHotelEvents((prev) =>
+                    prev.map((ev) =>
+                      ev.id === editingEvent.id
+                        ? ({ ...ev, ...eventForm, propertyName: prop.name } as HotelEventRecord)
+                        : ev
+                    )
+                  );
+                } else {
+                  const newEvent: HotelEventRecord = {
+                    id: `evt-${Date.now()}`,
+                    title: eventForm.title || "Soirée Prestige Le Vignoble",
+                    category: (eventForm.category as any) || "BRUNCH",
+                    propertyId: prop.id,
+                    propertyName: prop.name,
+                    date: eventForm.date || new Date().toISOString().split("T")[0],
+                    startTime: eventForm.startTime || "12:00",
+                    endTime: eventForm.endTime || "17:00",
+                    expectedGuests: Number(eventForm.expectedGuests) || 40,
+                    pricePerPersonXof: Number(eventForm.pricePerPersonXof) || 18000,
+                    description: eventForm.description || "Évènement gastronomique et convivial au cœur de notre établissement.",
+                    imageUrl: eventForm.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1200&q=80",
+                    tags: Array.isArray(eventForm.tags) ? eventForm.tags : ["#LeVignobleEvents"],
+                    status: (eventForm.status as any) || "PLANIFIE",
+                  };
+                  setHotelEvents((prev) => [newEvent, ...prev]);
+                }
+                setEventModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Titre de l&apos;Évènement</label>
+                <input
+                  type="text"
+                  required
+                  value={eventForm.title}
+                  onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                  placeholder="Ex: Grand Brunch Royal du Dimanche"
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Catégorie</label>
+                  <select
+                    value={eventForm.category}
+                    onChange={(e) => setEventForm({ ...eventForm, category: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="BRUNCH">Brunch Gastronomique</option>
+                    <option value="SOIREE_PRESTIGE">Soirée Prestige</option>
+                    <option value="SEMINAIRE">Séminaire Exécutif</option>
+                    <option value="ATELIER">Atelier / Workshop</option>
+                    <option value="MARIAGE">Mariage & Cérémonie</option>
+                    <option value="GALA">Gala Officiel</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Établissement Hôte</label>
+                  <select
+                    disabled={isManager}
+                    value={eventForm.propertyId}
+                    onChange={(e) => setEventForm({ ...eventForm, propertyId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white disabled:opacity-75"
+                  >
+                    {SEED_PROPERTIES.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={eventForm.date}
+                    onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Heure Début</label>
+                  <input
+                    type="time"
+                    required
+                    value={eventForm.startTime}
+                    onChange={(e) => setEventForm({ ...eventForm, startTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Heure Fin</label>
+                  <input
+                    type="time"
+                    required
+                    value={eventForm.endTime}
+                    onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Tarif / Personne (XOF)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={eventForm.pricePerPersonXof}
+                    onChange={(e) => setEventForm({ ...eventForm, pricePerPersonXof: Number(e.target.value) })}
+                    placeholder="0 si libre / sur devis"
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Capacité Invités</label>
+                  <input
+                    type="number"
+                    min={5}
+                    value={eventForm.expectedGuests}
+                    onChange={(e) => setEventForm({ ...eventForm, expectedGuests: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Photo d&apos;Illustration (URL)</label>
+                <input
+                  type="url"
+                  required
+                  value={eventForm.imageUrl}
+                  onChange={(e) => setEventForm({ ...eventForm, imageUrl: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Description Détaillée</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                  placeholder="Présentation du menu, animations, intervenants ou modalités d'accès..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setEventModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 font-semibold text-white shadow-md"
+                >
+                  {editingEvent ? "Sauvegarder" : "Publier l'Évènement"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MUTATION (DAF & PROMOTEUR) */}
+      {mutationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold">
+                  <ArrowLeftRight className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-stone-900">Muter un Collaborateur</h3>
+                  <span className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">
+                    Privilège Exclusif DAF & Promoteur
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setMutationModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const staffTarget = staffList.find((s) => s.id === mutationForm.staffId) || staffList[0];
+                const targetProp = SEED_PROPERTIES.find((p) => p.id === mutationForm.toPropertyId) || SEED_PROPERTIES[0];
+
+                // 1. Update staffList in place
+                setStaffList((prev) =>
+                  prev.map((s) =>
+                    s.id === staffTarget.id
+                      ? {
+                          ...s,
+                          propertyId: targetProp.id,
+                          propertyName: targetProp.name,
+                          roleName: mutationForm.toRoleName || s.roleName,
+                        }
+                      : s
+                  )
+                );
+
+                // 2. Add record to mutations
+                const newMutation: StaffMutationRecord = {
+                  id: `mut-${Date.now()}`,
+                  staffId: staffTarget.id,
+                  staffName: staffTarget.fullName,
+                  fromPropertyId: staffTarget.propertyId || "prop-bohicon-001",
+                  fromPropertyName: staffTarget.propertyName,
+                  toPropertyId: targetProp.id,
+                  toPropertyName: targetProp.name,
+                  fromRoleName: staffTarget.roleName,
+                  toRoleName: mutationForm.toRoleName || staffTarget.roleName,
+                  effectiveDate: mutationForm.effectiveDate || new Date().toISOString().split("T")[0],
+                  decisionMaker: activeUser?.fullName ? `${activeUser.fullName} (${activeUser.roleCode === "PROMOTER" ? "Promoteur" : "DAF"})` : "Direction Générale (Eddy GNACADJA)",
+                  reason: mutationForm.reason || "Optimisation des compétences régionales",
+                  status: "EFFECTIVE",
+                };
+                setMutations((prev) => [newMutation, ...prev]);
+                setMutationModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Collaborateur à muter</label>
+                <select
+                  value={mutationForm.staffId}
+                  onChange={(e) => setMutationForm({ ...mutationForm, staffId: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white font-medium"
+                >
+                  {staffList.map((stf) => (
+                    <option key={stf.id} value={stf.id}>
+                      {stf.fullName} — {stf.roleName} ({stf.propertyName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Nouvel Établissement</label>
+                  <select
+                    value={mutationForm.toPropertyId}
+                    onChange={(e) => setMutationForm({ ...mutationForm, toPropertyId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    {SEED_PROPERTIES.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Nouvelle Fonction / Poste</label>
+                  <input
+                    type="text"
+                    required
+                    value={mutationForm.toRoleName}
+                    onChange={(e) => setMutationForm({ ...mutationForm, toRoleName: e.target.value })}
+                    placeholder="Ex: Gérant d'Agence, Chef de Réception..."
+                    className="w-full px-3 py-2 border rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Date d&apos;Effet</label>
+                <input
+                  type="date"
+                  required
+                  value={mutationForm.effectiveDate}
+                  onChange={(e) => setMutationForm({ ...mutationForm, effectiveDate: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Motif Stratégique de la Mutation</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={mutationForm.reason}
+                  onChange={(e) => setMutationForm({ ...mutationForm, reason: e.target.value })}
+                  placeholder="Justification RH : Renfort de l'équipe de Bohicon, promotion, permutation de postes..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-800 text-[11px] space-y-1">
+                <div className="font-bold">Effet immédiat de la validation :</div>
+                <p>• Mise à jour instantanée du profil collaborateur dans le système.</p>
+                <p>• Notification officielle expédiée à l&apos;agent, aux deux gérants de site et au DAF.</p>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setMutationModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 font-semibold text-white shadow-md"
+                >
+                  Valider la Mutation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL NOTATION DU PERSONNEL PAR LE CLIENT */}
+      {ratingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-stone-900">Avis Client & Notation de l&apos;Agent</h3>
+                  <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                    Diffusion Multi-Rôles Instantanée
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setRatingModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const staffTarget = staffList.find((s) => s.id === ratingForm.staffId) || staffList[0];
+                const newRating: StaffRatingRecord = {
+                  id: `rat-${Date.now()}`,
+                  staffId: staffTarget.id,
+                  staffName: staffTarget.fullName,
+                  staffRole: staffTarget.roleName,
+                  propertyId: staffTarget.propertyId || "prop-bohicon-001",
+                  propertyName: staffTarget.propertyName,
+                  clientName: ratingForm.clientName || "Hôte Résident",
+                  clientEmail: ratingForm.clientEmail || "client@hotelgest.bj",
+                  serviceCategory: ratingForm.serviceCategory || "ACCUEIL_RECEPTION",
+                  rating: Number(ratingForm.rating) || 5,
+                  comment: ratingForm.comment || "Service irréprochable et grande politesse.",
+                  date: "À l'instant",
+                  notifiedRoles: ["Promoteur", "DAF", `Gérant ${staffTarget.propertyName.split(" - ")[1]}`, staffTarget.fullName],
+                };
+                setRatings((prev) => [newRating, ...prev]);
+                setRatingModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Collaborateur Évalué</label>
+                <select
+                  value={ratingForm.staffId}
+                  onChange={(e) => setRatingForm({ ...ratingForm, staffId: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-xl bg-white font-medium"
+                >
+                  {filteredStaff.map((stf) => (
+                    <option key={stf.id} value={stf.id}>
+                      {stf.fullName} — {stf.roleName} ({stf.propertyName})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Département / Service Évalué</label>
+                  <select
+                    value={ratingForm.serviceCategory}
+                    onChange={(e) => setRatingForm({ ...ratingForm, serviceCategory: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="ACCUEIL_RECEPTION">Accueil & Réception</option>
+                    <option value="SERVICE_CHAMBRE">Service de Chambre / Étage</option>
+                    <option value="RESTAURATION_BAR">Restauration & Bar</option>
+                    <option value="CHAUFFEUR_VIP">Chauffeur Privé & Navette</option>
+                    <option value="SERVICE_TRAITEUR">Service Traiteur</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Note Attribuée (Étoiles)</label>
+                  <select
+                    value={ratingForm.rating}
+                    onChange={(e) => setRatingForm({ ...ratingForm, rating: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white font-bold text-amber-700"
+                  >
+                    <option value="5">★★★★★ (5/5) — Exceptionnel</option>
+                    <option value="4">★★★★☆ (4/5) — Très Bien</option>
+                    <option value="3">★★★☆☆ (3/5) — Moyen</option>
+                    <option value="2">★★☆☆☆ (2/5) — Décevant</option>
+                    <option value="1">★☆☆☆☆ (1/5) — Inacceptable</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Nom du Client</label>
+                  <input
+                    type="text"
+                    required
+                    value={ratingForm.clientName}
+                    onChange={(e) => setRatingForm({ ...ratingForm, clientName: e.target.value })}
+                    placeholder="M. Laurent DOSSOU"
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Email Client (Optionnel)</label>
+                  <input
+                    type="email"
+                    value={ratingForm.clientEmail}
+                    onChange={(e) => setRatingForm({ ...ratingForm, clientEmail: e.target.value })}
+                    placeholder="laurent.d@gmail.com"
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Témoignage / Commentaire de l&apos;Hôte</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={ratingForm.comment}
+                  onChange={(e) => setRatingForm({ ...ratingForm, comment: e.target.value })}
+                  placeholder="Partagez vos impressions sur le service, l'amabilité, la propreté, la ponctualité..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] space-y-1">
+                <div className="font-bold flex items-center gap-1">
+                  <Activity className="w-3.5 h-3.5 text-amber-600" /> Dispatch automatique des alertes :
+                </div>
+                <p>1. <strong>Promoteur</strong> (Eddy GNACADJA) : Alerte cockpit en direct.</p>
+                <p>2. <strong>Collaborateur</strong> : Avis visible sur son tableau de bord personnel.</p>
+                <p>3. <strong>DAF</strong> : Pris en compte pour les primes de performance mensuelles.</p>
+                <p>4. <strong>Gérant du site</strong> : Suivi qualité immédiat pour l&apos;agence concernée.</p>
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setRatingModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 font-semibold text-white shadow-md"
+                >
+                  Enregistrer l&apos;Avis & Notifier
                 </button>
               </div>
             </form>

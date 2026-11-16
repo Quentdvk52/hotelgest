@@ -33,6 +33,10 @@ import {
   User,
   CheckCircle2,
   X,
+  ShoppingCart,
+  CalendarCheck,
+  ArrowLeftRight,
+  Star,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -59,8 +63,10 @@ function SidebarNavContent({
   const currentView = (searchParams.get("view") || "cockpit").toLowerCase();
 
   const isPromoter = activeUser.roleCode === "PROMOTER" || activeUser.roleCode === "FINANCIAL_DIRECTOR";
+  const isManager = activeUser.roleCode === "PROPERTY_MANAGER";
+  const isBohiconManager = activeUser.propertyId === "prop-bohicon-001";
 
-  // Promoter specific direct management commands
+  // Promoter & DAF specific direct management commands
   const promoterCommands = [
     {
       label: "Vue d'ensemble",
@@ -69,6 +75,14 @@ function SidebarNavContent({
       icon: LayoutDashboard,
       badge: "KPIs",
       badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Commandes",
+      href: "/dashboard?view=commandes",
+      view: "commandes",
+      icon: ShoppingCart,
+      badge: "Flux",
+      badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
     },
     {
       label: "Chambres",
@@ -99,7 +113,7 @@ function SidebarNavContent({
       href: "/dashboard?view=location",
       view: "location",
       icon: Car,
-      badge: "5",
+      badge: "9",
       badgeColor: "bg-stone-800 text-stone-300",
     },
     {
@@ -111,12 +125,36 @@ function SidebarNavContent({
       badgeColor: "bg-stone-800 text-stone-300",
     },
     {
+      label: "Évènements & RDV",
+      href: "/dashboard?view=events",
+      view: "events",
+      icon: CalendarCheck,
+      badge: "Agenda",
+      badgeColor: "bg-purple-500/20 text-purple-400 border border-purple-500/30",
+    },
+    {
       label: "Personnel",
       href: "/dashboard?view=personnel",
       view: "personnel",
       icon: Users,
       badge: "20",
       badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Mutation du personnel",
+      href: "/dashboard?view=mutations",
+      view: "mutations",
+      icon: ArrowLeftRight,
+      badge: "DAF/Promoteur",
+      badgeColor: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    },
+    {
+      label: "Notation du personnel",
+      href: "/dashboard?view=notations",
+      view: "notations",
+      icon: Star,
+      badge: "Avis",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
     },
     {
       label: "Permanence & Présence",
@@ -137,6 +175,86 @@ function SidebarNavContent({
       href: "/dashboard?view=abonnement",
       view: "abonnement",
       icon: ShieldCheck,
+    },
+  ];
+
+  // Property Manager (Gérant d'établissement) specific management commands
+  const managerCommands = [
+    {
+      label: "Vue d'ensemble",
+      href: "/dashboard?view=cockpit",
+      view: "cockpit",
+      icon: LayoutDashboard,
+      badge: "Mon Site",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Commandes du Site",
+      href: "/dashboard?view=commandes",
+      view: "commandes",
+      icon: ShoppingCart,
+      badge: "Direct",
+      badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+    },
+    {
+      label: "Chambres du Site",
+      href: "/dashboard?view=chambres",
+      view: "chambres",
+      icon: Bed,
+      badge: "Édition",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    ...(isBohiconManager
+      ? [
+          {
+            label: "Cave à Vin & Stocks",
+            href: "/dashboard?view=cave",
+            view: "cave",
+            icon: Wine,
+            badge: "Boutique",
+            badgeColor: "bg-[#8c101c]/20 text-[#d4af37] border border-[#8c101c]/30",
+          },
+        ]
+      : []),
+    {
+      label: "Repas & Carte",
+      href: "/dashboard?view=repas",
+      view: "repas",
+      icon: UtensilsCrossed,
+      badge: "Création",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Personnel du Site",
+      href: "/dashboard?view=personnel",
+      view: "personnel",
+      icon: Users,
+      badge: "Équipe",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Permanence & Présence",
+      href: "/dashboard?view=presence",
+      view: "presence",
+      icon: Clock,
+      badge: "Planning",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+    {
+      label: "Évènements du Site",
+      href: "/dashboard?view=events",
+      view: "events",
+      icon: CalendarCheck,
+      badge: "Agenda",
+      badgeColor: "bg-purple-500/20 text-purple-400 border border-purple-500/30",
+    },
+    {
+      label: "Notation du personnel",
+      href: "/dashboard?view=notations",
+      view: "notations",
+      icon: Star,
+      badge: "Avis",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
     },
   ];
 
@@ -253,9 +371,47 @@ function SidebarNavContent({
       {isPromoter && (
         <div className="space-y-1">
           <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#d4af37]">
-            Commandes du Promoteur
+            Commandes du Promoteur & DAF
           </div>
           {promoterCommands.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === "/dashboard" && currentView === item.view;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 font-bold"
+                    : "text-stone-400 hover:text-white hover:bg-stone-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-4 h-4 ${active ? "text-[#d4af37]" : "text-stone-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      active ? "bg-white/20 text-white" : item.badgeColor
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Property Manager Space Commands Section */}
+      {isManager && (
+        <div className="space-y-1">
+          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+            Gestion du Site ({activeProperty?.name?.replace("Hôtel Le Vignoble - ", "") || "Établissement"})
+          </div>
+          {managerCommands.map((item) => {
             const Icon = item.icon;
             const active = pathname === "/dashboard" && currentView === item.view;
             return (
