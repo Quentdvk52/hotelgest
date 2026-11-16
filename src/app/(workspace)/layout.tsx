@@ -743,28 +743,27 @@ export default function WorkspaceLayout({
           </button>
         </div>
 
-        {/* Site Selector */}
+        {/* Scope Display (Promoter/DAF: Multi-Sites Global scope, Staff: assigned agency) */}
         <div className="p-3 border-b border-stone-850 bg-stone-900/60">
-          <label className="block text-[10px] uppercase font-bold tracking-wider text-stone-400 mb-1 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-amber-400" />
-            {activeUser.propertyId ? "Agence Assignée" : "Site Actif"}
-          </label>
           {activeUser.propertyId ? (
-            <div className="text-xs font-semibold text-white bg-stone-850 border border-stone-800 px-3 py-1.5 rounded-lg truncate">
-              {activeProperty.name} ({activeProperty.code})
+            <div>
+              <label className="block text-[10px] uppercase font-bold tracking-wider text-stone-400 mb-1 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                Agence Assignée
+              </label>
+              <div className="text-xs font-semibold text-white bg-stone-850 border border-stone-800 px-3 py-1.5 rounded-lg truncate">
+                {activeProperty.name} ({activeProperty.code})
+              </div>
             </div>
           ) : (
-            <select
-              value={selectedPropertyId}
-              onChange={(e) => setSelectedPropertyId(e.target.value)}
-              className="w-full bg-stone-850 border border-stone-800 text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#184f28]"
-            >
-              {SEED_PROPERTIES.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.code})
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-stone-400 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#d4af37]" /> Périmètre Groupe
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">
+                Multi-Sites (4 Agences)
+              </span>
+            </div>
           )}
         </div>
 

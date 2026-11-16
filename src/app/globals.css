@@ -42,3 +42,17 @@ html {
 button, a {
   touch-action: manipulation;
 }
+
+/* Print Optimization for Invoices & Receipts */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print, nav, aside, footer {
+    display: none !important;
+  }
+  @page {
+    margin: 8mm;
+  }
+}

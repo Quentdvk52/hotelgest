@@ -12,11 +12,7 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  UserCheck,
-  Building2,
-  KeyRound,
 } from "lucide-react";
-import { ENTERPRISE_PASSWORDS } from "@/lib/auth/passwords";
 
 export default function StaffLoginPage() {
   const router = useRouter();
@@ -57,13 +53,6 @@ export default function StaffLoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePreFill = (userEmail: string) => {
-    setEmail(userEmail);
-    const pass = ENTERPRISE_PASSWORDS[userEmail] || "";
-    setPassword(pass);
-    setError(null);
   };
 
   return (
@@ -185,68 +174,6 @@ export default function StaffLoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Profile Shortcuts for Seamless Evaluation */}
-          <div className="mt-8 pt-6 border-t border-stone-800">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block mb-2.5">
-              Raccourcis de Test Rapide (Pilote Le Vignoble) :
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => handlePreFill("gnacadjaeddy@gmail.com")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">Promoteur (PDG)</div>
-                <div className="text-[10px] text-stone-400 truncate">Eddy GNACADJA</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePreFill("daf@hotel-levignoble.bj")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">DAF Groupe</div>
-                <div className="text-[10px] text-stone-400 truncate">M. AGBIDINOUKOUN</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePreFill("gerant.bohicon@hotel-levignoble.bj")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">Gérant Bohicon</div>
-                <div className="text-[10px] text-stone-400 truncate">Aimée Hounsinou</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePreFill("reception.boh@hotel-levignoble.bj")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">Réception Bohicon</div>
-                <div className="text-[10px] text-stone-400 truncate">Gaston Dossou</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePreFill("chef.boh@hotel-levignoble.bj")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">Chef Cuisinier</div>
-                <div className="text-[10px] text-stone-400 truncate">Chef Rodrigue Mensah</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePreFill("traiteur.event@hotel-levignoble.bj")}
-                className="p-2 rounded-lg bg-stone-950 border border-stone-800 text-left hover:border-amber-500/40 text-stone-300 transition-colors"
-              >
-                <div className="font-semibold text-white">Traiteur & Matériel</div>
-                <div className="text-[10px] text-stone-400 truncate">Mathurin VODOUNOU</div>
-              </button>
-            </div>
-          </div>
 
           <div className="mt-6 pt-4 border-t border-stone-800 text-center space-y-2">
             <div>

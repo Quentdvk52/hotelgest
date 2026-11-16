@@ -277,6 +277,8 @@ export interface CateringRecord {
   inclusions: string[];
   serviceLevel: string;
   imageUrl: string;
+  propertyId?: string;
+  propertyName?: string;
 }
 
 export interface StaffRecord {
@@ -300,6 +302,8 @@ export interface TreasuryAccount {
   balanceXof: number;
   accountNumber: string;
   institution: string;
+  propertyId?: string;
+  propertyName?: string;
 }
 
 export interface CashTransaction {
@@ -311,6 +315,8 @@ export interface CashTransaction {
   accountId: string;
   accountLabel: string;
   category: string;
+  propertyId?: string;
+  propertyName?: string;
 }
 
 function DashboardContent() {
@@ -338,6 +344,24 @@ function DashboardContent() {
   // Rental Specific Filters
   const [rentalCategoryFilter, setRentalCategoryFilter] = useState<string>("ALL");
 
+  // Multi-Site Filters for each individual tab
+  const [winePropertyFilter, setWinePropertyFilter] = useState<string>("ALL");
+  const [mealPropertyFilter, setMealPropertyFilter] = useState<string>("ALL");
+  const [mealCategoryFilter, setMealCategoryFilter] = useState<string>("ALL");
+  const [rentalPropertyFilter, setRentalPropertyFilter] = useState<string>("ALL");
+  const [cateringPropertyFilter, setCateringPropertyFilter] = useState<string>("ALL");
+  const [staffPropertyFilter, setStaffPropertyFilter] = useState<string>("ALL");
+  const [treasuryPropertyFilter, setTreasuryPropertyFilter] = useState<string>("ALL");
+  const [mutationPropertyFilter, setMutationPropertyFilter] = useState<string>("ALL");
+
+  // Fiscal e-MECeF & Universal Printer state
+  const [fiscalModalOpen, setFiscalModalOpen] = useState(false);
+  const [printerModalOpen, setPrinterModalOpen] = useState(false);
+  const [activeFiscalInvoice, setActiveFiscalInvoice] = useState<{
+    invoiceData: any;
+    normalizedData: any;
+  } | null>(null);
+
   // Active User & Manager RBAC Scope
   const [activeUser, setActiveUser] = useState<any>(null);
 
@@ -354,6 +378,13 @@ function DashboardContent() {
             setEventSiteFilter(parsed.propertyId);
             setRatingSiteFilter(parsed.propertyId);
             setPresenceSiteFilter(parsed.propertyId);
+            setWinePropertyFilter(parsed.propertyId);
+            setMealPropertyFilter(parsed.propertyId);
+            setRentalPropertyFilter(parsed.propertyId);
+            setCateringPropertyFilter(parsed.propertyId);
+            setStaffPropertyFilter(parsed.propertyId);
+            setTreasuryPropertyFilter(parsed.propertyId);
+            setMutationPropertyFilter(parsed.propertyId);
             const angleMap: Record<string, "BOH" | "ABM" | "ABC" | "ZOG"> = {
               "prop-bohicon-001": "BOH",
               "prop-abomey-002": "ABM",
@@ -2503,19 +2534,6 @@ function DashboardContent() {
     return true;
   });
 
-  const filteredMutations = mutations.filter((m) => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const match =
-        m.staffName.toLowerCase().includes(q) ||
-        m.fromPropertyName.toLowerCase().includes(q) ||
-        m.toPropertyName.toLowerCase().includes(q) ||
-        m.reason.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-    return true;
-  });
-
   const filteredRatings = ratings.filter((rt) => {
     if (isManager && managerPropertyId && rt.propertyId !== managerPropertyId) return false;
     if (searchQuery) {
@@ -2584,6 +2602,118 @@ function DashboardContent() {
     if (rentalCategoryFilter !== "ALL" && r.type !== rentalCategoryFilter) return false;
     return true;
   });
+
+  const filteredCatering = cateringFormulas.filter((c) => {
+    if (isManager && managerPropertyId && c.propertyId && c.propertyId !== managerPropertyId) return false;
+    if (cateringPropertyFilter !== "ALL" && c.propertyId && c.propertyId !== cateringPropertyFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!c.name.toLowerCase().includes(q) && !c.serviceLevel.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const filteredMutations = mutations.filter((m) => {
+    if (isManager && managerPropertyId && m.fromPropertyId !== managerPropertyId && m.toPropertyId !== managerPropertyId) return false;
+    if (mutationPropertyFilter !== "ALL" && m.fromPropertyId !== mutationPropertyFilter && m.toPropertyId !== mutationPropertyFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!m.staffName.toLowerCase().includes(q) && !m.reason.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const filteredTreasuryAccounts = treasuryAccounts.filter((acc) => {
+    if (isManager && managerPropertyId && acc.propertyId && acc.propertyId !== "ALL" && acc.propertyId !== managerPropertyId) return false;
+    if (treasuryPropertyFilter !== "ALL" && acc.propertyId && acc.propertyId !== "ALL" && acc.propertyId !== treasuryPropertyFilter) return false;
+    return true;
+  });
+
+  const filteredCashTransactions = cashTransactions.filter((tx) => {
+    if (isManager && managerPropertyId && tx.propertyId && tx.propertyId !== managerPropertyId) return false;
+    if (treasuryPropertyFilter !== "ALL" && tx.propertyId && tx.propertyId !== treasuryPropertyFilter) return false;
+    return true;
+  });
+
+  const handleOpenFiscalInvoice = (customOrder?: any) => {
+    const defaultItems = [
+      { name: "Hébergement Suite Royale Bohicon (2 Nuitées)", price: 65000, quantity: 2, taxGroup: "B" as const },
+      { name: "Dîner Terroir Béninois & Champagne Moët Brut", price: 65000, quantity: 1, taxGroup: "B" as const },
+      { name: "Location Berline VIP avec Chauffeur (1 Jour)", price: 45000, quantity: 1, taxGroup: "B" as const },
+    ];
+
+    const items = customOrder?.itemsSummary
+      ? [
+          {
+            name: customOrder.itemsSummary,
+            price: customOrder.totalAmountXof || 15000,
+            quantity: 1,
+            taxGroup: "B" as const,
+          },
+        ]
+      : defaultItems;
+
+    const now = new Date();
+    const dateStr = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+    const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const ifu = "0201910839213";
+    const simulatedUid = `FV-${ifu.slice(-6)}-${dateStr}-${randomSuffix}`;
+    const simulatedNim = `MCF-BOH-${ifu.slice(0, 4)}-01`;
+    const simulatedCodeMECeF = `EMCF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    let totalHt = 0;
+    let totalVat = 0;
+    items.forEach((it: any) => {
+      const lineTotal = it.price * it.quantity;
+      const ht = Math.round(lineTotal / 1.18);
+      const vat = lineTotal - ht;
+      totalHt += ht;
+      totalVat += vat;
+    });
+    const totalTtc = totalHt + totalVat;
+
+    const normalizedData: any = {
+      uid: simulatedUid,
+      nim: simulatedNim,
+      ts: now.toISOString(),
+      codeMECeF: simulatedCodeMECeF,
+      qrCode: `https://facture.dgi.bj/v?ifu=${ifu}&uid=${simulatedUid}&ttc=${totalTtc}`,
+      totalHtXof: totalHt,
+      totalVatXof: totalVat,
+      totalTtcXof: totalTtc,
+      taxBreakdown: [
+        {
+          group: "B",
+          groupLabel: "TVA Standard (18%)",
+          rate: 0.18,
+          taxableAmount: totalHt,
+          vatAmount: totalVat,
+        },
+      ],
+      isSimulated: true,
+    };
+
+    const invoiceData = {
+      reference: customOrder?.orderNumber || `FAC-VIG-${now.getFullYear()}-0089`,
+      propertyName: customOrder?.propertyName || "Hôtel Le Vignoble - Bohicon (Siège)",
+      propertyCity: "Bohicon / Carrefour Zakpo, Bénin",
+      propertyPhone: "+229 97 22 33 44",
+      ifu,
+      client: {
+        name: customOrder?.clientName || "Société Béninoise des Énergies (SBEE)",
+        ifu: "3201800192834",
+        contact: customOrder?.clientPhone || "+229 97 00 22 33",
+        address: "Cotonou / Direction Générale",
+      },
+      operatorName: activeUser?.fullName || "Marcelin AGBIDINOUKOUN (DAF)",
+      items,
+      paymentMethod: customOrder?.origin === "SERVEUSE" ? "ESPECES" : "MOMO",
+      createdAt: now.toISOString(),
+    };
+
+    setActiveFiscalInvoice({ invoiceData, normalizedData });
+    setFiscalModalOpen(true);
+  };
 
   const filteredAttendances = attendances.filter((att) => {
     if (searchQuery) {
@@ -4877,7 +5007,7 @@ function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
-                  {cashTransactions.map((tx) => (
+                  {filteredCashTransactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-stone-50 transition-colors">
                       <td className="py-3.5 px-4 text-stone-400 font-medium">{tx.date}</td>
                       <td className="py-3.5 px-4 font-bold text-stone-900">{tx.label}</td>
