@@ -34,6 +34,8 @@ import {
   QrCode,
   AlertTriangle,
   RotateCcw,
+  Coins,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,11 +53,14 @@ import {
   WaitstaffRatingFeedback,
   PaymentMethod,
   MobileMoneyOperator,
+  PaymentTenderBreakdown,
+  WaitstaffPayment,
   ProductFulfillmentUnit,
 } from "@/modules/pos/waitstaff-types";
 import {
   WAITSTAFF_CATALOG,
   BENIN_MEAL_ACCOMPANIMENTS,
+  WAITSTAFF_EXCHANGE_RATES,
   getWaitstaffShift,
   getWaitstaffTables,
   getWaitstaffOrders,
@@ -142,15 +147,21 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
   );
   const [mealInstructions, setMealInstructions] = useState<string>("");
 
-  // Payment Modal State
+  // Multi-tender Payment Modal State
   const [settlingOrder, setSettlingOrder] = useState<WaitstaffActiveOrder | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [cashAmountInput, setCashAmountInput] = useState<string>("");
+  const [momoAmountInput, setMomoAmountInput] = useState<string>("");
+  const [momoPhoneInput, setMomoPhoneInput] = useState<string>("");
   const [momoOperator, setMomoOperator] = useState<MobileMoneyOperator>("MTN");
-  const [momoNumber, setMomoNumber] = useState<string>("+229 97 00 11 22");
-  const [cashTendered, setCashTendered] = useState<string>("");
-  const [splitCashAmount, setSplitCashAmount] = useState<string>("");
-  const [splitMomoAmount, setSplitMomoAmount] = useState<string>("");
-  const [lastFiscalReceipt, setLastFiscalReceipt] = useState<any | null>(null);
+  const [tpeAmountInput, setTpeAmountInput] = useState<string>("");
+  const [tpeReceiptRefInput, setTpeReceiptRefInput] = useState<string>("");
+  const [deviseAmountInput, setDeviseAmountInput] = useState<string>("");
+  const [selectedCurrency, setSelectedCurrency] = useState<"EUR" | "USD">("EUR");
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [paymentProgressStep, setPaymentProgressStep] = useState<string>("");
+  const [kkiapayError, setKkiapayError] = useState<string | null>(null);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState<boolean>(false);
+  const [lastFiscalReceipt, setLastFiscalReceipt] = useState<{ payment: WaitstaffPayment; order: WaitstaffActiveOrder } | null>(null);
 
   // Remittance Declaration Form State
   const [declaredCashInput, setDeclaredCashInput] = useState<string>("");
@@ -333,50 +344,177 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
     }
   };
 
-  // Open Payment Modal
-  const handleOpenPayment = (order: WaitstaffActiveOrder) => {
-    setSettlingOrder(order);
-    setPaymentMethod("CASH");
-    setCashTendered(order.totalAmountXof.toString());
-    setSplitCashAmount((order.totalAmountXof / 2).toString());
-    setSplitMomoAmount((order.totalAmountXof / 2).toString());
+  // Reset payment inputs
+  const resetPaymentForm = () => {
+    setCashAmountInput("");
+    setMomoAmountInput("");
+    setMomoPhoneInput("");
+    setMomoOperator("MTN");
+    setTpeAmountInput("");
+    setTpeReceiptRefInput("");
+    setDeviseAmountInput("");
+    setSelectedCurrency("EUR");
+    setIsProcessingPayment(false);
+    setPaymentProgressStep("");
+    setKkiapayError(null);
+    setShowCancelConfirmModal(false);
     setLastFiscalReceipt(null);
   };
 
-  // Execute Settlement
-  const handleConfirmSettlement = () => {
-    if (!settlingOrder) return;
+  // Open Payment Modal
+  const handleOpenPayment = (order: WaitstaffActiveOrder) => {
+    resetPaymentForm();
+    setSettlingOrder(order);
+  };
 
-    let cashAmount = 0;
-    let mobileAmount = 0;
+  // Close payment modal attempt with dirty check
+  const handleAttemptClosePayment = () => {
+    const hasAnyAmount =
+      (parseFloat(cashAmountInput) || 0) > 0 ||
+      (parseFloat(momoAmountInput) || 0) > 0 ||
+      (parseFloat(tpeAmountInput) || 0) > 0 ||
+      (parseFloat(deviseAmountInput) || 0) > 0;
 
-    if (paymentMethod === "CASH") {
-      cashAmount = settlingOrder.totalAmountXof;
-    } else if (paymentMethod === "MOMO") {
-      mobileAmount = settlingOrder.totalAmountXof;
+    if (hasAnyAmount && !lastFiscalReceipt) {
+      setShowCancelConfirmModal(true);
     } else {
-      cashAmount = parseInt(splitCashAmount, 10) || 0;
-      mobileAmount = parseInt(splitMomoAmount, 10) || 0;
+      resetPaymentForm();
+      setSettlingOrder(null);
     }
+  };
 
-    const res = settleWaitstaffOrder({
-      orderId: settlingOrder.id,
-      paymentMethod,
-      cashAmountXof: cashAmount,
-      mobileAmountXof: mobileAmount,
-      mobileOperator: paymentMethod !== "CASH" ? momoOperator : undefined,
-      mobileNumber: paymentMethod !== "CASH" ? momoNumber : undefined,
-      waitstaffName,
-    });
+  const handleConfirmCancelPayment = () => {
+    setShowCancelConfirmModal(false);
+    resetPaymentForm();
+    setSettlingOrder(null);
+  };
 
-    if (res.success && res.payment) {
-      setLastFiscalReceipt({
-        payment: res.payment,
-        order: res.order,
+  // Multi-tender dynamic calculations
+  const parsedCash = parseFloat(cashAmountInput) || 0;
+  const parsedMomo = parseFloat(momoAmountInput) || 0;
+  const parsedTpe = parseFloat(tpeAmountInput) || 0;
+  const parsedDevise = parseFloat(deviseAmountInput) || 0;
+
+  const sumTenderedXof = parsedCash + parsedMomo + parsedTpe + parsedDevise;
+  const orderTotalXof = settlingOrder ? settlingOrder.totalAmountXof : 0;
+  const resteAPayerXof = orderTotalXof - sumTenderedXof;
+
+  const currentRateObj = WAITSTAFF_EXCHANGE_RATES[selectedCurrency];
+  const resteConverted = resteAPayerXof / currentRateObj.rate;
+  const deviseInputConverted = parsedDevise / currentRateObj.rate;
+
+  const hasEnteredAmounts = parsedCash > 0 || parsedMomo > 0 || parsedTpe > 0 || parsedDevise > 0;
+  const isMomoPhoneValid = parsedMomo === 0 || momoPhoneInput.trim().replace(/\s/g, "").length >= 8;
+  const isTpeRefValid = parsedTpe === 0 || tpeReceiptRefInput.trim().length >= 2;
+  const canSubmitPayment =
+    settlingOrder !== null &&
+    resteAPayerXof === 0 &&
+    hasEnteredAmounts &&
+    isMomoPhoneValid &&
+    isTpeRefValid &&
+    !isProcessingPayment;
+
+  // Execute Multi-tender Settlement
+  const handleConfirmSettlement = async () => {
+    if (!settlingOrder || !canSubmitPayment) return;
+
+    setKkiapayError(null);
+    setIsProcessingPayment(true);
+
+    try {
+      let kkiapayTxId: string | undefined = undefined;
+
+      // If Mobile Money tender is selected (> 0), process KKiaPay request
+      if (parsedMomo > 0) {
+        setPaymentProgressStep(
+          `Envoi de la demande de paiement KKiaPay au ${momoPhoneInput.trim()}...`
+        );
+
+        // Simulate USSD push prompt on customer handset
+        await new Promise((resolve) => setTimeout(resolve, 1400));
+        setPaymentProgressStep(
+          `Notification USSD reçue par le client. En attente de validation du code PIN...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1600));
+
+        const generatedTxId = `kkiapay_pos_${Date.now()}`;
+        const verifyRes = await fetch("/api/payments/kkiapay/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transactionId: generatedTxId,
+            amountXof: parsedMomo,
+            type: "WINE_STORE",
+            referenceId: settlingOrder.orderNumber,
+            clientName: settlingOrder.clientName,
+            clientPhone: momoPhoneInput.trim(),
+            paymentMethod:
+              momoOperator === "MOOV"
+                ? "MOOV_MONEY"
+                : momoOperator === "CELTIIS"
+                ? "CELTIIS"
+                : "MTN_MOMO",
+            propertyId: settlingOrder.propertyId,
+          }),
+        });
+
+        const verifyData = await verifyRes.json();
+        if (!verifyRes.ok || !verifyData.success) {
+          throw new Error(
+            verifyData.error ||
+              "La transaction Mobile Money a été refusée ou a expiré sur le téléphone du client."
+          );
+        }
+
+        kkiapayTxId = generatedTxId;
+        setPaymentProgressStep("Paiement Mobile Money confirmé ! Normalisation fiscale DGI en cours...");
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      } else {
+        setPaymentProgressStep("Normalisation fiscale e-MECeF (DGI Bénin) en cours...");
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+
+      const tenders: PaymentTenderBreakdown = {
+        cashAmountXof: parsedCash,
+        momoAmountXof: parsedMomo,
+        momoPhone: parsedMomo > 0 ? momoPhoneInput.trim() : undefined,
+        momoOperator: parsedMomo > 0 ? momoOperator : undefined,
+        tpeAmountXof: parsedTpe,
+        tpeReceiptRef: parsedTpe > 0 ? tpeReceiptRefInput.trim() : undefined,
+        deviseAmountXof: parsedDevise,
+        deviseCurrency: selectedCurrency,
+        deviseRate: currentRateObj.rate,
+        deviseConvertedAmount: deviseInputConverted,
+      };
+
+      const res = settleWaitstaffOrder({
+        orderId: settlingOrder.id,
+        tenders,
+        kkiapayTransactionId: kkiapayTxId,
+        waitstaffName,
       });
-      // Refresh local states
-      setOrders(getWaitstaffOrders(waitstaffId, propertyId));
-      setRemittanceSnapshot(getWaitstaffRemittanceSnapshot(waitstaffId, propertyId));
+
+      if (res.success && res.payment && res.order) {
+        setLastFiscalReceipt({
+          payment: res.payment,
+          order: res.order,
+        });
+        setOrders(getWaitstaffOrders(waitstaffId, propertyId));
+        setRemittanceSnapshot(getWaitstaffRemittanceSnapshot(waitstaffId, propertyId));
+        setOrderSuccessBanner(
+          `Commande ${settlingOrder.orderNumber} réglée avec succès (${settlingOrder.totalAmountXof.toLocaleString("fr-FR")} XOF) et facture normalisée émise !`
+        );
+      } else {
+        throw new Error("Erreur interne lors de la validation fiscale de la commande.");
+      }
+    } catch (err: any) {
+      setKkiapayError(
+        err.message ||
+          "Échec de l'encaissement Mobile Money KKiaPay. Veuillez vérifier le solde du client ou corriger les coordonnées."
+      );
+    } finally {
+      setIsProcessingPayment(false);
+      setPaymentProgressStep("");
     }
   };
 
@@ -404,13 +542,6 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
 
     setTimeout(() => setRemittanceSubmittedSuccess(false), 5000);
   };
-
-  // Calculation for change in Cash settlement
-  const changeDueXof = useMemo(() => {
-    if (paymentMethod !== "CASH" || !settlingOrder) return 0;
-    const tendered = parseInt(cashTendered, 10) || 0;
-    return Math.max(0, tendered - settlingOrder.totalAmountXof);
-  }, [paymentMethod, settlingOrder, cashTendered]);
 
   // Ready orders count (items ready for pickup at Bar or Kitchen counter)
   const readyItemsCount = useMemo(() => {
@@ -902,22 +1033,32 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                 return (
                   <div
                     key={prod.id}
-                    className="p-3.5 rounded-2xl bg-white border border-stone-200 hover:border-emerald-500 shadow-sm flex flex-col justify-between transition-all"
+                    className="p-3.5 rounded-2xl bg-white border border-stone-200 hover:border-emerald-500 shadow-sm flex flex-col justify-between transition-all group"
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-1 mb-1.5">
+                      {/* Product Photo Thumbnail */}
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden mb-2.5 bg-stone-100 border border-stone-200/90 shadow-2xs">
+                        <img
+                          src={
+                            prod.imageUrl ||
+                            "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80"
+                          }
+                          alt={prod.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
                         <span
-                          className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                          className={`absolute top-2 left-2 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md shadow-xs backdrop-blur-xs ${
                             isMeal
-                              ? "bg-rose-100 text-rose-800"
+                              ? "bg-rose-900/90 text-white"
                               : isWine
-                              ? "bg-[#8c101c]/15 text-[#8c101c] font-black border border-[#8c101c]/30"
-                              : "bg-amber-100 text-amber-800"
+                              ? "bg-[#8c101c] text-white font-black"
+                              : "bg-amber-900/90 text-white"
                           }`}
                         >
                           {isMeal ? "Cuisine" : isWine ? "Cave à vin" : "Bar"}
                         </span>
-                        <span className="text-[10px] text-stone-400 font-mono">
+                        <span className="absolute bottom-2 right-2 text-[10px] bg-black/75 text-white font-mono px-1.5 py-0.5 rounded shadow-xs">
                           Stock : {prod.availableStock || 99}
                         </span>
                       </div>
@@ -1035,16 +1176,29 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                         key={idx}
                         className="p-3 rounded-2xl bg-stone-50 border border-stone-200/90 text-xs space-y-1.5"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="font-bold text-stone-900">{line.product.name}</span>
+                        <div className="flex items-start gap-2.5">
+                          {line.product.imageUrl && (
+                            <div className="w-11 h-11 rounded-lg overflow-hidden bg-stone-200 shrink-0 border border-stone-300/80">
+                              <img
+                                src={line.product.imageUrl}
+                                alt={line.product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                              <span className="font-bold text-stone-900 truncate block">
+                                {line.product.name}
+                              </span>
+                              <span className="font-black font-mono text-stone-900 whitespace-nowrap">
+                                {(line.product.priceXof * line.quantity).toLocaleString("fr-FR")} XOF
+                              </span>
+                            </div>
                             <span className="text-[10px] text-stone-400 block font-mono">
                               {line.product.priceXof.toLocaleString("fr-FR")} XOF / unité
                             </span>
                           </div>
-                          <span className="font-black font-mono text-stone-900 whitespace-nowrap">
-                            {(line.product.priceXof * line.quantity).toLocaleString("fr-FR")} XOF
-                          </span>
                         </div>
 
                         {line.accompaniment && (
@@ -1613,6 +1767,19 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
               </button>
             </div>
 
+            {pendingMealProduct.imageUrl && (
+              <div className="relative w-full h-36 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200 shadow-2xs">
+                <img
+                  src={pendingMealProduct.imageUrl}
+                  alt={pendingMealProduct.name}
+                  className="w-full h-full object-cover"
+                />
+                <span className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-stone-950/80 text-white font-mono text-xs font-bold backdrop-blur-xs">
+                  {pendingMealProduct.priceXof.toLocaleString("fr-FR")} XOF
+                </span>
+              </div>
+            )}
+
             <div>
               <p className="text-xs text-stone-600 mb-1">
                 Plat sélectionné : <strong>{pendingMealProduct.name}</strong>
@@ -1676,27 +1843,31 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
       )}
 
       {/* =========================================================================
-          MODAL: ENCAISSEMENT MULTI-MODES & FACTURE NORMALISÉE DGI e-MECeF
+          MODAL: ENCAISSEMENT MULTI-MOYENS & FACTURE NORMALISÉE DGI e-MECeF
       ========================================================================== */}
       {settlingOrder && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-emerald-700" />
+        <div className="fixed inset-0 z-50 bg-stone-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-xl bg-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-stone-200 space-y-4 max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-200">
+                  <Receipt className="w-5 h-5" />
+                </div>
                 <div>
-                  <h3 className="text-base font-bold text-stone-900 font-serif">
+                  <h3 className="text-base sm:text-lg font-bold text-stone-900 font-serif">
                     Encaissement & Normalisation Fiscale
                   </h3>
-                  <p className="text-[11px] text-stone-400">
-                    {settlingOrder.orderNumber} • {settlingOrder.tableLabel} ({settlingOrder.clientName})
+                  <p className="text-[11px] sm:text-xs text-stone-500 font-mono">
+                    Commande <strong>{settlingOrder.orderNumber}</strong> • {settlingOrder.tableLabel} ({settlingOrder.clientName})
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setSettlingOrder(null)}
-                className="text-stone-400 hover:text-stone-700 text-lg font-bold"
+                onClick={handleAttemptClosePayment}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center text-lg font-bold transition-all"
+                aria-label="Fermer la modal d'encaissement"
               >
                 ×
               </button>
@@ -1704,142 +1875,201 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
 
             {/* If receipt has already been generated */}
             {lastFiscalReceipt ? (
-              <div className="space-y-4 text-center py-2">
-                <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8" />
+              <div className="space-y-4 text-center py-2 animate-fade-in">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="w-9 h-9" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-stone-900">
-                    Paiement Encaissé & Facture DGI e-MECeF Validée !
+                  <h4 className="text-lg font-bold text-stone-900 font-serif">
+                    Paiement Encaissé & Facture DGI e-MECeF Certifiée !
                   </h4>
                   <p className="text-xs text-stone-500 mt-1">
-                    Signature fiscale transmise et certifiée avec succès.
+                    Signature fiscale transmise et horodatée sur la plateforme e-MECeF de la DGI Bénin.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-left text-xs font-mono space-y-1">
-                  <p><strong>NIM DGI :</strong> {lastFiscalReceipt.payment.fiscalNim}</p>
-                  <p><strong>UID e-MECeF :</strong> {lastFiscalReceipt.payment.fiscalUid}</p>
-                  <p><strong>Montant :</strong> {lastFiscalReceipt.payment.totalAmountXof.toLocaleString("fr-FR")} XOF</p>
-                  <p><strong>Mode :</strong> {lastFiscalReceipt.payment.paymentMethod}</p>
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-left text-xs font-mono space-y-1.5 shadow-2xs">
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1">
+                    <span className="text-stone-500">NIM DGI :</span>
+                    <strong className="text-stone-900">{lastFiscalReceipt.payment.fiscalNim}</strong>
+                  </div>
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1">
+                    <span className="text-stone-500">UID e-MECeF :</span>
+                    <strong className="text-stone-900">{lastFiscalReceipt.payment.fiscalUid}</strong>
+                  </div>
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1">
+                    <span className="text-stone-500">Total Encaissé :</span>
+                    <strong className="text-emerald-700 font-bold">
+                      {lastFiscalReceipt.payment.totalAmountXof.toLocaleString("fr-FR")} XOF
+                    </strong>
+                  </div>
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1">
+                    <span className="text-stone-500">Moyen Principal :</span>
+                    <strong className="text-stone-900">{lastFiscalReceipt.payment.paymentMethod}</strong>
+                  </div>
+
+                  {/* Payment Breakdown detail */}
+                  <div className="pt-2 text-[11px] space-y-1">
+                    <p className="font-bold text-stone-700 uppercase tracking-wider text-[10px]">
+                      Ventilation des Règlements :
+                    </p>
+                    {lastFiscalReceipt.payment.cashAmountXof > 0 && (
+                      <p className="flex justify-between text-stone-600">
+                        <span>• Espèces :</span>
+                        <span>{lastFiscalReceipt.payment.cashAmountXof.toLocaleString("fr-FR")} XOF</span>
+                      </p>
+                    )}
+                    {lastFiscalReceipt.payment.mobileAmountXof > 0 && (
+                      <p className="flex justify-between text-stone-600">
+                        <span>• Mobile Money ({lastFiscalReceipt.payment.mobileOperator || "MoMo"}) :</span>
+                        <span>
+                          {lastFiscalReceipt.payment.mobileAmountXof.toLocaleString("fr-FR")} XOF
+                          {lastFiscalReceipt.payment.mobileNumber ? ` (${lastFiscalReceipt.payment.mobileNumber})` : ""}
+                        </span>
+                      </p>
+                    )}
+                    {lastFiscalReceipt.payment.tpeAmountXof && lastFiscalReceipt.payment.tpeAmountXof > 0 ? (
+                      <p className="flex justify-between text-stone-600">
+                        <span>• TPE Carte Bancaire :</span>
+                        <span>
+                          {lastFiscalReceipt.payment.tpeAmountXof.toLocaleString("fr-FR")} XOF
+                          {lastFiscalReceipt.payment.tpeReceiptRef ? ` (Ticket: ${lastFiscalReceipt.payment.tpeReceiptRef})` : ""}
+                        </span>
+                      </p>
+                    ) : null}
+                    {lastFiscalReceipt.payment.deviseAmountXof && lastFiscalReceipt.payment.deviseAmountXof > 0 ? (
+                      <p className="flex justify-between text-stone-600">
+                        <span>• Devise ({lastFiscalReceipt.payment.deviseCurrency || "EUR"}) :</span>
+                        <span>
+                          {lastFiscalReceipt.payment.deviseAmountXof.toLocaleString("fr-FR")} XOF
+                          {lastFiscalReceipt.payment.deviseConvertedAmount
+                            ? ` (${lastFiscalReceipt.payment.deviseConvertedAmount.toFixed(2)} ${lastFiscalReceipt.payment.deviseCurrency || "EUR"})`
+                            : ""}
+                        </span>
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                   <Button
                     variant="primary"
                     size="md"
                     onClick={() => {
                       window.print();
                     }}
-                    className="bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs gap-1.5"
+                    className="w-full sm:w-auto bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs gap-1.5 h-10 px-5 rounded-2xl shadow-md"
                   >
-                    <Printer className="w-3.5 h-3.5" />
+                    <Printer className="w-4 h-4" />
                     <span>Imprimer Ticket Fiscal</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="md"
                     onClick={() => {
+                      resetPaymentForm();
                       setSettlingOrder(null);
-                      setLastFiscalReceipt(null);
                     }}
-                    className="text-xs font-bold"
+                    className="w-full sm:w-auto text-xs font-bold h-10 px-5 rounded-2xl"
                   >
                     Fermer
                   </Button>
                 </div>
               </div>
             ) : (
-              /* Payment form */
+              /* Multi-tender Payment Form */
               <div className="space-y-4">
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-950 uppercase">Total à Payer :</span>
-                  <span className="text-xl font-black font-mono text-[#184f28]">
+                {/* Total à Payer Header Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-emerald-100/60 border border-emerald-200/90 flex items-center justify-between shadow-2xs">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-widest block">
+                      Total de l&apos;Addition à Régler
+                    </span>
+                    <span className="text-xs text-emerald-700">
+                      Règlement possible par un ou plusieurs moyens combinés
+                    </span>
+                  </div>
+                  <span className="text-2xl font-black font-mono text-[#184f28]">
                     {settlingOrder.totalAmountXof.toLocaleString("fr-FR")} XOF
                   </span>
                 </div>
 
-                {/* Payment Method Switcher */}
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("CASH")}
-                    className={`p-3 rounded-2xl border text-center transition-all ${
-                      paymentMethod === "CASH"
-                        ? "bg-[#184f28] text-white border-[#184f28] shadow-sm font-bold"
-                        : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
-                    }`}
-                  >
-                    <DollarSign className="w-4 h-4 mx-auto mb-1" />
-                    <span className="text-xs">Espèces</span>
-                  </button>
+                {/* 4 Stacked Payment Methods with individual inputs */}
+                <div className="space-y-3">
+                  {/* 1. ESPÈCES */}
+                  <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-900 block">
+                            Espèces
+                          </label>
+                          <span className="text-[10px] text-stone-400">
+                            Paiement direct en billets et pièces CFA
+                          </span>
+                        </div>
+                      </div>
+                      {/* Fast-fill full cash button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCashAmountInput(settlingOrder.totalAmountXof.toString());
+                          setMomoAmountInput("");
+                          setTpeAmountInput("");
+                          setDeviseAmountInput("");
+                        }}
+                        className="text-[10px] font-bold text-[#184f28] hover:text-[#123c1f] underline"
+                      >
+                        Tout en espèces
+                      </button>
+                    </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("MOMO")}
-                    className={`p-3 rounded-2xl border text-center transition-all ${
-                      paymentMethod === "MOMO"
-                        ? "bg-[#184f28] text-white border-[#184f28] shadow-sm font-bold"
-                        : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
-                    }`}
-                  >
-                    <Smartphone className="w-4 h-4 mx-auto mb-1" />
-                    <span className="text-xs">Mobile Money</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("MIXED")}
-                    className={`p-3 rounded-2xl border text-center transition-all ${
-                      paymentMethod === "MIXED"
-                        ? "bg-[#184f28] text-white border-[#184f28] shadow-sm font-bold"
-                        : "bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100"
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4 mx-auto mb-1" />
-                    <span className="text-xs">Mixte</span>
-                  </button>
-                </div>
-
-                {/* Sub-inputs based on method */}
-                {paymentMethod === "CASH" && (
-                  <div className="space-y-3 p-3.5 rounded-2xl bg-stone-50 border border-stone-200">
-                    <div>
-                      <label className="text-xs font-bold text-stone-700 block mb-1">
-                        Montant Reçu du Client (XOF)
-                      </label>
+                    <div className="relative">
                       <Input
                         type="number"
-                        value={cashTendered}
-                        onChange={(e) => setCashTendered(e.target.value)}
-                        className="font-mono text-sm rounded-xl"
+                        min="0"
+                        step="500"
+                        placeholder="Montant en XOF"
+                        value={cashAmountInput}
+                        onChange={(e) => setCashAmountInput(e.target.value)}
+                        className="font-mono text-sm rounded-xl pl-3 pr-14 h-9"
                       />
+                      <span className="absolute right-3 top-2 text-xs font-bold text-stone-400 font-mono">
+                        XOF
+                      </span>
                     </div>
-                    {changeDueXof > 0 && (
-                      <div className="p-2.5 rounded-xl bg-amber-100 text-amber-900 font-bold text-xs flex justify-between">
-                        <span>Monnaie à rendre :</span>
-                        <span className="font-mono">{changeDueXof.toLocaleString("fr-FR")} XOF</span>
-                      </div>
-                    )}
                   </div>
-                )}
 
-                {paymentMethod === "MOMO" && (
-                  <div className="space-y-3 p-3.5 rounded-2xl bg-stone-50 border border-stone-200">
-                    <div>
-                      <label className="text-xs font-bold text-stone-700 block mb-1">
-                        Opérateur Mobile Bénin
-                      </label>
-                      <div className="grid grid-cols-4 gap-1.5">
+                  {/* 2. MOBILE MONEY */}
+                  <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-2xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 flex items-center justify-center">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-900 block">
+                            Mobile Money (KKiaPay Bénin)
+                          </label>
+                          <span className="text-[10px] text-stone-400">
+                            MTN MoMo, Moov Money, Celtiis Cash, Wave
+                          </span>
+                        </div>
+                      </div>
+                      {/* Operator Badges */}
+                      <div className="flex items-center gap-1">
                         {(["MTN", "MOOV", "CELTIIS", "WAVE"] as MobileMoneyOperator[]).map((op) => (
                           <button
                             key={op}
                             type="button"
                             onClick={() => setMomoOperator(op)}
-                            className={`py-1.5 text-xs font-bold rounded-xl border ${
+                            className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border transition-all ${
                               momoOperator === op
                                 ? "bg-stone-900 text-white border-stone-900"
-                                : "bg-white text-stone-700 border-stone-300"
+                                : "bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100"
                             }`}
                           >
                             {op}
@@ -1847,61 +2077,324 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                         ))}
                       </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-bold text-stone-700 block mb-1">
-                        Numéro Mobile Money du Client
-                      </label>
-                      <Input
-                        type="text"
-                        value={momoNumber}
-                        onChange={(e) => setMomoNumber(e.target.value)}
-                        className="font-mono text-sm rounded-xl"
-                      />
-                    </div>
-                  </div>
-                )}
 
-                {paymentMethod === "MIXED" && (
-                  <div className="space-y-3 p-3.5 rounded-2xl bg-stone-50 border border-stone-200">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">
-                          Part Espèces (XOF)
-                        </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="relative">
                         <Input
                           type="number"
-                          value={splitCashAmount}
-                          onChange={(e) => setSplitCashAmount(e.target.value)}
-                          className="font-mono text-sm rounded-xl"
+                          min="0"
+                          step="500"
+                          placeholder="Montant en XOF"
+                          value={momoAmountInput}
+                          onChange={(e) => setMomoAmountInput(e.target.value)}
+                          className="font-mono text-sm rounded-xl pl-3 pr-14 h-9"
                         />
+                        <span className="absolute right-3 top-2 text-xs font-bold text-stone-400 font-mono">
+                          XOF
+                        </span>
                       </div>
+
                       <div>
-                        <label className="text-xs font-bold text-stone-700 block mb-1">
-                          Part MoMo (XOF)
-                        </label>
                         <Input
-                          type="number"
-                          value={splitMomoAmount}
-                          onChange={(e) => setSplitMomoAmount(e.target.value)}
-                          className="font-mono text-sm rounded-xl"
+                          type="tel"
+                          placeholder="Numéro téléphone client (+229...)"
+                          value={momoPhoneInput}
+                          onChange={(e) => setMomoPhoneInput(e.target.value)}
+                          className={`font-mono text-sm rounded-xl h-9 ${
+                            parsedMomo > 0 && !isMomoPhoneValid
+                              ? "border-rose-400 ring-1 ring-rose-200"
+                              : ""
+                          }`}
                         />
                       </div>
                     </div>
+                    {parsedMomo > 0 && !isMomoPhoneValid && (
+                      <p className="text-[11px] text-rose-600 font-medium">
+                        * Le numéro de téléphone du client est requis pour déclencher la demande KKiaPay.
+                      </p>
+                    )}
                   </div>
-                )}
 
-                {/* Confirm Button */}
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleConfirmSettlement}
-                  className="w-full bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs h-11 rounded-2xl shadow-md gap-2"
+                  {/* 3. TPE (Terminal Carte Bancaire) */}
+                  <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-2xs space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-stone-900 block">
+                          TPE (Terminal de Paiement Électronique / Carte)
+                        </label>
+                        <span className="text-[10px] text-stone-400">
+                          Visa, Mastercard, cartes bancaires locales et internationales
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="500"
+                          placeholder="Montant en XOF"
+                          value={tpeAmountInput}
+                          onChange={(e) => setTpeAmountInput(e.target.value)}
+                          className="font-mono text-sm rounded-xl pl-3 pr-14 h-9"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-bold text-stone-400 font-mono">
+                          XOF
+                        </span>
+                      </div>
+
+                      <div>
+                        <Input
+                          type="text"
+                          placeholder="Référence ticket TPE (ex: TPE-BOA-8921)"
+                          value={tpeReceiptRefInput}
+                          onChange={(e) => setTpeReceiptRefInput(e.target.value)}
+                          className={`font-mono text-sm rounded-xl h-9 ${
+                            parsedTpe > 0 && !isTpeRefValid
+                              ? "border-rose-400 ring-1 ring-rose-200"
+                              : ""
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    {parsedTpe > 0 && !isTpeRefValid && (
+                      <p className="text-[11px] text-rose-600 font-medium">
+                        * La référence du ticket de paiement TPE est requise pour la traçabilité comptable.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 4. DEVISE (Euros / Dollars) */}
+                  <div className="p-3.5 rounded-2xl bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-2xs space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
+                          <Coins className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-stone-900 block">
+                            Devise Étrangère
+                          </label>
+                          <span className="text-[10px] text-stone-400">
+                            Règlement en billets devises étrangères acceptés à la caisse
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Currency Selector (EUR / USD) */}
+                      <div className="inline-flex rounded-xl bg-stone-100 p-0.5 border border-stone-200">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCurrency("EUR")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            selectedCurrency === "EUR"
+                              ? "bg-white text-stone-900 shadow-2xs"
+                              : "text-stone-500 hover:text-stone-800"
+                          }`}
+                        >
+                          EUR (€)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCurrency("USD")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            selectedCurrency === "USD"
+                              ? "bg-white text-stone-900 shadow-2xs"
+                              : "text-stone-500 hover:text-stone-800"
+                          }`}
+                        >
+                          USD ($)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="500"
+                          placeholder="Montant en XOF"
+                          value={deviseAmountInput}
+                          onChange={(e) => setDeviseAmountInput(e.target.value)}
+                          className="font-mono text-sm rounded-xl pl-3 pr-14 h-9"
+                        />
+                        <span className="absolute right-3 top-2 text-xs font-bold text-stone-400 font-mono">
+                          XOF
+                        </span>
+                      </div>
+
+                      <div className="px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200/80 flex items-center justify-between">
+                        <span className="text-[11px] text-stone-500">Équivalent reçu :</span>
+                        <span className="font-mono font-bold text-xs text-amber-900">
+                          {parsedDevise > 0
+                            ? `${deviseInputConverted.toFixed(2)} ${selectedCurrency === "EUR" ? "€" : "$"}`
+                            : `0.00 ${selectedCurrency === "EUR" ? "€" : "$"}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-stone-500 font-mono flex items-center justify-between pt-0.5">
+                      <span>Taux officiel appliqué :</span>
+                      <strong className="text-stone-800">{currentRateObj.label}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* =========================================================================
+                    RESTE À PAYER & DYNAMIC CONVERSION BANNER
+                ========================================================================== */}
+                <div
+                  className={`p-4 rounded-2xl border transition-all ${
+                    resteAPayerXof === 0 && hasEnteredAmounts
+                      ? "bg-emerald-50/90 border-emerald-300 text-emerald-950"
+                      : resteAPayerXof < 0
+                      ? "bg-rose-50 border-rose-300 text-rose-950"
+                      : "bg-amber-50/90 border-amber-300 text-amber-950"
+                  }`}
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
-                  <span>Valider Encaissement & Émettre Facture DGI</span>
-                </Button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {resteAPayerXof === 0 && hasEnteredAmounts ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      ) : resteAPayerXof < 0 ? (
+                        <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                      ) : (
+                        <Clock className="w-5 h-5 text-amber-600 shrink-0" />
+                      )}
+                      <div>
+                        <span className="text-xs font-bold uppercase tracking-wider block">
+                          {resteAPayerXof === 0 && hasEnteredAmounts
+                            ? "Montant exact atteint — Prêt à encaisser"
+                            : resteAPayerXof < 0
+                            ? "Trop-perçu détecté"
+                            : "Reste à payer"}
+                        </span>
+                        <span className="text-[11px] opacity-80">
+                          {resteAPayerXof === 0 && hasEnteredAmounts
+                            ? "Tous les moyens saisis couvrent l'intégralité de la commande."
+                            : resteAPayerXof < 0
+                            ? "Les montants saisis dépassent le total de l'addition."
+                            : `Équivalent dans la devise sélectionnée : ${Math.max(0, resteConverted).toFixed(2)} ${selectedCurrency}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono">
+                      <span className="text-xl font-black block">
+                        {Math.abs(resteAPayerXof).toLocaleString("fr-FR")} XOF
+                      </span>
+                      <span className="text-[10px] opacity-75">
+                        Taux : {currentRateObj.rate.toLocaleString("fr-FR")} XOF / {selectedCurrency}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error Banner for KKiaPay or Process */}
+                {kkiapayError && (
+                  <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-start gap-2.5 shadow-2xs">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold">Échec du paiement Mobile Money KKiaPay</p>
+                      <p className="text-[11px] mt-0.5">{kkiapayError}</p>
+                      <button
+                        type="button"
+                        onClick={() => setKkiapayError(null)}
+                        className="mt-1 text-[10px] font-bold text-rose-800 underline"
+                      >
+                        Fermer cette alerte et corriger les informations
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress Notification when Submitting */}
+                {isProcessingPayment && (
+                  <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-300 text-sky-950 text-xs flex items-center gap-2.5 animate-pulse">
+                    <Loader2 className="w-4 h-4 text-sky-600 animate-spin shrink-0" />
+                    <span className="font-medium">{paymentProgressStep}</span>
+                  </div>
+                )}
+
+                {/* Single Primary Action: « Payer » & Secondary « Fermer » */}
+                <div className="flex items-center gap-2.5 pt-2">
+                  <Button
+                    variant="outline"
+                    size="md"
+                    type="button"
+                    onClick={handleAttemptClosePayment}
+                    disabled={isProcessingPayment}
+                    className="w-1/3 text-xs font-bold h-12 rounded-2xl border-stone-300 hover:bg-stone-100"
+                  >
+                    Fermer
+                  </Button>
+
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    type="button"
+                    onClick={handleConfirmSettlement}
+                    disabled={!canSubmitPayment || isProcessingPayment}
+                    className="w-2/3 bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs h-12 rounded-2xl shadow-md gap-2 transition-all disabled:opacity-50"
+                  >
+                    {isProcessingPayment ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>Traitement en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
+                        <span>Payer ({orderTotalXof.toLocaleString("fr-FR")} XOF)</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal to Prevent Accidental Loss of Entered Payment Data */}
+      {showCancelConfirmModal && (
+        <div className="fixed inset-0 z-60 bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-stone-200 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-stone-900 font-serif">
+                Abandonner le règlement ?
+              </h4>
+              <p className="text-xs text-stone-500 mt-1.5 leading-relaxed">
+                Des montants ont déjà été saisis (
+                <strong>{sumTenderedXof.toLocaleString("fr-FR")} XOF</strong>). Si vous fermez maintenant, la saisie sera effacée.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelConfirmModal(false)}
+                className="text-xs font-bold rounded-xl h-9"
+              >
+                Continuer la saisie
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleConfirmCancelPayment}
+                className="bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold rounded-xl h-9"
+              >
+                Oui, abandonner
+              </Button>
+            </div>
           </div>
         </div>
       )}

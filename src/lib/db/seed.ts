@@ -344,6 +344,7 @@ export const SEED_CATERING_MENUS = [
     pricePerPersonXof: 12000,
     minGuests: 20,
     description: "Assortiment complet d'entrées fraîches, 3 plats chauds (poisson, volaille, mouton), accompagnements variés et desserts tropicaux.",
+    imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
   },
   {
     id: "cat-menu-02",
@@ -352,6 +353,7 @@ export const SEED_CATERING_MENUS = [
     pricePerPersonXof: 8500,
     minGuests: 15,
     description: "Pièces salées, brochettes fines, canapés et bouchées sucrées raffinées.",
+    imageUrl: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80",
   },
 ];
 
@@ -365,6 +367,7 @@ export const SEED_EQUIPMENT_ITEMS = [
     dailyRentalPriceXof: 700,
     depositPerUnitXof: 2000,
     replacementCostXof: 15000,
+    imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=800&q=80",
   },
   {
     id: "eq-table-ronde",
@@ -375,6 +378,7 @@ export const SEED_EQUIPMENT_ITEMS = [
     dailyRentalPriceXof: 4000,
     depositPerUnitXof: 10000,
     replacementCostXof: 45000,
+    imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
   },
   {
     id: "eq-bache-50",
@@ -385,6 +389,7 @@ export const SEED_EQUIPMENT_ITEMS = [
     dailyRentalPriceXof: 35000,
     depositPerUnitXof: 50000,
     replacementCostXof: 250000,
+    imageUrl: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=800&q=80",
   },
   {
     id: "eq-couverts-dor",
@@ -394,16 +399,18 @@ export const SEED_EQUIPMENT_ITEMS = [
     totalStock: 250,
     dailyRentalPriceXof: 500,
     depositPerUnitXof: 1000,
-    replacementCostXof: 6000,
+    replacementCostXof: 5000,
+    imageUrl: "https://images.unsplash.com/photo-1578474846511-04ba529f0b88?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: "eq-plats-inox",
+    id: "eq-chafing-dish",
     propertyId: "prop-bohicon-001",
-    name: "Chafing Dish / Plats Chauffants Inox Grand Format",
-    category: "PLATS_VAISSELLE",
-    totalStock: 25,
-    dailyRentalPriceXof: 5000,
-    depositPerUnitXof: 15000,
+    name: "Chafing Dish Inox Professionnel & Brûleurs",
+    category: "BUFFET",
+    totalStock: 30,
+    dailyRentalPriceXof: 3000,
+    depositPerUnitXof: 8000,
     replacementCostXof: 40000,
+    imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
   },
 ];

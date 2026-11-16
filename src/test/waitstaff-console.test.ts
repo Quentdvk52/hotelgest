@@ -151,6 +151,66 @@ describe("Waitstaff Console & Service Tasks (DebitMaster Port)", () => {
     expect(settleRes.order?.status).toBe("PAID");
   });
 
+  it("should settle order using multi-tender payment (Espèces, MoMo KKiaPay, TPE, Devise)", () => {
+    const order = createWaitstaffOrder({
+      propertyId: "prop-bohicon-001",
+      tableLabel: "Table VIP",
+      zone: "Terrasse",
+      waitstaffId: "user-srv-boh",
+      waitstaffName: "Chantal Tossou",
+      items: [
+        { productId: "prod-cav-02", quantity: 1 }, // Champagne Veuve Clicquot (65 000 XOF)
+        { productId: "prod-rep-05", quantity: 2 }, // 2x Poisson Braisé (14 000 XOF)
+      ], // Total = 79 000 XOF
+    });
+
+    expect(order.totalAmountXof).toBe(79000);
+
+    // Multi-tender breakdown:
+    // Espèces: 20 000 XOF
+    // MoMo: 30 000 XOF (via KKiaPay MTN)
+    // TPE: 15 000 XOF (Ticket BOA)
+    // Devise EUR: 14 000 XOF (soit ~21.34 EUR au taux de 655.957)
+    const settleRes = settleWaitstaffOrder({
+      orderId: order.id,
+      tenders: {
+        cashAmountXof: 20000,
+        momoAmountXof: 30000,
+        momoPhone: "+229 97 12 34 56",
+        momoOperator: "MTN",
+        tpeAmountXof: 15000,
+        tpeReceiptRef: "TPE-BOA-89214",
+        deviseAmountXof: 14000,
+        deviseCurrency: "EUR",
+        deviseRate: 655.957,
+        deviseConvertedAmount: 14000 / 655.957,
+      },
+      kkiapayTransactionId: "kkiapay_tx_test_multi_01",
+      waitstaffName: "Chantal Tossou",
+    });
+
+    expect(settleRes.success).toBe(true);
+    expect(settleRes.payment?.paymentMethod).toBe("MULTI");
+    expect(settleRes.payment?.totalAmountXof).toBe(79000);
+    expect(settleRes.payment?.cashAmountXof).toBe(20000);
+    expect(settleRes.payment?.mobileAmountXof).toBe(30000);
+    expect(settleRes.payment?.tpeAmountXof).toBe(15000);
+    expect(settleRes.payment?.deviseAmountXof).toBe(14000);
+    expect(settleRes.payment?.tpeReceiptRef).toBe("TPE-BOA-89214");
+    expect(settleRes.payment?.kkiapayTransactionId).toBe("kkiapay_tx_test_multi_01");
+    expect(settleRes.payment?.fiscalNormalized).toBe(true);
+    expect(settleRes.order?.status).toBe("PAID");
+  });
+
+  it("should ensure every product in the catalog has a valid photo imageUrl", () => {
+    expect(WAITSTAFF_CATALOG.length).toBeGreaterThan(0);
+    for (const prod of WAITSTAFF_CATALOG) {
+      expect(prod.imageUrl).toBeDefined();
+      expect(prod.imageUrl?.length).toBeGreaterThan(10);
+      expect(prod.imageUrl?.startsWith("https://")).toBe(true);
+    }
+  });
+
   it("should calculate waitstaff shift remittances and handle manager discrepancy verification", () => {
     const snapshot = getWaitstaffRemittanceSnapshot("user-srv-boh", "prop-bohicon-001");
     expect(snapshot).toBeDefined();

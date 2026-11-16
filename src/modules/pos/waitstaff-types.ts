@@ -38,8 +38,21 @@ export interface WaitstaffOrderItem {
 }
 
 export type OrderPaymentStatus = "UNPAID" | "PARTIALLY_PAID" | "PAID";
-export type PaymentMethod = "CASH" | "MOMO" | "MIXED";
+export type PaymentMethod = "CASH" | "MOMO" | "MIXED" | "TPE" | "DEVISE" | "MULTI";
 export type MobileMoneyOperator = "MTN" | "MOOV" | "CELTIIS" | "WAVE";
+
+export interface PaymentTenderBreakdown {
+  cashAmountXof: number;
+  momoAmountXof: number;
+  momoPhone?: string;
+  momoOperator?: MobileMoneyOperator;
+  tpeAmountXof: number;
+  tpeReceiptRef?: string;
+  deviseAmountXof: number;
+  deviseCurrency?: "EUR" | "USD";
+  deviseRate?: number;
+  deviseConvertedAmount?: number;
+}
 
 export interface WaitstaffPayment {
   id: string;
@@ -47,9 +60,17 @@ export interface WaitstaffPayment {
   paymentMethod: PaymentMethod;
   cashAmountXof: number;
   mobileAmountXof: number;
+  tpeAmountXof?: number;
+  deviseAmountXof?: number;
   totalAmountXof: number;
   mobileOperator?: MobileMoneyOperator;
   mobileNumber?: string;
+  tpeReceiptRef?: string;
+  deviseCurrency?: "EUR" | "USD";
+  deviseRate?: number;
+  deviseConvertedAmount?: number;
+  kkiapayTransactionId?: string;
+  tenders?: PaymentTenderBreakdown;
   status: "SUCCEEDED" | "PENDING" | "FAILED";
   fiscalNormalized: boolean;
   fiscalUid?: string;
@@ -125,6 +146,8 @@ export interface WaitstaffRemittanceSnapshot {
   totalSalesXof: number;
   cashCollectedXof: number;
   mobileCollectedXof: number;
+  tpeCollectedXof?: number;
+  deviseCollectedXof?: number;
   expectedCashInHandXof: number;
   commissionEarnedXof: number;
   activeOrdersCount: number;

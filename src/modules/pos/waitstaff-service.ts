@@ -10,8 +10,14 @@ import {
   WaitstaffRatingFeedback,
   PaymentMethod,
   MobileMoneyOperator,
+  PaymentTenderBreakdown,
 } from "./waitstaff-types";
 import { SEED_PROPERTIES } from "../../lib/db/seed";
+
+export const WAITSTAFF_EXCHANGE_RATES: Record<"EUR" | "USD", { rate: number; label: string }> = {
+  EUR: { rate: 655.957, label: "1 EUR = 655,957 XOF (Parité fixe BCEAO/CFA)" },
+  USD: { rate: 610.0, label: "1 USD = 610,000 XOF (Taux de référence hôtel)" },
+};
 
 // Full dual-family catalog for Hôtel Le Vignoble
 export const WAITSTAFF_CATALOG: WaitstaffProduct[] = [
@@ -621,17 +627,49 @@ export function advanceOrderItemStatus(
 
 export function settleWaitstaffOrder(data: {
   orderId: string;
-  paymentMethod: PaymentMethod;
-  cashAmountXof: number;
-  mobileAmountXof: number;
+  paymentMethod?: PaymentMethod;
+  cashAmountXof?: number;
+  mobileAmountXof?: number;
   mobileOperator?: MobileMoneyOperator;
   mobileNumber?: string;
+  tpeAmountXof?: number;
+  tpeReceiptRef?: string;
+  deviseAmountXof?: number;
+  deviseCurrency?: "EUR" | "USD";
+  deviseRate?: number;
+  kkiapayTransactionId?: string;
+  tenders?: PaymentTenderBreakdown;
   waitstaffName: string;
 }): { success: boolean; payment?: WaitstaffPayment; order?: WaitstaffActiveOrder } {
   const order = activeOrdersStore.find((o) => o.id === data.orderId);
   if (!order) return { success: false };
 
-  const totalPaid = data.cashAmountXof + data.mobileAmountXof;
+  const cashAmount = data.tenders ? (data.tenders.cashAmountXof || 0) : (data.cashAmountXof || 0);
+  const momoAmount = data.tenders ? (data.tenders.momoAmountXof || 0) : (data.mobileAmountXof || 0);
+  const tpeAmount = data.tenders ? (data.tenders.tpeAmountXof || 0) : (data.tpeAmountXof || 0);
+  const deviseAmount = data.tenders ? (data.tenders.deviseAmountXof || 0) : (data.deviseAmountXof || 0);
+  const totalPaid = cashAmount + momoAmount + tpeAmount + deviseAmount;
+
+  // Determine effective payment method
+  let method: PaymentMethod = data.paymentMethod || "CASH";
+  const usedMethodsCount =
+    (cashAmount > 0 ? 1 : 0) +
+    (momoAmount > 0 ? 1 : 0) +
+    (tpeAmount > 0 ? 1 : 0) +
+    (deviseAmount > 0 ? 1 : 0);
+
+  if (usedMethodsCount > 1) {
+    method = "MULTI";
+  } else if (cashAmount > 0) {
+    method = "CASH";
+  } else if (momoAmount > 0) {
+    method = "MOMO";
+  } else if (tpeAmount > 0) {
+    method = "TPE";
+  } else if (deviseAmount > 0) {
+    method = "DEVISE";
+  }
+
   const now = new Date();
   const dateStr = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
   const companyIfu = "0201910839213";
@@ -640,15 +678,38 @@ export function settleWaitstaffOrder(data: {
   const fiscalNim = `MCF-BOH-${companyIfu.slice(0, 4)}-01`;
   const fiscalQrCodeUrl = `https://facture.dgi.bj/v?ifu=${companyIfu}&uid=${fiscalUid}&ttc=${totalPaid}`;
 
+  const resolvedTenders: PaymentTenderBreakdown = data.tenders || {
+    cashAmountXof: cashAmount,
+    momoAmountXof: momoAmount,
+    momoPhone: data.mobileNumber,
+    momoOperator: data.mobileOperator,
+    tpeAmountXof: tpeAmount,
+    tpeReceiptRef: data.tpeReceiptRef,
+    deviseAmountXof: deviseAmount,
+    deviseCurrency: data.deviseCurrency || "EUR",
+    deviseRate: data.deviseRate || WAITSTAFF_EXCHANGE_RATES[data.deviseCurrency || "EUR"].rate,
+    deviseConvertedAmount: data.deviseRate
+      ? deviseAmount / data.deviseRate
+      : deviseAmount / WAITSTAFF_EXCHANGE_RATES[data.deviseCurrency || "EUR"].rate,
+  };
+
   const payment: WaitstaffPayment = {
     id: `pay-${Date.now()}`,
     orderId: order.id,
-    paymentMethod: data.paymentMethod,
-    cashAmountXof: data.cashAmountXof,
-    mobileAmountXof: data.mobileAmountXof,
+    paymentMethod: method,
+    cashAmountXof: cashAmount,
+    mobileAmountXof: momoAmount,
+    tpeAmountXof: tpeAmount,
+    deviseAmountXof: deviseAmount,
     totalAmountXof: totalPaid,
-    mobileOperator: data.mobileOperator,
-    mobileNumber: data.mobileNumber,
+    mobileOperator: resolvedTenders.momoOperator,
+    mobileNumber: resolvedTenders.momoPhone,
+    tpeReceiptRef: resolvedTenders.tpeReceiptRef,
+    deviseCurrency: resolvedTenders.deviseCurrency,
+    deviseRate: resolvedTenders.deviseRate,
+    deviseConvertedAmount: resolvedTenders.deviseConvertedAmount,
+    kkiapayTransactionId: data.kkiapayTransactionId,
+    tenders: resolvedTenders,
     status: "SUCCEEDED",
     fiscalNormalized: true,
     fiscalUid,
@@ -678,13 +739,17 @@ export function getWaitstaffRemittanceSnapshot(
   let totalSalesXof = 0;
   let cashCollectedXof = 0;
   let mobileCollectedXof = 0;
+  let tpeCollectedXof = 0;
+  let deviseCollectedXof = 0;
 
   for (const order of waitstaffOrders) {
     totalSalesXof += order.totalAmountXof;
     for (const pay of order.payments) {
       if (pay.status === "SUCCEEDED") {
-        cashCollectedXof += pay.cashAmountXof;
-        mobileCollectedXof += pay.mobileAmountXof;
+        cashCollectedXof += pay.cashAmountXof || 0;
+        mobileCollectedXof += pay.mobileAmountXof || 0;
+        tpeCollectedXof += pay.tpeAmountXof || 0;
+        deviseCollectedXof += pay.deviseAmountXof || 0;
       }
     }
   }
@@ -710,6 +775,8 @@ export function getWaitstaffRemittanceSnapshot(
     totalSalesXof,
     cashCollectedXof,
     mobileCollectedXof,
+    tpeCollectedXof,
+    deviseCollectedXof,
     expectedCashInHandXof,
     commissionEarnedXof,
     activeOrdersCount: waitstaffOrders.length,

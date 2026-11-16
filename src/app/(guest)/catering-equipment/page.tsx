@@ -364,25 +364,36 @@ export default function CateringEquipmentPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {SEED_CATERING_MENUS.map((menu) => (
+                    {SEED_CATERING_MENUS.map((menu: any) => (
                       <div
                         key={menu.id}
                         onClick={() => setSelectedCateringMenuId(menu.id)}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                        className={`overflow-hidden rounded-2xl border cursor-pointer transition-all ${
                           selectedCateringMenuId === menu.id
                             ? "border-[#7c3c46] bg-[#faf5f5] ring-2 ring-[#7c3c46]/20 shadow-sm"
-                            : "border-stone-200 hover:border-stone-300"
+                            : "border-stone-200 hover:border-stone-300 bg-white"
                         }`}
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-bold text-stone-900 text-sm">{menu.name}</h4>
-                          <span className="text-sm font-black text-[#7c3c46]">
-                            {menu.pricePerPersonXof.toLocaleString("fr-FR")} XOF
-                          </span>
-                        </div>
-                        <p className="text-xs text-stone-500 leading-relaxed">{menu.description}</p>
-                        <div className="mt-3 text-[11px] text-stone-400">
-                          Min. {menu.minGuests} personnes
+                        {menu.imageUrl && (
+                          <div className="relative w-full h-40 bg-stone-100 overflow-hidden">
+                            <img
+                              src={menu.imageUrl}
+                              alt={menu.name}
+                              className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                            />
+                            <span className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-stone-950/80 text-white font-mono text-xs font-bold backdrop-blur-xs">
+                              {menu.pricePerPersonXof.toLocaleString("fr-FR")} XOF / pers.
+                            </span>
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <div className="flex justify-between items-start mb-1.5">
+                            <h4 className="font-bold text-stone-900 text-sm">{menu.name}</h4>
+                          </div>
+                          <p className="text-xs text-stone-500 leading-relaxed">{menu.description}</p>
+                          <div className="mt-3 text-[11px] text-stone-400 font-medium">
+                            Minimum de commande : {menu.minGuests} personnes
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -411,24 +422,35 @@ export default function CateringEquipmentPage() {
                 </CardHeader>
 
                 <div className="space-y-4">
-                  {SEED_EQUIPMENT_ITEMS.map((item) => {
+                  {SEED_EQUIPMENT_ITEMS.map((item: any) => {
                     const qty = equipmentQuantities[item.id] || 0;
                     return (
                       <div
                         key={item.id}
-                        className="p-4 rounded-xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white"
+                        className="p-4 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white hover:border-stone-300 transition-all shadow-xs"
                       >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-stone-900">{item.name}</span>
-                            <Badge variant="default" className="text-[10px] uppercase">
-                              {item.category}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-stone-500 mt-1">
-                            Tarif : <strong className="text-stone-800">{item.dailyRentalPriceXof.toLocaleString("fr-FR")} XOF</strong> / jour
-                            <span className="mx-2">•</span>
-                            Caution : <span className="text-amber-700">{item.depositPerUnitXof.toLocaleString("fr-FR")} XOF</span> / unité
+                        <div className="flex items-center gap-3.5">
+                          {item.imageUrl && (
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200">
+                              <img
+                                src={item.imageUrl}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-stone-900">{item.name}</span>
+                              <Badge variant="default" className="text-[10px] uppercase">
+                                {item.category}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-stone-500 mt-1">
+                              Tarif : <strong className="text-stone-800">{item.dailyRentalPriceXof.toLocaleString("fr-FR")} XOF</strong> / jour
+                              <span className="mx-2">•</span>
+                              Caution : <span className="text-amber-700">{item.depositPerUnitXof.toLocaleString("fr-FR")} XOF</span> / unité
+                            </div>
                           </div>
                         </div>
 

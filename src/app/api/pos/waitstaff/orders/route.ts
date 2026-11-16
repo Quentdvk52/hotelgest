@@ -63,14 +63,36 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (action === "SETTLE_ORDER") {
-      const { orderId, paymentMethod, cashAmountXof, mobileAmountXof, mobileOperator, mobileNumber, waitstaffName } = body;
+      const {
+        orderId,
+        paymentMethod,
+        cashAmountXof,
+        mobileAmountXof,
+        mobileOperator,
+        mobileNumber,
+        tpeAmountXof,
+        tpeReceiptRef,
+        deviseAmountXof,
+        deviseCurrency,
+        deviseRate,
+        kkiapayTransactionId,
+        tenders,
+        waitstaffName,
+      } = body;
       const res = settleWaitstaffOrder({
         orderId,
-        paymentMethod: paymentMethod || "CASH",
+        paymentMethod,
         cashAmountXof: cashAmountXof || 0,
         mobileAmountXof: mobileAmountXof || 0,
         mobileOperator,
         mobileNumber,
+        tpeAmountXof,
+        tpeReceiptRef,
+        deviseAmountXof,
+        deviseCurrency,
+        deviseRate,
+        kkiapayTransactionId,
+        tenders,
         waitstaffName: waitstaffName || "Serveuse en salle",
       });
 

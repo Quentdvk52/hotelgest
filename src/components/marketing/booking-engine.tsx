@@ -671,11 +671,12 @@ export function BookingEngine() {
                   className="bg-stone-950 rounded-3xl border border-stone-800 overflow-hidden hover:border-[#d9a844]/60 transition-all shadow-xl grid grid-cols-1 lg:grid-cols-12 group"
                 >
                   {/* Photo Column: Generous, clear, visible */}
-                  <div className="relative h-64 lg:h-auto lg:col-span-5 overflow-hidden bg-stone-900">
+                  <div className="relative h-72 sm:h-80 lg:h-full min-h-[260px] sm:min-h-[300px] lg:col-span-5 overflow-hidden bg-stone-900">
                     <Image
                       src={item.imageUrl}
                       alt={item.name}
                       fill
+                      unoptimized
                       sizes="(max-width: 1024px) 100vw, 40vw"
                       className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     />
