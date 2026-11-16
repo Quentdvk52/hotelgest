@@ -37,6 +37,8 @@ import {
   CalendarCheck,
   ArrowLeftRight,
   Star,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -318,22 +320,52 @@ function SidebarNavContent({
       ],
     },
     {
-      label: "PMS & Réception",
+      label:
+        activeUser.roleCode === "RECEPTIONIST"
+          ? "Disponibilité & Chambres"
+          : activeUser.roleCode === "PROPERTY_MANAGER"
+          ? "Disponibilité & Salles"
+          : "PMS & Disponibilité",
       href: "/pms/reception",
-      icon: Hotel,
+      icon: activeUser.roleCode === "RECEPTIONIST" ? Bed : Hotel,
+      badge:
+        activeUser.roleCode === "RECEPTIONIST"
+          ? "Mon Agence"
+          : activeUser.roleCode === "PROPERTY_MANAGER"
+          ? "Mon Site"
+          : "Chambres",
       roles: ["PROMOTER", "FINANCIAL_DIRECTOR", "PROPERTY_MANAGER", "RECEPTIONIST", "HOUSEKEEPING"],
     },
     {
-      label: "KDS Cuisine / Bar",
+      label:
+        activeUser.roleCode === "WAITSTAFF"
+          ? "Prise de Commandes & Bar/Resto"
+          : activeUser.roleCode === "CHEF"
+          ? "Station Cuisine KDS"
+          : activeUser.roleCode === "BARTENDER"
+          ? "Station Bar KDS"
+          : activeUser.roleCode === "HOUSEKEEPING"
+          ? "Livraisons Room-Service & Salles"
+          : "KDS Cuisine / Bar / Service",
       href: "/pos/stations",
       icon: UtensilsCrossed,
-      roles: ["PROMOTER", "FINANCIAL_DIRECTOR", "PROPERTY_MANAGER", "CHEF", "BARTENDER", "WAITSTAFF"],
+      badge:
+        activeUser.roleCode === "WAITSTAFF"
+          ? "Serveur"
+          : activeUser.roleCode === "CHEF"
+          ? "Cuisine"
+          : activeUser.roleCode === "BARTENDER"
+          ? "Barman"
+          : activeUser.roleCode === "HOUSEKEEPING"
+          ? "Valet"
+          : "Service",
+      roles: ["PROMOTER", "FINANCIAL_DIRECTOR", "PROPERTY_MANAGER", "CHEF", "BARTENDER", "WAITSTAFF", "HOUSEKEEPING"],
     },
     {
       label: "Traiteur & Matériel",
       href: "/workspace-catering",
       icon: Sparkles,
-      roles: ["PROMOTER", "FINANCIAL_DIRECTOR", "PROPERTY_MANAGER", "CATERING_MANAGER", "RECEPTIONIST"],
+      roles: ["PROMOTER", "FINANCIAL_DIRECTOR", "PROPERTY_MANAGER", "CATERING_MANAGER"],
     },
     {
       label: "Caisse & Folios",
@@ -486,6 +518,8 @@ export default function WorkspaceLayout({
 
   // Profile Modal state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState("");
   const [profileErrorMsg, setProfileErrorMsg] = useState("");
@@ -971,29 +1005,49 @@ export default function WorkspaceLayout({
                     <label className="block font-semibold text-stone-700 mb-1">
                       Nouveau Mot de Passe
                     </label>
-                    <input
-                      type="password"
-                      value={profileForm.newPassword}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, newPassword: e.target.value })
-                      }
-                      placeholder="Min. 6 caractères"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={profileForm.newPassword}
+                        onChange={(e) =>
+                          setProfileForm({ ...profileForm, newPassword: e.target.value })
+                        }
+                        placeholder="Min. 6 caractères"
+                        className="w-full pl-3 pr-9 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs focus:outline-none focus:border-[#184f28]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-700 transition-colors"
+                        aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      >
+                        {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block font-semibold text-stone-700 mb-1">
                       Confirmer le Mot de Passe
                     </label>
-                    <input
-                      type="password"
-                      value={profileForm.confirmPassword}
-                      onChange={(e) =>
-                        setProfileForm({ ...profileForm, confirmPassword: e.target.value })
-                      }
-                      placeholder="Répétez le mot de passe"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:border-[#184f28]"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={profileForm.confirmPassword}
+                        onChange={(e) =>
+                          setProfileForm({ ...profileForm, confirmPassword: e.target.value })
+                        }
+                        placeholder="Répétez le mot de passe"
+                        className="w-full pl-3 pr-9 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-xs focus:outline-none focus:border-[#184f28]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-stone-400 hover:text-stone-700 transition-colors"
+                        aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <span className="text-[10px] text-stone-400 block">

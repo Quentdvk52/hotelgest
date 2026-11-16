@@ -16,45 +16,90 @@ import {
   Bed,
   Phone,
   Lock,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LogOut,
 } from "lucide-react";
 
 export default function ClientLoginPage() {
+  const [activeTab, setActiveTab] = useState<"ACCOUNT" | "BOOKING_REF">("ACCOUNT");
   const [bookingRef, setBookingRef] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [clientPassword, setClientPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [clientLoading, setClientLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [clientResult, setClientResult] = useState<any | null>(null);
   const [clientMessage, setClientMessage] = useState<string | null>(null);
 
-  const handleClientLookup = (e: React.FormEvent) => {
+  // Google OAuth Login simulation for clients
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    setClientMessage(null);
+
+    setTimeout(() => {
+      setGoogleLoading(false);
+      setClientResult({
+        ref: "RES-GOOGLE-2026-9921",
+        guestName: "EDDY GNACADJA",
+        authMethod: "Compte Google Certifié",
+        email: "gnacadja.client@gmail.com",
+        hotel: "Hôtel Le Vignoble - Bohicon",
+        roomType: "Suite Royale Le Vignoble (Vue Piscine)",
+        checkIn: "20 Novembre 2026 (dès 14h00)",
+        checkOut: "24 Novembre 2026 (jusqu'à 12h00)",
+        status: "CONFIRMÉE & GARANTIE",
+        balanceStatus: "Acompte Mobile Money Payé (Solde à l'arrivée)",
+        perks: [
+          "Connexion Google VIP : Check-in express coupe-file",
+          "Bouteille Château Vignoble Réserve offerte en chambre",
+          "Cocktail de bienvenue au Bar Lounge",
+          "Petit-déjeuner royal servi en suite",
+          "Service conciergerie VIP & Room service 24h/24",
+        ],
+      });
+      setClientMessage(
+        "Connexion avec Google réussie ! Bienvenue dans votre Espace Hôte Privilège Le Vignoble."
+      );
+    }, 700);
+  };
+
+  const handleClientSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setClientLoading(true);
     setClientMessage(null);
 
-    // Simulate authentic reservation lookup for guests
     setTimeout(() => {
       setClientLoading(false);
+      const name = clientEmail.includes("@")
+        ? clientEmail.split("@")[0].toUpperCase()
+        : "HÔTE PRIVILÈGE";
+
       setClientResult({
         ref: bookingRef.trim() || "RES-VIG-2024-8891",
-        guestName: clientEmail.includes("@") ? clientEmail.split("@")[0].toUpperCase() : "HÔTE PRIVILÈGE",
+        guestName: name,
+        authMethod: "Compte Client Hôtelier",
+        email: clientEmail,
         hotel: "Hôtel Le Vignoble - Bohicon",
-        roomType: "Suite Royale Le Vignoble",
-        checkIn: "20 Novembre 2026 (dès 14h00)",
-        checkOut: "22 Novembre 2026 (jusqu'à 12h00)",
+        roomType: "Chambre Supérieure Vignoble",
+        checkIn: "22 Novembre 2026 (dès 14h00)",
+        checkOut: "25 Novembre 2026 (jusqu'à 12h00)",
         status: "CONFIRMÉE & ENREGISTRÉE",
         balanceStatus: "Règlement sur place à l'arrivée (Validé)",
         perks: [
           "Bouteille Château Vignoble offerte en chambre",
           "Cocktail de bienvenue au Bar Lounge",
-          "Petit-déjeuner royal servi en chambre",
-          "Service conciergerie VIP 24h/24",
+          "Petit-déjeuner royal servi au restaurant",
+          "Service conciergerie 24h/24",
         ],
       });
-    }, 500);
+    }, 600);
   };
 
   const handleRequestEarlyCheckin = () => {
     setClientMessage(
-      "Votre demande de check-in anticipé a été transmise avec succès à la réception de l'établissement. Un concierge vous contactera pour valider l'horaire souhaité."
+      "Votre demande de check-in anticipé a été transmise à la réception de l'établissement. Un concierge vous contactera."
     );
   };
 
@@ -101,83 +146,195 @@ export default function ClientLoginPage() {
               <span>Espace Visiteurs & Clients</span>
             </div>
             <h2 className="text-2xl font-bold font-serif text-white">
-              Suivi de Séjour & Conciergerie
+              Portail Hôte & Conciergerie
             </h2>
             <p className="mt-1 text-xs text-stone-400 font-light">
-              Consultez votre réservation directe, demandez un accueil personnalisé ou contactez votre conciergerie 24/7.
+              Connectez-vous pour suivre votre séjour, réserver des services en chambre ou accéder à vos privilèges.
             </p>
           </div>
 
           {!clientResult ? (
-            <form onSubmit={handleClientLookup} className="space-y-4">
+            <div className="space-y-6">
+              {/* Google Login Section - STRICTLY CLIENT PORTAL */}
               <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1.5">
-                  Numéro de Réservation / Référence Dossier
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
-                    <FileText className="w-4 h-4 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="text"
-                    value={bookingRef}
-                    onChange={(e) => setBookingRef(e.target.value)}
-                    placeholder="Ex: RES-VIG-2024-8891 (facultatif si email fourni)"
-                    className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm placeholder:text-stone-600 focus:outline-none focus:border-[#d4af37] transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-stone-300 mb-1.5">
-                  Adresse Email associée à votre réservation
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
-                    <Mail className="w-4 h-4 text-[#d4af37]" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                    placeholder="client@exemple.com"
-                    className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm placeholder:text-stone-600 focus:outline-none focus:border-[#d4af37] transition-all"
-                  />
-                </div>
-              </div>
-
-              <p className="text-[11px] text-stone-400 leading-relaxed font-light">
-                Indiquez l&apos;adresse email saisie lors de votre réservation directe pour afficher immédiatement votre dossier, vos prestations incluses et vos services exclusifs.
-              </p>
-
-              <button
-                type="submit"
-                disabled={clientLoading}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#be9629] hover:from-[#e4c26e] hover:to-[#d4af37] text-stone-950 font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all mt-4"
-              >
-                {clientLoading ? (
-                  <div className="w-4 h-4 border-2 border-stone-950/30 border-t-stone-950 rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Accéder à ma réservation</span>
-                    <ArrowRight className="w-4 h-4 text-stone-950" />
-                  </>
-                )}
-              </button>
-
-              <div className="pt-4 border-t border-stone-800 text-center">
-                <span className="text-xs text-stone-400 block mb-2">
-                  Vous n&apos;avez pas encore de réservation en cours ?
-                </span>
-                <Link
-                  href="/#reserver"
-                  className="text-xs text-[#d4af37] hover:underline font-semibold"
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={googleLoading}
+                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-stone-100 text-stone-900 font-bold text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-3 transition-all border border-stone-200 active:scale-[0.99] disabled:opacity-50"
                 >
-                  Réserver un séjour en ligne au meilleur tarif garanti →
-                </Link>
+                  {googleLoading ? (
+                    <div className="w-4 h-4 border-2 border-stone-900/30 border-t-stone-900 rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                        />
+                      </svg>
+                      <span>Continuer avec Google</span>
+                    </>
+                  )}
+                </button>
               </div>
-            </form>
+
+              {/* Separator */}
+              <div className="relative flex items-center justify-center">
+                <div className="border-t border-stone-800 w-full" />
+                <span className="bg-stone-900 px-3 text-[10px] uppercase font-bold text-stone-500 tracking-widest whitespace-nowrap">
+                  ou avec vos identifiants clients
+                </span>
+                <div className="border-t border-stone-800 w-full" />
+              </div>
+
+              {/* Mode Toggle Tabs */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-950 rounded-xl border border-stone-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("ACCOUNT")}
+                  className={`py-2 px-3 rounded-lg font-semibold transition-all ${
+                    activeTab === "ACCOUNT"
+                      ? "bg-[#184f28] text-white shadow-sm"
+                      : "text-stone-400 hover:text-white"
+                  }`}
+                >
+                  Compte & Mot de Passe
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("BOOKING_REF")}
+                  className={`py-2 px-3 rounded-lg font-semibold transition-all ${
+                    activeTab === "BOOKING_REF"
+                      ? "bg-[#184f28] text-white shadow-sm"
+                      : "text-stone-400 hover:text-white"
+                  }`}
+                >
+                  Réf. de Réservation
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleClientSubmit} className="space-y-4">
+                {activeTab === "BOOKING_REF" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+                      Numéro de Réservation / Dossier
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
+                        <FileText className="w-4 h-4 text-[#d4af37]" />
+                      </div>
+                      <input
+                        type="text"
+                        value={bookingRef}
+                        onChange={(e) => setBookingRef(e.target.value)}
+                        placeholder="Ex: RES-VIG-2024-8891"
+                        className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm placeholder:text-stone-600 focus:outline-none focus:border-[#d4af37] transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+                    Adresse Email Client
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
+                      <Mail className="w-4 h-4 text-[#d4af37]" />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={clientEmail}
+                      onChange={(e) => setClientEmail(e.target.value)}
+                      placeholder="client@exemple.com"
+                      className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm placeholder:text-stone-600 focus:outline-none focus:border-[#d4af37] transition-all"
+                    />
+                  </div>
+                </div>
+
+                {activeTab === "ACCOUNT" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-semibold text-stone-300">
+                        Mot de Passe Client
+                      </label>
+                      <span className="text-[10px] text-stone-500">
+                        Code secret ou mot de passe
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
+                        <Lock className="w-4 h-4 text-[#d4af37]" />
+                      </div>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={clientPassword}
+                        onChange={(e) => setClientPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full pl-10 pr-10 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm placeholder:text-stone-600 focus:outline-none focus:border-[#d4af37] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-stone-500 hover:text-stone-300 transition-colors"
+                        aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-stone-400 leading-relaxed font-light">
+                  {activeTab === "ACCOUNT"
+                    ? "Accédez à votre compte pour consulter vos réservations, vos factures et vos avantages fidélité."
+                    : "Saisissez votre référence de dossier et email pour ouvrir immédiatement le récapitulatif de votre séjour."}
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={clientLoading}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#be9629] hover:from-[#e4c26e] hover:to-[#d4af37] text-stone-950 font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all mt-4"
+                >
+                  {clientLoading ? (
+                    <div className="w-4 h-4 border-2 border-stone-950/30 border-t-stone-950 rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Accéder à mon espace</span>
+                      <ArrowRight className="w-4 h-4 text-stone-950" />
+                    </>
+                  )}
+                </button>
+
+                <div className="pt-4 border-t border-stone-800 text-center">
+                  <span className="text-xs text-stone-400 block mb-2">
+                    Vous n&apos;avez pas encore de réservation en cours ?
+                  </span>
+                  <Link
+                    href="/#reserver"
+                    className="text-xs text-[#d4af37] hover:underline font-semibold"
+                  >
+                    Réserver un séjour en ligne au meilleur tarif garanti →
+                  </Link>
+                </div>
+              </form>
+            </div>
           ) : (
             /* Display Guest Reservation Summary */
             <div className="space-y-4 animate-in fade-in duration-200">
@@ -192,8 +349,18 @@ export default function ClientLoginPage() {
                 </div>
 
                 <div className="space-y-1">
+                  <div className="text-stone-400">Hôte enregistré :</div>
+                  <div className="text-white font-bold text-sm font-serif flex items-center justify-between">
+                    <span>{clientResult.guestName}</span>
+                    <span className="text-[10px] text-[#d4af37] font-sans font-normal border border-[#d4af37]/30 px-2 py-0.5 rounded-full bg-[#d4af37]/10">
+                      {clientResult.authMethod}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
                   <div className="text-stone-400">Établissement réservé :</div>
-                  <div className="text-white font-bold text-sm font-serif">{clientResult.hotel}</div>
+                  <div className="text-white font-semibold">{clientResult.hotel}</div>
                 </div>
 
                 <div className="space-y-1">
@@ -219,7 +386,7 @@ export default function ClientLoginPage() {
                   <div className="space-y-1">
                     {clientResult.perks.map((p: string, i: number) => (
                       <div key={i} className="flex items-center gap-1.5 text-stone-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#d4af37] flex-shrink-0" />
                         <span>{p}</span>
                       </div>
                     ))}
@@ -263,7 +430,7 @@ export default function ClientLoginPage() {
                 }}
                 className="w-full text-center text-xs text-stone-400 hover:text-stone-200 mt-2"
               >
-                Consulter une autre réservation
+                Se déconnecter / Consulter un autre compte
               </button>
             </div>
           )}

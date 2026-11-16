@@ -4,12 +4,13 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle, Terminal, Cpu } from "lucide-react";
+import { Shield, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle, Terminal, Cpu, Eye, EyeOff } from "lucide-react";
 
 export default function CreatorLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,14 +125,24 @@ export default function CreatorLoginPage() {
                   <Lock className="w-3.5 h-3.5 text-stone-400" />
                   <span>Clé Maîtresse d&apos;Administration</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••••••"
-                  className="w-full px-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••••••"
+                    className="w-full pl-4 pr-10 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-500 hover:text-stone-300 transition-colors"
+                    aria-label={showPassword ? "Masquer la clé maîtresse" : "Afficher la clé maîtresse"}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
