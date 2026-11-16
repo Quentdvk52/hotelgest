@@ -367,26 +367,17 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
     setSettlingOrder(order);
   };
 
-  // Close payment modal attempt with dirty check
-  const handleAttemptClosePayment = () => {
-    const hasAnyAmount =
-      (parseFloat(cashAmountInput) || 0) > 0 ||
-      (parseFloat(momoAmountInput) || 0) > 0 ||
-      (parseFloat(tpeAmountInput) || 0) > 0 ||
-      (parseFloat(deviseAmountInput) || 0) > 0;
-
-    if (hasAnyAmount && !lastFiscalReceipt) {
-      setShowCancelConfirmModal(true);
-    } else {
-      resetPaymentForm();
-      setSettlingOrder(null);
-    }
-  };
-
-  const handleConfirmCancelPayment = () => {
+  // Close payment modal immediately
+  const handleClosePayment = () => {
     setShowCancelConfirmModal(false);
     resetPaymentForm();
     setSettlingOrder(null);
+    setKkiapayError(null);
+    setIsProcessingPayment(false);
+  };
+
+  const handleConfirmCancelPayment = () => {
+    handleClosePayment();
   };
 
   // Multi-tender dynamic calculations
@@ -1865,7 +1856,7 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
               </div>
               <button
                 type="button"
-                onClick={handleAttemptClosePayment}
+                onClick={handleClosePayment}
                 className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center text-lg font-bold transition-all"
                 aria-label="Fermer la modal d'encaissement"
               >
@@ -2327,7 +2318,7 @@ export function WaitstaffServiceConsole({ activeUser }: WaitstaffConsoleProps) {
                     variant="outline"
                     size="md"
                     type="button"
-                    onClick={handleAttemptClosePayment}
+                    onClick={handleClosePayment}
                     disabled={isProcessingPayment}
                     className="w-1/3 text-xs font-bold h-12 rounded-2xl border-stone-300 hover:bg-stone-100"
                   >

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,8 @@ import {
   Volume2,
 } from "lucide-react";
 import { WaitstaffServiceConsole } from "@/components/pos/waitstaff-service-console";
+import { BarmanServiceConsole } from "@/components/pos/barman-service-console";
+import { ChefKitchenConsole } from "@/components/pos/chef-kitchen-console";
 
 // Types
 export interface PosTicket {
@@ -90,13 +93,28 @@ const AVAILABLE_BOISSONS = [
   { id: "boi-07", name: "Eau Minérale Possotomé 1.5L", priceXof: 1000, station: "BAR" },
 ];
 
-export default function StationsKdsPage() {
+function StationsKdsContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const [activeUser, setActiveUser] = useState<any>(null);
 
   // Active workspace station view mode
   const [activeStationMode, setActiveStationMode] = useState<
     "SERVER_POS" | "CUISINE_KDS" | "BAR_KDS" | "DELIVERY_DISPATCH"
   >("SERVER_POS");
+
+  // Sync mode based on tab query param from sidebar
+  useEffect(() => {
+    if (tabParam) {
+      if (["kds_bar", "remittances", "stock", "demande", "plan", "team"].includes(tabParam)) {
+        setActiveStationMode("BAR_KDS");
+      } else if (["kds_cuisine", "assignments", "stock_vivres", "recipes", "team_cuisine"].includes(tabParam)) {
+        setActiveStationMode("CUISINE_KDS");
+      } else if (["dashboard", "orders", "encaissement", "remittance", "permanence", "notations"].includes(tabParam)) {
+        setActiveStationMode("SERVER_POS");
+      }
+    }
+  }, [tabParam]);
 
   // Notifications State for ready orders
   const [readyNotifications, setReadyNotifications] = useState<
@@ -560,214 +578,17 @@ export default function StationsKdsPage() {
       )}
 
       {/* =========================================================================
-          VIEW 2: CUISINE KDS (Chef Cuisinier — Plats Chauds & Accompagnements Gratuits)
+          VIEW 2: CUISINE KDS (Chef Cuisinier — DébitMaster Multi-Cuisiniers & Vivres)
       ========================================================================== */}
       {activeStationMode === "CUISINE_KDS" && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ChefHat className="w-4 h-4 text-rose-700 flex-shrink-0" />
-              <span>
-                Écran KDS Cuisine — Visualisation des repas à préparer avec les accompagnements gratuits choisis par le client ou la serveuse.
-              </span>
-            </div>
-            <span className="font-bold text-[10px] uppercase text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full">
-              Station Cuisine
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {tickets
-              .filter((t) => t.stationCode === "CUISINE")
-              .map((ticket) => {
-                const isReady = ticket.status === "READY";
-                const isServed = ticket.status === "SERVED";
-
-                return (
-                  <Card
-                    key={ticket.id}
-                    className={`p-5 border-2 flex flex-col justify-between ${
-                      isReady
-                        ? "border-emerald-400 bg-emerald-50/20"
-                        : isServed
-                        ? "border-stone-200 opacity-60"
-                        : "border-rose-300 bg-white"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-stone-100">
-                        <div>
-                          <span className="font-mono font-bold text-xs bg-stone-100 text-stone-800 px-2 py-0.5 rounded-md">
-                            {ticket.orderNumber}
-                          </span>
-                          <h3 className="text-base font-black text-stone-900 mt-1">
-                            Destination : {ticket.destinationName}
-                          </h3>
-                        </div>
-                        <Badge variant={isReady ? "success" : "danger"}>
-                          {ticket.status}
-                        </Badge>
-                      </div>
-
-                      <div className="text-xs text-stone-500 mb-3">
-                        Lancé par : <strong>{ticket.serverName}</strong>
-                      </div>
-
-                      {/* Items with accompaniment */}
-                      <div className="space-y-2 mb-4">
-                        {ticket.items.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs space-y-1"
-                          >
-                            <div className="font-bold text-stone-900 text-sm">
-                              {item.quantity}x {item.name}
-                            </div>
-                            {item.accompaniment && (
-                              <div className="text-xs text-[#184f28] font-semibold">
-                                ★ Accompagnement : {item.accompaniment}
-                              </div>
-                            )}
-                            {item.specialInstructions && (
-                              <div className="text-[11px] text-amber-700 italic">
-                                Note : {item.specialInstructions}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="pt-3 border-t border-stone-100">
-                      {!isReady && !isServed ? (
-                        <Button
-                          variant="primary"
-                          size="md"
-                          onClick={() => handleMarkTicketReady(ticket.id)}
-                          className="w-full bg-[#184f28] hover:bg-[#123c1f] text-white font-bold text-xs gap-1.5"
-                        >
-                          <CheckCircle className="w-4 h-4 text-[#d4af37]" />
-                          <span>Marquer Plat Prêt (Notifier Serveuse ou Valet)</span>
-                        </Button>
-                      ) : isReady ? (
-                        <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs text-center font-bold">
-                          ✓ Plat marqué PRÊT — En attente de livraison
-                        </div>
-                      ) : (
-                        <div className="text-center text-xs font-bold text-stone-400">
-                          ✓ Commande Terminée & Livrée
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-          </div>
-        </div>
+        <ChefKitchenConsole activeUser={activeUser} />
       )}
 
       {/* =========================================================================
-          VIEW 3: BAR KDS (Barman — Cocktails, Bières, Vins, Spiritueux)
+          VIEW 3: BAR KDS (Barman — DébitMaster KDS Boissons, Caisse & Stocks)
       ========================================================================== */}
       {activeStationMode === "BAR_KDS" && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Coffee className="w-4 h-4 text-amber-700 flex-shrink-0" />
-              <span>
-                Écran KDS Barman — Préparation des boissons, cocktails de bienvenue, grands crus et sodas. Dès que la boisson est prête, cliquez pour alerter la serveuse ou les valets de chambre.
-              </span>
-            </div>
-            <span className="font-bold text-[10px] uppercase text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-              Station Bar
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {tickets
-              .filter((t) => t.stationCode === "BAR")
-              .map((ticket) => {
-                const isReady = ticket.status === "READY";
-                const isServed = ticket.status === "SERVED";
-
-                return (
-                  <Card
-                    key={ticket.id}
-                    className={`p-5 border-2 flex flex-col justify-between ${
-                      isReady
-                        ? "border-emerald-400 bg-emerald-50/20"
-                        : isServed
-                        ? "border-stone-200 opacity-60"
-                        : "border-amber-300 bg-white"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3 pb-2 border-b border-stone-100">
-                        <div>
-                          <span className="font-mono font-bold text-xs bg-stone-100 text-stone-800 px-2 py-0.5 rounded-md">
-                            {ticket.orderNumber}
-                          </span>
-                          <h3 className="text-base font-black text-stone-900 mt-1">
-                            Destination : {ticket.destinationName}
-                          </h3>
-                        </div>
-                        <Badge variant={isReady ? "success" : "warning"}>
-                          {ticket.status}
-                        </Badge>
-                      </div>
-
-                      <div className="text-xs text-stone-500 mb-3">
-                        Lancé par : <strong>{ticket.serverName}</strong>
-                      </div>
-
-                      {/* Items */}
-                      <div className="space-y-2 mb-4">
-                        {ticket.items.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 rounded-xl bg-amber-50/40 border border-amber-200 text-xs space-y-1"
-                          >
-                            <div className="font-bold text-stone-900 text-sm">
-                              {item.quantity}x {item.name}
-                            </div>
-                            {item.specialInstructions && (
-                              <div className="text-[11px] text-amber-800 italic">
-                                Note : {item.specialInstructions}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="pt-3 border-t border-stone-100">
-                      {!isReady && !isServed ? (
-                        <Button
-                          variant="primary"
-                          size="md"
-                          onClick={() => handleMarkTicketReady(ticket.id)}
-                          className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5"
-                        >
-                          <CheckCircle className="w-4 h-4 text-white" />
-                          <span>Marquer Boisson Prête (Notifier)</span>
-                        </Button>
-                      ) : isReady ? (
-                        <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 text-xs text-center font-bold">
-                          ✓ Boisson marquée PRÊTE — Serveuse ou Valet notifié
-                        </div>
-                      ) : (
-                        <div className="text-center text-xs font-bold text-stone-400">
-                          ✓ Boisson Servie & Archivée
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-          </div>
-        </div>
+        <BarmanServiceConsole activeUser={activeUser} />
       )}
 
       {/* =========================================================================
@@ -860,5 +681,19 @@ export default function StationsKdsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function StationsKdsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-xs font-mono text-stone-400">
+          Chargement de la station KDS...
+        </div>
+      }
+    >
+      <StationsKdsContent />
+    </Suspense>
   );
 }

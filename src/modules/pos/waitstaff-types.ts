@@ -30,6 +30,7 @@ export interface WaitstaffOrderItem {
   totalPriceXof: number;
   fulfillmentUnit: ProductFulfillmentUnit;
   accompaniment?: string;
+  specialInstructions?: string;
   preparationStatus: OrderItemPrepStatus;
   targetStationCode: "CUISINE" | "BAR" | "CAVE";
   preparedAt?: string;
@@ -164,4 +165,92 @@ export interface WaitstaffRatingFeedback {
   comment: string;
   tableLabel: string;
   createdAt: string;
+}
+
+// =========================================================================
+// BARMAN & CHEF CUISINE EXTENSIONS (MODÈLE DÉBITMASTER - LE TEMPLE DU PLAISIR)
+// =========================================================================
+
+export interface KitchenCook {
+  id: string;
+  propertyId: string;
+  firstName: string;
+  lastName: string;
+  roleTitle: string; // "Chef Cuisinier", "Chef de partie Grillades", "Cuisinier Sauces & Garnitures", "Commis"
+  speciality: string;
+  phone: string;
+  isActive: boolean;
+}
+
+export interface KitchenItemAssignment {
+  id: string;
+  propertyId: string;
+  orderId: string;
+  orderNumber: string;
+  orderItemId: string;
+  productName: string;
+  accompaniment?: string;
+  specialInstructions?: string;
+  tableLabel: string;
+  waitstaffName: string;
+  cookId: string;
+  cookName: string;
+  quantity: number;
+  status: "ASSIGNED" | "IN_PREPARATION" | "READY" | "HANDED_OFF";
+  assignedAt: string;
+  preparedAt?: string;
+  handedOffAt?: string;
+}
+
+export interface BarmanStockItem {
+  id: string;
+  propertyId: string;
+  code: string;
+  name: string;
+  family: "BEVERAGE" | "WINE";
+  category: string; // "Bières locales", "Bières importées", "Vins & Champagnes de cave", "Sodas & Jus", "Cocktails"
+  unitPackaging: string; // "Bouteilles", "Casiers de 12", "Casiers de 24", "Packs de 6"
+  bottlesPerPackage?: number;
+  currentStockUnits: number; // Quantité en bouteilles / unités
+  alertThreshold: number; // Seuil d'alerte
+  safetyThreshold: number; // Seuil de sécurité
+  unitSalePriceXof: number;
+  unitCostPriceXof: number;
+  storageLocation: "BAR_COMPTOIR" | "CAVE_VINS" | "DEPOT_CENTRAL";
+  lastRestockedAt: string;
+}
+
+export interface KitchenVivreStockItem {
+  id: string;
+  propertyId: string;
+  code: string;
+  name: string;
+  category: "VIANDES_VOLAILLES" | "POISSONS_CRUSTACES" | "FECULENTS_TUBERCULES" | "EPICES_CONDIMENTS" | "HUILES_SAUCES";
+  packagingUnit: string; // "Kg", "Sacs 50kg", "Bidons 25L", "Cartons", "Paniers"
+  currentStockQty: number;
+  alertThreshold: number;
+  safetyThreshold: number;
+  unitCostXof: number;
+  supplierName: string;
+  lastReceptionDate: string;
+}
+
+export interface ReplenishmentRequest {
+  id: string;
+  requestNumber: string;
+  propertyId: string;
+  destinationStation: "BAR" | "CUISINE" | "CAVE";
+  requestedBy: string;
+  items: {
+    productId?: string;
+    productName: string;
+    quantity: number;
+    unit: string;
+    reason?: string;
+  }[];
+  status: "PENDING_APPROVAL" | "APPROVED" | "TRANSFERRED" | "RECEIVED";
+  createdAt: string;
+  approvedAt?: string;
+  receivedAt?: string;
+  notes?: string;
 }

@@ -45,6 +45,10 @@ import {
   Scale,
   FileText,
   Receipt,
+  Coffee,
+  Utensils,
+  BookOpen,
+  Send,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -74,7 +78,105 @@ function SidebarNavContent({
   const isPromoter = activeUser.roleCode === "PROMOTER" || activeUser.roleCode === "FINANCIAL_DIRECTOR";
   const isManager = activeUser.roleCode === "PROPERTY_MANAGER";
   const isWaitstaff = activeUser.roleCode === "WAITSTAFF";
+  const isBartender = activeUser.roleCode === "BARTENDER";
+  const isChef = activeUser.roleCode === "CHEF";
   const isBohiconManager = activeUser.propertyId === "prop-bohicon-001";
+
+  // Bartender specific direct commands (6 tabs DébitMaster Gérant / Comptoir)
+  const bartenderCommands = [
+    {
+      label: "KDS File Boissons",
+      href: "/pos/stations?tab=kds_bar",
+      tab: "kds_bar",
+      icon: Coffee,
+      badge: "KDS Bar",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+    {
+      label: "Validation Caisse Serveuses",
+      href: "/pos/stations?tab=remittances",
+      tab: "remittances",
+      icon: Receipt,
+      badge: "Points",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Stock Bar & Cave",
+      href: "/pos/stations?tab=stock",
+      tab: "stock",
+      icon: Boxes,
+      badge: "Comptoir",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Demandes Réassort",
+      href: "/pos/stations?tab=demande",
+      tab: "demande",
+      icon: Send,
+      badge: "Appro",
+      badgeColor: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+    },
+    {
+      label: "Plan Tables & Salle",
+      href: "/pos/stations?tab=plan",
+      tab: "plan",
+      icon: LayoutDashboard,
+      badge: "Synoptique",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Horaires & Permanence",
+      href: "/pos/stations?tab=team",
+      tab: "team",
+      icon: Clock,
+      badge: "Équipe",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+  ];
+
+  // Chef Cuisine specific direct commands (5 tabs DébitMaster MealKitchenClient)
+  const chefCommands = [
+    {
+      label: "KDS File Cuisine",
+      href: "/pos/stations?tab=kds_cuisine",
+      tab: "kds_cuisine",
+      icon: Utensils,
+      badge: "KDS Repas",
+      badgeColor: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    },
+    {
+      label: "Brigade & Affectations",
+      href: "/pos/stations?tab=assignments",
+      tab: "assignments",
+      icon: Users,
+      badge: "Cuisiniers",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+    },
+    {
+      label: "Stocks Vivres & Ingrédients",
+      href: "/pos/stations?tab=stock_vivres",
+      tab: "stock_vivres",
+      icon: Boxes,
+      badge: "Vivres",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Fiches Recettes & Carte",
+      href: "/pos/stations?tab=recipes",
+      tab: "recipes",
+      icon: BookOpen,
+      badge: "Technique",
+      badgeColor: "bg-stone-800 text-stone-300",
+    },
+    {
+      label: "Brigade & Permanence",
+      href: "/pos/stations?tab=team_cuisine",
+      tab: "team_cuisine",
+      icon: Clock,
+      badge: "Planning",
+      badgeColor: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
+    },
+  ];
 
   // Waitstaff specific direct commands (6 tabs)
   const waitstaffCommands = [
@@ -478,8 +580,11 @@ function SidebarNavContent({
   ];
 
   const visibleOperational = operationalModules.filter((m) => {
-    if (isWaitstaff && (m.href === "/pos/stations" || m.href === "/dashboard?view=presence")) {
-      return false; // Already present in waitstaffCommands
+    if (
+      (isWaitstaff || isBartender || isChef) &&
+      (m.href === "/pos/stations" || m.href === "/dashboard?view=presence")
+    ) {
+      return false; // Already present in their direct commands
     }
     return m.roles.includes(activeUser.roleCode);
   });
@@ -494,6 +599,84 @@ function SidebarNavContent({
             <span className="text-[9px] text-stone-500 font-mono">Shift Actif</span>
           </div>
           {waitstaffCommands.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === "/pos/stations" && currentTab === item.tab;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 font-bold"
+                    : "text-stone-400 hover:text-white hover:bg-stone-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-4 h-4 ${active ? "text-[#d4af37]" : "text-stone-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      active ? "bg-white/20 text-white" : item.badgeColor
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Bartender Space Commands Section */}
+      {isBartender && (
+        <div className="space-y-1">
+          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center justify-between">
+            <span>Barman & Comptoir DébitMaster</span>
+            <span className="text-[9px] text-stone-500 font-mono">Boissons</span>
+          </div>
+          {bartenderCommands.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === "/pos/stations" && currentTab === item.tab;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 font-bold"
+                    : "text-stone-400 hover:text-white hover:bg-stone-800/60"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className={`w-4 h-4 ${active ? "text-[#d4af37]" : "text-stone-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      active ? "bg-white/20 text-white" : item.badgeColor
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Chef Cuisine Space Commands Section */}
+      {isChef && (
+        <div className="space-y-1">
+          <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-400 flex items-center justify-between">
+            <span>Chef Cuisine DébitMaster</span>
+            <span className="text-[9px] text-stone-500 font-mono">Brigade</span>
+          </div>
+          {chefCommands.map((item) => {
             const Icon = item.icon;
             const active = pathname === "/pos/stations" && currentTab === item.tab;
             return (

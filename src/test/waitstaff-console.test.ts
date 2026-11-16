@@ -12,6 +12,18 @@ import {
   submitServerRemittance,
   confirmServerRemittance,
   getWaitstaffRatings,
+  getAllServerRemittances,
+  getBarmanStockItems,
+  updateBarmanStockItem,
+  getKitchenCooks,
+  getKitchenAssignments,
+  createKitchenAssignment,
+  advanceKitchenAssignmentStatus,
+  getKitchenVivresStockItems,
+  updateKitchenVivreStockItem,
+  getReplenishmentRequests,
+  submitReplenishmentRequest,
+  receiveStockTransfer,
 } from "../modules/pos/waitstaff-service";
 
 describe("Waitstaff Console & Service Tasks (DebitMaster Port)", () => {
@@ -249,5 +261,87 @@ describe("Waitstaff Console & Service Tasks (DebitMaster Port)", () => {
     expect(ratings.length).toBeGreaterThan(0);
     expect(ratings[0].ratingScore).toBeGreaterThanOrEqual(1);
     expect(ratings[0].comment).toBeDefined();
+  });
+
+  it("should manage Barman KDS stock, threshold alerts and waitstaff remittance validations (DebitMaster Port)", () => {
+    const barStocks = getBarmanStockItems("prop-bohicon-001");
+    expect(barStocks.length).toBeGreaterThanOrEqual(8);
+
+    const beninoiseStock = barStocks.find((s) => s.name.includes("Béninoise"));
+    expect(beninoiseStock).toBeDefined();
+    expect(beninoiseStock?.alertThreshold).toBe(24);
+    expect(beninoiseStock?.unitSalePriceXof).toBe(1500);
+
+    const initialUnits = beninoiseStock!.currentStockUnits;
+    updateBarmanStockItem(beninoiseStock!.id, 12); // Received 1 crate of 12
+    expect(beninoiseStock!.currentStockUnits).toBe(initialUnits + 12);
+
+    // Check all server remittances accessible to barman
+    const allRemittances = getAllServerRemittances("prop-bohicon-001");
+    expect(allRemittances.length).toBeGreaterThan(0);
+  });
+
+  it("should manage Chef Cuisine meal brigade assignments and vivres stock levels (DebitMaster Port)", () => {
+    const cooks = getKitchenCooks("prop-bohicon-001");
+    expect(cooks.length).toBeGreaterThanOrEqual(4);
+    expect(cooks.some((c) => c.roleTitle.includes("Chef"))).toBe(true);
+
+    // Create an assignment
+    const asgn = createKitchenAssignment({
+      propertyId: "prop-bohicon-001",
+      orderId: "ord-srv-001",
+      orderNumber: "CMD-BOH-8821",
+      orderItemId: "item-8821-1",
+      productName: "Amiwo au Poulet Bicyclette Braisé",
+      accompaniment: "Alloco fondant (Plantains frits)",
+      specialInstructions: "Piment séparé",
+      tableLabel: "Table 2",
+      waitstaffName: "Chantal Tossou",
+      cookId: cooks[1].id,
+      quantity: 2,
+    });
+
+    expect(asgn.id).toBeDefined();
+    expect(asgn.status).toBe("ASSIGNED");
+
+    // Advance to IN_PREPARATION
+    const adv1 = advanceKitchenAssignmentStatus(asgn.id, "IN_PREPARATION");
+    expect(adv1).toBe(true);
+    expect(asgn.status).toBe("IN_PREPARATION");
+
+    // Advance to READY (triggers notification)
+    const adv2 = advanceKitchenAssignmentStatus(asgn.id, "READY");
+    expect(adv2).toBe(true);
+    expect(asgn.status).toBe("READY");
+    expect(asgn.preparedAt).toBeDefined();
+
+    // Check cooking ingredients (vivres)
+    const vivres = getKitchenVivresStockItems("prop-bohicon-001");
+    expect(vivres.length).toBeGreaterThanOrEqual(8);
+    expect(vivres.some((v) => v.name.includes("Bœuf"))).toBe(true);
+    expect(vivres.some((v) => v.name.includes("Igname"))).toBe(true);
+
+    const igname = vivres.find((v) => v.name.includes("Igname"))!;
+    const prevQty = igname.currentStockQty;
+    updateKitchenVivreStockItem(igname.id, 5);
+    expect(igname.currentStockQty).toBe(prevQty + 5);
+  });
+
+  it("should handle replenishment requests and physical receipt for Barman and Chef", () => {
+    const req = submitReplenishmentRequest({
+      propertyId: "prop-bohicon-001",
+      destinationStation: "BAR",
+      requestedBy: "Pascal Agbossou",
+      items: [
+        { productName: "Bière Beaufort Lager 50cl", quantity: 5, unit: "Casiers de 12", reason: "Stock d'alerte" },
+      ],
+    });
+
+    expect(req.id).toBeDefined();
+    expect(req.status).toBe("PENDING_APPROVAL");
+
+    const received = receiveStockTransfer(req.id);
+    expect(received).toBe(true);
+    expect(req.status).toBe("RECEIVED");
   });
 });
