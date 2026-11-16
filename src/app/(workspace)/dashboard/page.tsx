@@ -52,6 +52,7 @@ import {
   UserCheck,
   UserX,
   Tag,
+  Boxes,
 } from "lucide-react";
 import {
   SEED_PROPERTIES,
@@ -122,6 +123,21 @@ export interface StaffRatingRecord {
   date: string;
   notifiedRoles: string[];
 }
+const ALL_AMENITY_OPTIONS = [
+  "Wi-Fi Haut Débit",
+  "Chaînes Câblées (Canal+ & Satellite)",
+  "Climatisation Split",
+  "Ventilation / Brasseur d'air",
+  "Salle de bain privative",
+  "Mini-bar réfrigéré",
+  "Coffre-fort électronique",
+  "Balcon privatif vue jardin",
+  "Eau chaude solaire",
+  "Bureau de travail & USB",
+  "Petit-déjeuner inclus",
+  "Room-service 24h/24",
+];
+
 export interface RoomRecord {
   id: string;
   number: string;
@@ -131,9 +147,51 @@ export interface RoomRecord {
   type: "STANDARD" | "SUPERIEURE" | "SUITE_ROYALE" | "PAVILLON";
   basePriceXof: number;
   capacity: number;
+  bedPlaces?: number;
+  bedConfiguration?: string;
   amenities: string[];
   status: "DISPONIBLE" | "OCCUPEE" | "RESERVEE" | "NETTOYAGE" | "MAINTENANCE";
   imageUrl: string;
+}
+
+export interface StockItemRecord {
+  id: string;
+  sku: string;
+  name: string;
+  category: "CAVE_A_VIN" | "BOISSON_BAR" | "VIVRES_CUISINE" | "LINGERIE_CHAMBRE" | "PRODUIT_ENTRETIEN";
+  propertyId: string;
+  propertyName: string;
+  unitMeasure: string; // "Bouteilles", "Kg", "Sacs 25kg", "Litres", "Pièces", "Cartons", "Rouleaux"
+  currentQuantity: number;
+  alertThreshold: number; // Stock d'alerte (réapprovisionnement conseillé)
+  securityThreshold: number; // Stock de sécurité (seuil critique de rupture imminente)
+  unitCostXof: number;
+  storageLocation: string;
+  supplierName?: string;
+}
+
+export interface StaffRoleRecord {
+  id: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string;
+  propertyId: string;
+  propertyName: string;
+  roleCode: string;
+  roleName: string;
+  maxDiscount: number;
+  rights: {
+    pmsReservations: boolean;
+    posOrderTaking: boolean;
+    kitchenKds: boolean;
+    barKds: boolean;
+    cashFinance: boolean;
+    hallBooking: boolean;
+    equipmentCatering: boolean;
+    reportsTreasury: boolean;
+    intersiteMessaging: boolean;
+    stocksManage: boolean;
+  };
 }
 
 export interface WineRecord {
@@ -407,7 +465,19 @@ function DashboardContent() {
       type: "SUITE_ROYALE",
       basePriceXof: 85000,
       capacity: 3,
-      amenities: ["Lit King-Size", "Jacuzzi Privé", "Salon VIP", "Climatisation", "Wi-Fi Dédié"],
+      bedPlaces: 3,
+      bedConfiguration: "1 Lit King Size + 1 Lit d'appoint (3 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Mini-bar réfrigéré",
+        "Coffre-fort électronique",
+        "Balcon privatif vue jardin",
+        "Petit-déjeuner inclus",
+        "Room-service 24h/24",
+      ],
       status: "OCCUPEE",
       imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
     },
@@ -420,7 +490,17 @@ function DashboardContent() {
       type: "SUPERIEURE",
       basePriceXof: 45000,
       capacity: 2,
-      amenities: ["Balcon vue piscine", "Mini-bar", "Bureau de travail", "Wi-Fi Fibre"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit King Size (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Mini-bar réfrigéré",
+        "Balcon privatif vue jardin",
+        "Bureau de travail & USB",
+      ],
       status: "DISPONIBLE",
       imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
     },
@@ -433,7 +513,16 @@ function DashboardContent() {
       type: "SUPERIEURE",
       basePriceXof: 50000,
       capacity: 2,
-      amenities: ["Lit Queen-Size", "Vue Jardin", "Room Service 24h"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit Queen Size (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+        "Room-service 24h/24",
+      ],
       status: "RESERVEE",
       imageUrl: "https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=800&q=80",
     },
@@ -446,7 +535,14 @@ function DashboardContent() {
       type: "STANDARD",
       basePriceXof: 25000,
       capacity: 2,
-      amenities: ["Climatisation", "Douche italienne"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit Double Confort (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Salle de bain privative",
+        "Eau chaude solaire",
+      ],
       status: "NETTOYAGE",
       imageUrl: "https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=800&q=80",
     },
@@ -459,7 +555,14 @@ function DashboardContent() {
       type: "STANDARD",
       basePriceXof: 25000,
       capacity: 2,
-      amenities: ["Climatisation", "TV Canal+", "Douche à l'italienne"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit Double Confort (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+      ],
       status: "DISPONIBLE",
       imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80",
     },
@@ -472,7 +575,19 @@ function DashboardContent() {
       type: "SUITE_ROYALE",
       basePriceXof: 90000,
       capacity: 4,
-      amenities: ["Mobilier artisanal royal", "Salon privé", "Terrasse panoramique"],
+      bedPlaces: 4,
+      bedConfiguration: "Suite Familiale 2 Grands Lits (4 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+        "Mini-bar réfrigéré",
+        "Coffre-fort électronique",
+        "Petit-déjeuner inclus",
+        "Room-service 24h/24",
+      ],
       status: "OCCUPEE",
       imageUrl: "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80",
     },
@@ -485,7 +600,15 @@ function DashboardContent() {
       type: "SUPERIEURE",
       basePriceXof: 40000,
       capacity: 2,
-      amenities: ["Vue sur la Place Goho", "Climatisation inverter"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit King Size (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+      ],
       status: "RESERVEE",
       imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
     },
@@ -498,7 +621,14 @@ function DashboardContent() {
       type: "STANDARD",
       basePriceXof: 22000,
       capacity: 2,
-      amenities: ["Ventilation & Climatisation", "Wi-Fi"],
+      bedPlaces: 2,
+      bedConfiguration: "2 Lits simples séparés (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Ventilation / Brasseur d'air",
+        "Salle de bain privative",
+      ],
       status: "MAINTENANCE",
       imageUrl: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80",
     },
@@ -511,7 +641,17 @@ function DashboardContent() {
       type: "PAVILLON",
       basePriceXof: 65000,
       capacity: 4,
-      amenities: ["2 Chambres communicantes", "Terrasse privative", "Coin salon"],
+      bedPlaces: 4,
+      bedConfiguration: "Pavillon 2 Chambres - 4 places",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+        "Mini-bar réfrigéré",
+        "Petit-déjeuner inclus",
+      ],
       status: "DISPONIBLE",
       imageUrl: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80",
     },
@@ -524,7 +664,15 @@ function DashboardContent() {
       type: "SUPERIEURE",
       basePriceXof: 48000,
       capacity: 2,
-      amenities: ["Bureau de travail ergonomique", "Wi-Fi Très Haut Débit"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit King Size (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Bureau de travail & USB",
+      ],
       status: "RESERVEE",
       imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
     },
@@ -537,7 +685,15 @@ function DashboardContent() {
       type: "PAVILLON",
       basePriceXof: 55000,
       capacity: 3,
-      amenities: ["Vue sur la cocoteraie", "Bordure de piscine", "Calme absolu"],
+      bedPlaces: 3,
+      bedConfiguration: "1 Lit King Size + 1 Lit d'appoint (3 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+        "Petit-déjeuner inclus",
+      ],
       status: "DISPONIBLE",
       imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
     },
@@ -550,7 +706,15 @@ function DashboardContent() {
       type: "SUPERIEURE",
       basePriceXof: 42000,
       capacity: 2,
-      amenities: ["Climatisation", "Smart TV", "Literie orthopédique"],
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit King Size (2 places)",
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Mini-bar réfrigéré",
+      ],
       status: "OCCUPEE",
       imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80",
     },
@@ -565,7 +729,14 @@ function DashboardContent() {
     type: "STANDARD",
     basePriceXof: 25000,
     capacity: 2,
-    amenities: ["Climatisation", "Wi-Fi"],
+    bedPlaces: 2,
+    bedConfiguration: "1 Lit King Size (2 places)",
+    amenities: [
+      "Wi-Fi Haut Débit",
+      "Climatisation Split",
+      "Salle de bain privative",
+      "Eau chaude solaire",
+    ],
     status: "DISPONIBLE",
     imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
   });
@@ -1567,7 +1738,723 @@ function DashboardContent() {
     },
   ]);
 
-  // Filtered lists for individual views
+  // =========================================================================
+  // 12. DATA: STOCKS MULTI-SITES (CAVE, BAR, VIVRES CUISINE, LINGERIE, ENTRETIEN)
+  // =========================================================================
+  const [stocks, setStocks] = useState<StockItemRecord[]>([
+    // CAVE A VIN
+    {
+      id: "stk-cv-01",
+      sku: "STK-CAVE-001",
+      name: "Château Vignoble Réserve Prestige (75cl)",
+      category: "CAVE_A_VIN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 38,
+      alertThreshold: 15,
+      securityThreshold: 5,
+      unitCostXof: 22000,
+      storageLocation: "Cave Climatisée Centrale",
+      supplierName: "Domaine Le Vignoble",
+    },
+    {
+      id: "stk-cv-02",
+      sku: "STK-CAVE-002",
+      name: "Champagne Moët & Chandon Brut Impérial (75cl)",
+      category: "CAVE_A_VIN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 12,
+      alertThreshold: 10,
+      securityThreshold: 4,
+      unitCostXof: 45000,
+      storageLocation: "Cave Climatisée Centrale",
+      supplierName: "Import Épernay France",
+    },
+    {
+      id: "stk-cv-03",
+      sku: "STK-CAVE-003",
+      name: "Châteauneuf-du-Pape Grand Millésime (75cl)",
+      category: "CAVE_A_VIN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 8,
+      alertThreshold: 10,
+      securityThreshold: 3,
+      unitCostXof: 38000,
+      storageLocation: "Cave Climatisée Centrale",
+      supplierName: "Vins de la Vallée du Rhône",
+    },
+    {
+      id: "stk-cv-04",
+      sku: "STK-CAVE-004",
+      name: "Cognac Hennessy VSOP Privilège (70cl)",
+      category: "CAVE_A_VIN",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 4,
+      alertThreshold: 6,
+      securityThreshold: 2,
+      unitCostXof: 48000,
+      storageLocation: "Cave VIP Calavi",
+      supplierName: "Distillerie Prestige",
+    },
+    {
+      id: "stk-cv-05",
+      sku: "STK-CAVE-005",
+      name: "Liqueur Royale de Maracudja Terroir Bénin",
+      category: "CAVE_A_VIN",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 32,
+      alertThreshold: 15,
+      securityThreshold: 6,
+      unitCostXof: 8500,
+      storageLocation: "Réserve Spéciale Abomey",
+      supplierName: "Distillerie Artisanale d'Allada",
+    },
+
+    // BAR & RESTAURANT (BOISSONS)
+    {
+      id: "stk-br-01",
+      sku: "STK-BAR-001",
+      name: "Bière Béninoise La Béninoise (65cl)",
+      category: "BOISSON_BAR",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 140,
+      alertThreshold: 50,
+      securityThreshold: 20,
+      unitCostXof: 950,
+      storageLocation: "Chambre Froide Bar Lounge",
+      supplierName: "SOBEBRA Bénin",
+    },
+    {
+      id: "stk-br-02",
+      sku: "STK-BAR-002",
+      name: "Bière Beaufort Lager (50cl)",
+      category: "BOISSON_BAR",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 45,
+      alertThreshold: 50,
+      securityThreshold: 15,
+      unitCostXof: 1100,
+      storageLocation: "Chambre Froide Bar Lounge",
+      supplierName: "SOBEBRA Bénin",
+    },
+    {
+      id: "stk-br-03",
+      sku: "STK-BAR-003",
+      name: "Eau Minérale Naturelle Possotomé (1.5L)",
+      category: "BOISSON_BAR",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 180,
+      alertThreshold: 60,
+      securityThreshold: 25,
+      unitCostXof: 450,
+      storageLocation: "Dépôt Boissons Central",
+      supplierName: "Sources de Possotomé",
+    },
+    {
+      id: "stk-br-04",
+      sku: "STK-BAR-004",
+      name: "Jus d'Ananas Pur Frais Pressé d'Allada (1L)",
+      category: "BOISSON_BAR",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bouteilles",
+      currentQuantity: 18,
+      alertThreshold: 25,
+      securityThreshold: 8,
+      unitCostXof: 750,
+      storageLocation: "Frigo Comptoir Bar",
+      supplierName: "Coopérative Ananas Allada",
+    },
+    {
+      id: "stk-br-05",
+      sku: "STK-BAR-005",
+      name: "Sodas Assortis (Coca-Cola, Fanta, Sprite 33cl)",
+      category: "BOISSON_BAR",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      unitMeasure: "Canettes",
+      currentQuantity: 95,
+      alertThreshold: 40,
+      securityThreshold: 15,
+      unitCostXof: 500,
+      storageLocation: "Réserve Bar Calavi",
+      supplierName: "SOBEBRA Bénin",
+    },
+
+    // CUISINE (VIVRES & MATIERES PREMIERES BRUTES POUR REPAS)
+    {
+      id: "stk-vc-01",
+      sku: "STK-VIV-001",
+      name: "Poulets Bicyclettes Fermiers Prêts à Cuire",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Unités",
+      currentQuantity: 42,
+      alertThreshold: 15,
+      securityThreshold: 6,
+      unitCostXof: 3200,
+      storageLocation: "Chambre Froide Négative Cuisine",
+      supplierName: "Élevage Local Bohicon Terroir",
+    },
+    {
+      id: "stk-vc-02",
+      sku: "STK-VIV-002",
+      name: "Quartiers et Gigots de Mouton Frais Découpés",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Kg",
+      currentQuantity: 11,
+      alertThreshold: 15,
+      securityThreshold: 5,
+      unitCostXof: 3800,
+      storageLocation: "Chambre Froide Viandes",
+      supplierName: "Boucherie Centrale du Zou",
+    },
+    {
+      id: "stk-vc-03",
+      sku: "STK-VIV-003",
+      name: "Poissons Mérous et Capitaines Frais du Lac",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Kg",
+      currentQuantity: 26,
+      alertThreshold: 12,
+      securityThreshold: 5,
+      unitCostXof: 4500,
+      storageLocation: "Chambre Froide Poissons",
+      supplierName: "Pêcheries Artisanales Lac Nokoué",
+    },
+    {
+      id: "stk-vc-04",
+      sku: "STK-VIV-004",
+      name: "Sacs de Riz Parfumé Long Grain Qualité Supérieure",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Sacs 25kg",
+      currentQuantity: 16,
+      alertThreshold: 6,
+      securityThreshold: 2,
+      unitCostXof: 18500,
+      storageLocation: "Économat Vivres Secs",
+      supplierName: "Rizerie de Glazoué",
+    },
+    {
+      id: "stk-vc-05",
+      sku: "STK-VIV-005",
+      name: "Régimes de Bananes Plantains Mûres (Alloco)",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Régimes",
+      currentQuantity: 7,
+      alertThreshold: 8,
+      securityThreshold: 3,
+      unitCostXof: 4500,
+      storageLocation: "Zone Légumerie Aérée",
+      supplierName: "Marché Central d'Abomey",
+    },
+    {
+      id: "stk-vc-06",
+      sku: "STK-VIV-006",
+      name: "Bidons d'Huile Végétale Raffinée Pure (20L)",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bidons 20L",
+      currentQuantity: 10,
+      alertThreshold: 4,
+      securityThreshold: 2,
+      unitCostXof: 21000,
+      storageLocation: "Économat Vivres Secs",
+      supplierName: "Huilerie d'Avrankou",
+    },
+    {
+      id: "stk-vc-07",
+      sku: "STK-VIV-007",
+      name: "Farine d'Igname Pilée Pure (Agoun du Zou)",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Sacs 10kg",
+      currentQuantity: 14,
+      alertThreshold: 5,
+      securityThreshold: 2,
+      unitCostXof: 8000,
+      storageLocation: "Économat Vivres Secs",
+      supplierName: "Producteurs du Zou Nord",
+    },
+    {
+      id: "stk-vc-08",
+      sku: "STK-VIV-008",
+      name: "Tomates Fraîches Terroir & Pâte de Piment Rouge",
+      category: "VIVRES_CUISINE",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      unitMeasure: "Kg",
+      currentQuantity: 28,
+      alertThreshold: 10,
+      securityThreshold: 4,
+      unitCostXof: 1200,
+      storageLocation: "Légumerie Calavi",
+      supplierName: "Maraîchers Calavi",
+    },
+
+    // LINGERIE & MATERIEL DE CHAMBRES
+    {
+      id: "stk-lc-01",
+      sku: "STK-LING-001",
+      name: "Draps Grand Lit 2 Places en Coton d'Égypte 300 Fils",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Pièces",
+      currentQuantity: 85,
+      alertThreshold: 30,
+      securityThreshold: 12,
+      unitCostXof: 14000,
+      storageLocation: "Lingerie Centrale RDC",
+      supplierName: "Textile Hôtelier Prestige",
+    },
+    {
+      id: "stk-lc-02",
+      sku: "STK-LING-002",
+      name: "Draps Lit Simple 1 Place Satinés",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Pièces",
+      currentQuantity: 48,
+      alertThreshold: 20,
+      securityThreshold: 8,
+      unitCostXof: 9500,
+      storageLocation: "Lingerie Centrale RDC",
+      supplierName: "Textile Hôtelier Prestige",
+    },
+    {
+      id: "stk-lc-03",
+      sku: "STK-LING-003",
+      name: "Grandes Serviettes de Bain Éponge Épaisse 600g",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Pièces",
+      currentQuantity: 110,
+      alertThreshold: 40,
+      securityThreshold: 15,
+      unitCostXof: 6500,
+      storageLocation: "Lingerie Centrale RDC",
+      supplierName: "Linge d'Or Cotonou",
+    },
+    {
+      id: "stk-lc-04",
+      sku: "STK-LING-004",
+      name: "Taies d'Oreiller Brodées Sigle Le Vignoble",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Pièces",
+      currentQuantity: 92,
+      alertThreshold: 30,
+      securityThreshold: 10,
+      unitCostXof: 3500,
+      storageLocation: "Lingerie Centrale RDC",
+      supplierName: "Linge d'Or Cotonou",
+    },
+    {
+      id: "stk-lc-05",
+      sku: "STK-LING-005",
+      name: "Savonnettes Végétales d'Accueil Hôtelières 40g",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Pièces",
+      currentQuantity: 240,
+      alertThreshold: 80,
+      securityThreshold: 30,
+      unitCostXof: 350,
+      storageLocation: "Économat Produits d'Accueil",
+      supplierName: "Cosmétiques Terroir Bénin",
+    },
+    {
+      id: "stk-lc-06",
+      sku: "STK-LING-006",
+      name: "Rouleaux de Papier Hygiénique Qualité Supérieure Double Épaisseur",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Rouleaux",
+      currentQuantity: 195,
+      alertThreshold: 70,
+      securityThreshold: 25,
+      unitCostXof: 300,
+      storageLocation: "Magasin Central Housekeeping",
+      supplierName: "Papeterie Centrale Cotonou",
+    },
+    {
+      id: "stk-lc-07",
+      sku: "STK-LING-007",
+      name: "Flacons Shampoing & Gel Douche Huile d'Argan (50ml)",
+      category: "LINGERIE_CHAMBRE",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      unitMeasure: "Flacons",
+      currentQuantity: 150,
+      alertThreshold: 60,
+      securityThreshold: 20,
+      unitCostXof: 450,
+      storageLocation: "Magasin Housekeeping Calavi",
+      supplierName: "Cosmétiques Terroir Bénin",
+    },
+
+    // PRODUITS D'ENTRETIEN
+    {
+      id: "stk-pe-01",
+      sku: "STK-ENT-001",
+      name: "Détergent Désinfectant Hôtelier Sols & Surfaces Parfum Pin (5L)",
+      category: "PRODUIT_ENTRETIEN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bidons 5L",
+      currentQuantity: 18,
+      alertThreshold: 8,
+      securityThreshold: 3,
+      unitCostXof: 7500,
+      storageLocation: "Local Produits Chimiques & Entretien",
+      supplierName: "Hygiène Pro Bénin",
+    },
+    {
+      id: "stk-pe-02",
+      sku: "STK-ENT-002",
+      name: "Eau de Javel Concentrée 12° Hôtelière (5L)",
+      category: "PRODUIT_ENTRETIEN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Bidons 5L",
+      currentQuantity: 22,
+      alertThreshold: 8,
+      securityThreshold: 3,
+      unitCostXof: 4500,
+      storageLocation: "Local Produits Chimiques & Entretien",
+      supplierName: "Hygiène Pro Bénin",
+    },
+    {
+      id: "stk-pe-03",
+      sku: "STK-ENT-003",
+      name: "Nettoyant Vitres et Miroirs Professionnel Sans Traces (1L)",
+      category: "PRODUIT_ENTRETIEN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Flacons 1L",
+      currentQuantity: 5,
+      alertThreshold: 8,
+      securityThreshold: 2,
+      unitCostXof: 2200,
+      storageLocation: "Local Housekeeping",
+      supplierName: "Hygiène Pro Bénin",
+    },
+    {
+      id: "stk-pe-04",
+      sku: "STK-ENT-004",
+      name: "Sacs Poubelle Épais Renforcés 100L",
+      category: "PRODUIT_ENTRETIEN",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      unitMeasure: "Rouleaux 25 unités",
+      currentQuantity: 24,
+      alertThreshold: 10,
+      securityThreshold: 4,
+      unitCostXof: 3500,
+      storageLocation: "Local Entretien RDC",
+      supplierName: "Plastiques d'Afrique",
+    },
+    {
+      id: "stk-pe-05",
+      sku: "STK-ENT-005",
+      name: "Lavettes Microfibres & Éponges Sanitaires Professionnelles",
+      category: "PRODUIT_ENTRETIEN",
+      propertyId: "prop-abomey-002",
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      unitMeasure: "Pièces",
+      currentQuantity: 40,
+      alertThreshold: 20,
+      securityThreshold: 8,
+      unitCostXof: 1200,
+      storageLocation: "Réserve Entretien Abomey",
+      supplierName: "Hygiène Pro Bénin",
+    },
+  ]);
+
+  // Stocks Specific States & Filters
+  const [stockDisplayMode, setStockDisplayMode] = useState<"QUANTITY" | "VALUE">("QUANTITY");
+  const [stockCategoryFilter, setStockCategoryFilter] = useState<string>("ALL");
+  const [stockPropertyFilter, setStockPropertyFilter] = useState<string>("ALL");
+  const [stockAlertFilter, setStockAlertFilter] = useState<"ALL" | "ALERTS_ONLY">("ALL");
+  const [stockSearchQuery, setStockSearchQuery] = useState("");
+  const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [editingStock, setEditingStock] = useState<StockItemRecord | null>(null);
+  const [stockForm, setStockForm] = useState<Partial<StockItemRecord>>({
+    sku: "",
+    name: "",
+    category: "VIVRES_CUISINE",
+    propertyId: "prop-bohicon-001",
+    unitMeasure: "Kg",
+    currentQuantity: 10,
+    alertThreshold: 5,
+    securityThreshold: 2,
+    unitCostXof: 5000,
+    storageLocation: "Économat Principal",
+    supplierName: "",
+  });
+
+  // =========================================================================
+  // 13. DATA: ROLES ET ATTRIBUTS DU PERSONNEL (HABILITATIONS & DROITS MODULAIRES)
+  // =========================================================================
+  const [staffRoleAssignments, setStaffRoleAssignments] = useState<StaffRoleRecord[]>([
+    {
+      id: "user-rec-boh",
+      fullName: "Gaston Dossou",
+      email: "reception.boh@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "RECEPTIONIST",
+      roleName: "Réceptionniste Bohicon",
+      maxDiscount: 5,
+      rights: {
+        pmsReservations: true,
+        posOrderTaking: false,
+        kitchenKds: false,
+        barKds: false,
+        cashFinance: true,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: true,
+        stocksManage: false,
+      },
+    },
+    {
+      id: "user-srv-boh",
+      fullName: "Chantal Tossou",
+      email: "serveuse.boh@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "WAITSTAFF",
+      roleName: "Serveuse Restaurant & Bar Bohicon",
+      maxDiscount: 0,
+      rights: {
+        pmsReservations: false,
+        posOrderTaking: true,
+        kitchenKds: false,
+        barKds: false,
+        cashFinance: false,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: false,
+        stocksManage: false,
+      },
+    },
+    {
+      id: "user-bar-boh",
+      fullName: "Marc Kpadonou",
+      email: "barman.boh@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "BARTENDER",
+      roleName: "Barman & Sommelier Bohicon",
+      maxDiscount: 0,
+      rights: {
+        pmsReservations: false,
+        posOrderTaking: true,
+        kitchenKds: false,
+        barKds: true,
+        cashFinance: false,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: false,
+        stocksManage: true,
+      },
+    },
+    {
+      id: "user-cui-boh",
+      fullName: "Chef Rodrigue Mensah",
+      email: "chef.boh@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "CHEF",
+      roleName: "Chef Cuisinier Bohicon",
+      maxDiscount: 0,
+      rights: {
+        pmsReservations: false,
+        posOrderTaking: false,
+        kitchenKds: true,
+        barKds: false,
+        cashFinance: false,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: false,
+        stocksManage: true,
+      },
+    },
+    {
+      id: "user-mgr-boh",
+      fullName: "Gérant Bohicon",
+      email: "gerant.bohicon@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "PROPERTY_MANAGER",
+      roleName: "Gérant d'Établissement Bohicon",
+      maxDiscount: 10,
+      rights: {
+        pmsReservations: true,
+        posOrderTaking: true,
+        kitchenKds: true,
+        barKds: true,
+        cashFinance: true,
+        hallBooking: true,
+        equipmentCatering: false,
+        reportsTreasury: true,
+        intersiteMessaging: true,
+        stocksManage: true,
+      },
+    },
+    {
+      id: "user-rec-abc",
+      fullName: "Nadine ADANHOU",
+      email: "reception.abc@hotel-levignoble.bj",
+      propertyId: "prop-calavi-003",
+      propertyName: "Hôtel Le Vignoble - Abomey-Calavi",
+      roleCode: "RECEPTIONIST",
+      roleName: "Réceptionniste Calavi",
+      maxDiscount: 5,
+      rights: {
+        pmsReservations: true,
+        posOrderTaking: false,
+        kitchenKds: false,
+        barKds: false,
+        cashFinance: true,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: true,
+        stocksManage: false,
+      },
+    },
+    {
+      id: "user-hsk-01",
+      fullName: "Henriette DEDJI",
+      email: "housekeeping@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Hôtel Le Vignoble - Bohicon",
+      roleCode: "HOUSEKEEPING",
+      roleName: "Gouvernante Générale (Housekeeping)",
+      maxDiscount: 0,
+      rights: {
+        pmsReservations: true,
+        posOrderTaking: false,
+        kitchenKds: false,
+        barKds: false,
+        cashFinance: false,
+        hallBooking: false,
+        equipmentCatering: false,
+        reportsTreasury: false,
+        intersiteMessaging: true,
+        stocksManage: true,
+      },
+    },
+    {
+      id: "user-event-01",
+      fullName: "Mathurin VODOUNOU",
+      email: "traiteur.event@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Groupe Hôtel Le Vignoble",
+      roleCode: "CATERING_MANAGER",
+      roleName: "Responsable Traiteur & Matériel",
+      maxDiscount: 10,
+      rights: {
+        pmsReservations: false,
+        posOrderTaking: true,
+        kitchenKds: true,
+        barKds: true,
+        cashFinance: true,
+        hallBooking: true,
+        equipmentCatering: true,
+        reportsTreasury: true,
+        intersiteMessaging: true,
+        stocksManage: true,
+      },
+    },
+    {
+      id: "user-daf-01",
+      fullName: "Direction Financière (DAF)",
+      email: "daf@hotel-levignoble.bj",
+      propertyId: "prop-bohicon-001",
+      propertyName: "Groupe Hôtel Le Vignoble (Consolidé)",
+      roleCode: "FINANCIAL_DIRECTOR",
+      roleName: "Directeur Administratif & Financier",
+      maxDiscount: 20,
+      rights: {
+        pmsReservations: true,
+        posOrderTaking: true,
+        kitchenKds: true,
+        barKds: true,
+        cashFinance: true,
+        hallBooking: true,
+        equipmentCatering: true,
+        reportsTreasury: true,
+        intersiteMessaging: true,
+        stocksManage: true,
+      },
+    },
+  ]);
+
+  // Roles Specific States & Filters
+  const [rolePropertyFilter, setRolePropertyFilter] = useState<string>("ALL");
+  const [roleCodeFilter, setRoleCodeFilter] = useState<string>("ALL");
+  const [roleSearchQuery, setRoleSearchQuery] = useState("");
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [editingRoleAssignment, setEditingRoleAssignment] = useState<StaffRoleRecord | null>(null);
+  const [roleForm, setRoleForm] = useState<Partial<StaffRoleRecord>>({
+    fullName: "",
+    email: "",
+    roleCode: "RECEPTIONIST",
+    roleName: "Réceptionniste",
+    propertyId: "prop-bohicon-001",
+    maxDiscount: 5,
+    rights: {
+      pmsReservations: true,
+      posOrderTaking: false,
+      kitchenKds: false,
+      barKds: false,
+      cashFinance: false,
+      hallBooking: false,
+      equipmentCatering: false,
+      reportsTreasury: false,
+      intersiteMessaging: true,
+      stocksManage: false,
+    },
+  });
   const filteredRooms = rooms.filter((r) => {
     if (isManager && managerPropertyId && r.propertyId !== managerPropertyId) return false;
     if (searchQuery) {
@@ -1710,6 +2597,43 @@ function DashboardContent() {
     if (presenceSiteFilter !== "ALL" && att.propertyId !== presenceSiteFilter) return false;
     if (presenceShiftFilter !== "ALL" && att.shift !== presenceShiftFilter) return false;
     if (presenceStatusFilter !== "ALL" && att.status !== presenceStatusFilter) return false;
+    return true;
+  });
+
+  const filteredStocks = stocks.filter((s) => {
+    if (isManager && managerPropertyId && s.propertyId !== managerPropertyId) return false;
+    if (stockPropertyFilter !== "ALL" && s.propertyId !== stockPropertyFilter) return false;
+    if (stockCategoryFilter !== "ALL" && s.category !== stockCategoryFilter) return false;
+    if (stockAlertFilter === "ALERTS_ONLY" && s.currentQuantity > s.alertThreshold) return false;
+    if (stockSearchQuery) {
+      const q = stockSearchQuery.toLowerCase();
+      const match =
+        s.name.toLowerCase().includes(q) ||
+        s.sku.toLowerCase().includes(q) ||
+        s.propertyName.toLowerCase().includes(q) ||
+        s.storageLocation.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const totalStockValueXof = filteredStocks.reduce((sum, s) => sum + s.currentQuantity * s.unitCostXof, 0);
+  const totalStockAlertsCount = filteredStocks.filter((s) => s.currentQuantity <= s.alertThreshold).length;
+  const totalStockCriticalCount = filteredStocks.filter((s) => s.currentQuantity <= s.securityThreshold).length;
+
+  const filteredStaffRoles = staffRoleAssignments.filter((sr) => {
+    if (isManager && managerPropertyId && sr.propertyId !== managerPropertyId) return false;
+    if (rolePropertyFilter !== "ALL" && sr.propertyId !== rolePropertyFilter) return false;
+    if (roleCodeFilter !== "ALL" && sr.roleCode !== roleCodeFilter) return false;
+    if (roleSearchQuery) {
+      const q = roleSearchQuery.toLowerCase();
+      const match =
+        sr.fullName.toLowerCase().includes(q) ||
+        sr.email.toLowerCase().includes(q) ||
+        sr.roleName.toLowerCase().includes(q) ||
+        sr.propertyName.toLowerCase().includes(q);
+      if (!match) return false;
+    }
     return true;
   });
 
@@ -2489,6 +3413,15 @@ function DashboardContent() {
                         <span className="text-lg font-black text-[#184f28]">
                           {room.basePriceXof.toLocaleString("fr-FR")} XOF
                         </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 font-medium py-1">
+                        <span className="inline-flex items-center gap-1 font-semibold text-stone-800">
+                          <Bed className="w-3.5 h-3.5 text-[#184f28]" />
+                          {room.bedConfiguration || `${room.bedPlaces || room.capacity} places de lit`}
+                        </span>
+                        <span>•</span>
+                        <span>👥 Capacité : {room.capacity} pers. max</span>
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 pt-2 border-t border-stone-100">
@@ -4843,8 +5776,537 @@ function DashboardContent() {
       )}
 
       {/* =========================================================================
-          SHARED MODALS (CHAMBRE, CAVE, REPAS, LOCATION, TRAITEUR, STAFF, TRESORERIE)
+          VIEW 14: STOCKS MULTI-SITES (CAVE, BAR, VIVRES CUISINE, LINGERIE, ENTRETIEN)
          ========================================================================= */}
+      {currentView === "stocks" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                  Économat & Approvisionnement Groupe
+                </span>
+                <span className="text-xs text-stone-400">• Surveillance des seuils de sécurité</span>
+              </div>
+              <h2 className="text-xl font-bold text-stone-900">
+                Gestion des Stocks Multi-Sites ({filteredStocks.length} articles)
+              </h2>
+              <p className="text-xs text-stone-500">
+                Cave à vin, Boissons bar/restaurant, Vivres bruts de cuisine (pour confection des repas à la minute), Lingerie de chambres et Produits d&apos;entretien.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Toggle Mode Quantité vs Valeur */}
+              <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setStockDisplayMode("QUANTITY")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    stockDisplayMode === "QUANTITY"
+                      ? "bg-white text-stone-900 shadow-xs"
+                      : "text-stone-500 hover:text-stone-900"
+                  }`}
+                >
+                  📊 En Quantité
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStockDisplayMode("VALUE")}
+                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                    stockDisplayMode === "VALUE"
+                      ? "bg-white text-[#184f28] shadow-xs"
+                      : "text-stone-500 hover:text-stone-900"
+                  }`}
+                >
+                  💰 En Valeur (XOF)
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setEditingStock(null);
+                  setStockForm({
+                    sku: `STK-${Date.now().toString().slice(-4)}`,
+                    name: "",
+                    category: "VIVRES_CUISINE",
+                    propertyId: isManager && managerPropertyId ? managerPropertyId : "prop-bohicon-001",
+                    unitMeasure: "Kg",
+                    currentQuantity: 20,
+                    alertThreshold: 8,
+                    securityThreshold: 3,
+                    unitCostXof: 3500,
+                    storageLocation: "Économat Principal",
+                    supplierName: "",
+                  });
+                  setStockModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4 text-[#d4af37]" />
+                <span>+ Entrée / Nouvel Article Stock</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Kitchen Vivres Note */}
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-950 flex items-start gap-3 shadow-xs">
+            <Package className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-[11px] uppercase tracking-wider text-amber-900 block">
+                Organisation du Stock Cuisine & Restauration
+              </span>
+              <p className="text-stone-700 leading-relaxed">
+                Les repas servis en salle ne font l&apos;objet d&apos;aucun stockage direct car ils sont cuisinés minute à la commande. Ce module recense et valorise les <strong>matières premières et vivres bruts</strong> (volailles fermières, viandes de mouton, poissons frais, sacs de riz, bananes plantains, huiles, féculents et condiments) qui entrent dans leur fabrication.
+              </p>
+            </div>
+          </div>
+
+          {/* Top KPI Readouts */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
+                Valeur Totale Stock
+              </span>
+              <div className="text-2xl font-black text-stone-900 font-serif">
+                {totalStockValueXof.toLocaleString("fr-FR")} XOF
+              </div>
+              <div className="text-[10px] text-stone-400 mt-1">
+                Actif circulant valorisé au coût d&apos;achat
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-stone-200/80 shadow-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-1">
+                Articles Référencés
+              </span>
+              <div className="text-2xl font-black text-stone-900">
+                {filteredStocks.length}
+              </div>
+              <div className="text-[10px] text-stone-400 mt-1">
+                5 familles de stocks suivies
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 shadow-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block mb-1">
+                Seuil d&apos;Alerte Réappro
+              </span>
+              <div className="text-2xl font-black text-amber-800">
+                {totalStockAlertsCount}
+              </div>
+              <div className="text-[10px] text-amber-700 mt-1">
+                Commande fournisseur recommandée
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 shadow-xs">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 block mb-1">
+                Seuil de Sécurité / Rupture
+              </span>
+              <div className="text-2xl font-black text-rose-800">
+                {totalStockCriticalCount}
+              </div>
+              <div className="text-[10px] text-rose-700 mt-1 font-semibold">
+                Niveau critique exigeant livraison express
+              </div>
+            </div>
+          </div>
+
+          {/* Filters Toolbar for Stocks */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Filter 1: Établissement */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-[#184f28]" /> Établissement
+                </label>
+                <select
+                  disabled={isManager}
+                  value={stockPropertyFilter}
+                  onChange={(e) => setStockPropertyFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-[#184f28] disabled:opacity-75"
+                >
+                  <option value="ALL">Toutes les Agences (Groupe)</option>
+                  <option value="prop-bohicon-001">Hôtel Le Vignoble - Bohicon (Siège)</option>
+                  <option value="prop-abomey-002">Hôtel Le Vignoble - Abomey</option>
+                  <option value="prop-calavi-003">Hôtel Le Vignoble - Abomey-Calavi</option>
+                  <option value="prop-zogbo-004">Hôtel Le Vignoble - Zogbodomey</option>
+                </select>
+              </div>
+
+              {/* Filter 2: Famille de stock */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Boxes className="w-3.5 h-3.5 text-[#184f28]" /> Famille de Stock
+                </label>
+                <select
+                  value={stockCategoryFilter}
+                  onChange={(e) => setStockCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-[#184f28]"
+                >
+                  <option value="ALL">Toutes les Familles</option>
+                  <option value="CAVE_A_VIN">🍷 Cave à Vin & Grands Crus</option>
+                  <option value="BOISSON_BAR">🍺 Boissons Bar & Restaurant</option>
+                  <option value="VIVRES_CUISINE">🍗 Vivres & Ingrédients Cuisine</option>
+                  <option value="LINGERIE_CHAMBRE">🛏️ Lingerie, Draps & Serviettes</option>
+                  <option value="PRODUIT_ENTRETIEN">🧼 Produits d&apos;Entretien & Hygiène</option>
+                </select>
+              </div>
+
+              {/* Filter 3: Statut d'Alerte */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> État des Seuils
+                </label>
+                <select
+                  value={stockAlertFilter}
+                  onChange={(e) => setStockAlertFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-[#184f28]"
+                >
+                  <option value="ALL">Tous les Stocks</option>
+                  <option value="ALERTS_ONLY">⚠️ Stocks en Alerte & Ruptures Critiques</option>
+                </select>
+              </div>
+
+              {/* Filter 4: Recherche textuelle */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5 text-stone-500" /> Recherche Référence / Nom
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Ex: Château, Poulet, Serviette, Drap..."
+                    value={stockSearchQuery}
+                    onChange={(e) => setStockSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-[#184f28]"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stock Items Table */}
+          <div className="bg-white rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200 text-stone-500 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="p-3.5">Réf / SKU</th>
+                    <th className="p-3.5">Article & Emplacement</th>
+                    <th className="p-3.5">Famille</th>
+                    <th className="p-3.5">Établissement</th>
+                    <th className="p-3.5 text-right">
+                      {stockDisplayMode === "QUANTITY" ? "Quantité Disponible" : "Valeur Totale (XOF)"}
+                    </th>
+                    <th className="p-3.5 text-center">Seuil d&apos;Alerte</th>
+                    <th className="p-3.5 text-center">Seuil Sécurité</th>
+                    <th className="p-3.5 text-center">État Stock</th>
+                    <th className="p-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {filteredStocks.map((item) => {
+                    const isCritical = item.currentQuantity <= item.securityThreshold;
+                    const isAlert = !isCritical && item.currentQuantity <= item.alertThreshold;
+                    const totalValXof = item.currentQuantity * item.unitCostXof;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-stone-50/70 transition-colors">
+                        <td className="p-3.5 font-mono text-[11px] font-bold text-stone-600 whitespace-nowrap">
+                          {item.sku}
+                        </td>
+                        <td className="p-3.5">
+                          <div className="font-bold text-stone-900 text-xs">{item.name}</div>
+                          <div className="text-[10px] text-stone-400 mt-0.5">
+                            📍 {item.storageLocation} {item.supplierName ? `• ${item.supplierName}` : ""}
+                          </div>
+                        </td>
+                        <td className="p-3.5 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-stone-100 text-stone-700">
+                            {item.category === "CAVE_A_VIN"
+                              ? "🍷 Cave à Vin"
+                              : item.category === "BOISSON_BAR"
+                              ? "🍺 Boisson Bar"
+                              : item.category === "VIVRES_CUISINE"
+                              ? "🍗 Vivres Cuisine"
+                              : item.category === "LINGERIE_CHAMBRE"
+                              ? "🛏️ Lingerie & Chambres"
+                              : "🧼 Produits Entretien"}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-stone-600 text-xs whitespace-nowrap">
+                          {item.propertyName.replace("Hôtel Le Vignoble - ", "")}
+                        </td>
+                        <td className="p-3.5 text-right whitespace-nowrap">
+                          {stockDisplayMode === "QUANTITY" ? (
+                            <div>
+                              <span className="font-black text-sm text-stone-900">
+                                {item.currentQuantity}
+                              </span>
+                              <span className="text-[10px] text-stone-500 ml-1 font-medium">
+                                {item.unitMeasure}
+                              </span>
+                            </div>
+                          ) : (
+                            <div>
+                              <span className="font-black text-sm text-[#184f28] font-serif">
+                                {totalValXof.toLocaleString("fr-FR")} XOF
+                              </span>
+                              <div className="text-[10px] text-stone-400">
+                                ({item.currentQuantity} {item.unitMeasure} × {item.unitCostXof.toLocaleString("fr-FR")} XOF)
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-center whitespace-nowrap font-mono text-xs text-amber-700 font-semibold">
+                          {item.alertThreshold} {item.unitMeasure}
+                        </td>
+                        <td className="p-3.5 text-center whitespace-nowrap font-mono text-xs text-rose-700 font-semibold">
+                          {item.securityThreshold} {item.unitMeasure}
+                        </td>
+                        <td className="p-3.5 text-center whitespace-nowrap">
+                          {isCritical ? (
+                            <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wider border border-rose-300">
+                              🔴 Rupture Imminente
+                            </span>
+                          ) : isAlert ? (
+                            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider border border-amber-300">
+                              🟠 Alerte Réappro
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-200">
+                              🟢 Normal
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3.5 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStock(item);
+                              setStockForm(item);
+                              setStockModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-[#184f28] text-stone-700 hover:text-white text-xs font-semibold transition-colors"
+                          >
+                            Ajuster / Réappro
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 15: ROLES ET ATTRIBUTS DU PERSONNEL (GESTION DES DROITS & HABILITATIONS)
+         ========================================================================= */}
+      {currentView === "roles" && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">
+                  Gouvernance & Sécurité RBAC
+                </span>
+                <span className="text-xs text-stone-400">• Réservé au Promoteur et DAF</span>
+              </div>
+              <h2 className="text-xl font-bold text-stone-900">
+                Attribution des Rôles et Droits du Personnel ({filteredStaffRoles.length} agents)
+              </h2>
+              <p className="text-xs text-stone-500">
+                Attribuez les rôles hiérarchiques, les agences d&apos;affectation, les plafonds de remise autorisée et configurez les droits modulaires de chaque agent.
+              </p>
+            </div>
+          </div>
+
+          {/* Filters for Roles */}
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-blue-600" /> Établissement
+                </label>
+                <select
+                  disabled={isManager}
+                  value={rolePropertyFilter}
+                  onChange={(e) => setRolePropertyFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-blue-600 disabled:opacity-75"
+                >
+                  <option value="ALL">Toutes les Agences</option>
+                  <option value="prop-bohicon-001">Hôtel Le Vignoble - Bohicon</option>
+                  <option value="prop-abomey-002">Hôtel Le Vignoble - Abomey</option>
+                  <option value="prop-calavi-003">Hôtel Le Vignoble - Abomey-Calavi</option>
+                  <option value="prop-zogbo-004">Hôtel Le Vignoble - Zogbodomey</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Rôle Métier
+                </label>
+                <select
+                  value={roleCodeFilter}
+                  onChange={(e) => setRoleCodeFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 font-semibold focus:outline-none focus:border-blue-600"
+                >
+                  <option value="ALL">Tous les Rôles</option>
+                  <option value="RECEPTIONIST">Réceptionniste</option>
+                  <option value="WAITSTAFF">Serveur / Serveuse</option>
+                  <option value="BARTENDER">Barman / Sommelier</option>
+                  <option value="CHEF">Chef Cuisinier</option>
+                  <option value="HOUSEKEEPING">Housekeeping (Valet de chambre)</option>
+                  <option value="PROPERTY_MANAGER">Gérant d&apos;Établissement</option>
+                  <option value="CATERING_MANAGER">Responsable Traiteur & Matériel</option>
+                  <option value="FINANCIAL_DIRECTOR">Directeur Financier (DAF)</option>
+                  <option value="PROMOTER">Promoteur</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5 text-stone-500" /> Recherche par Nom ou Email
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Ex: Gaston, Chantal, Marc..."
+                    value={roleSearchQuery}
+                    onChange={(e) => setRoleSearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-blue-600"
+                  />
+                  <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Staff Roles Grid Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredStaffRoles.map((agent) => (
+              <div
+                key={agent.id}
+                className="bg-white rounded-3xl border border-stone-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-blue-400 transition-colors space-y-4"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-[#184f28] text-white flex items-center justify-center font-bold text-lg border border-stone-200 shrink-0 shadow-xs">
+                        {agent.fullName.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-stone-900 text-sm">{agent.fullName}</h4>
+                        <div className="text-[11px] text-stone-400">{agent.email}</div>
+                        <div className="text-[11px] font-semibold text-[#184f28] mt-0.5">
+                          📍 {agent.propertyName}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-bold uppercase tracking-wider border border-blue-200 whitespace-nowrap">
+                      {agent.roleCode}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-stone-50 border border-stone-100 text-xs space-y-2 mb-3">
+                    <div className="flex justify-between items-center pb-1.5 border-b border-stone-200/60">
+                      <span className="text-stone-500 font-medium">Fonction Officielle :</span>
+                      <strong className="text-stone-900">{agent.roleName}</strong>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-stone-500 font-medium">Plafond Remise Client :</span>
+                      <span className="font-bold text-emerald-800 font-mono">
+                        {agent.maxDiscount}% maximum
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Modular Rights Badges */}
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block mb-1.5">
+                      Attributs & Droits Accordés :
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {agent.rights.pmsReservations && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200">
+                          🏨 Chambres & PMS
+                        </span>
+                      )}
+                      {agent.rights.posOrderTaking && (
+                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 text-[10px] font-semibold border border-blue-200">
+                          🍽️ Commandes POS
+                        </span>
+                      )}
+                      {agent.rights.kitchenKds && (
+                        <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-800 text-[10px] font-semibold border border-rose-200">
+                          👨‍🍳 KDS Cuisine
+                        </span>
+                      )}
+                      {agent.rights.barKds && (
+                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200">
+                          🍸 KDS Bar
+                        </span>
+                      )}
+                      {agent.rights.cashFinance && (
+                        <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-800 text-[10px] font-semibold border border-stone-200">
+                          💰 Caisse & Folios
+                        </span>
+                      )}
+                      {agent.rights.hallBooking && (
+                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 text-[10px] font-semibold border border-purple-200">
+                          🏢 Salles & Événements
+                        </span>
+                      )}
+                      {agent.rights.equipmentCatering && (
+                        <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 text-[10px] font-semibold border border-teal-200">
+                          🚗 Matériel & Traiteur
+                        </span>
+                      )}
+                      {agent.rights.reportsTreasury && (
+                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-800 text-[10px] font-semibold border border-indigo-200">
+                          📈 Rapports & Finance
+                        </span>
+                      )}
+                      {agent.rights.stocksManage && (
+                        <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10px] font-semibold border border-amber-200">
+                          📦 Gestion des Stocks
+                        </span>
+                      )}
+                      {agent.rights.intersiteMessaging && (
+                        <span className="px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 text-[10px] font-semibold">
+                          💬 Inter-sites
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingRoleAssignment(agent);
+                      setRoleForm(agent);
+                      setRoleModalOpen(true);
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-stone-100 hover:bg-blue-600 hover:text-white text-stone-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Modifier Rôle et Attributs</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {/* MODAL CHAMBRE */}
       {roomModalOpen && (
@@ -4879,7 +6341,11 @@ function DashboardContent() {
                     type: (roomForm.type as any) || "STANDARD",
                     basePriceXof: Number(roomForm.basePriceXof) || 30000,
                     capacity: Number(roomForm.capacity) || 2,
-                    amenities: roomForm.amenities || ["Climatisation", "Wi-Fi"],
+                    bedPlaces: Number(roomForm.bedPlaces) || 2,
+                    bedConfiguration: roomForm.bedConfiguration || "1 Lit King Size (2 places)",
+                    amenities: roomForm.amenities && roomForm.amenities.length > 0
+                      ? roomForm.amenities
+                      : ["Wi-Fi Haut Débit", "Climatisation Split", "Salle de bain privative"],
                     status: (roomForm.status as any) || "DISPONIBLE",
                     imageUrl: roomForm.imageUrl || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
                   };
@@ -4939,7 +6405,7 @@ function DashboardContent() {
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Capacité (personnes)</label>
+                  <label className="block font-semibold text-stone-700 mb-1">Capacité (personnes max)</label>
                   <input
                     type="number"
                     min="1"
@@ -4948,6 +6414,40 @@ function DashboardContent() {
                     onChange={(e) => setRoomForm({ ...roomForm, capacity: Number(e.target.value) })}
                     className="w-full px-3 py-2 border rounded-xl"
                   />
+                </div>
+              </div>
+
+              {/* Bed places & Bed configuration */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1 flex items-center gap-1">
+                    <Bed className="w-3.5 h-3.5 text-[#184f28]" /> Places de Lit
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="8"
+                    required
+                    value={roomForm.bedPlaces ?? 2}
+                    onChange={(e) => setRoomForm({ ...roomForm, bedPlaces: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Configuration Literie</label>
+                  <select
+                    value={roomForm.bedConfiguration || "1 Lit King Size (2 places)"}
+                    onChange={(e) => setRoomForm({ ...roomForm, bedConfiguration: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="1 Lit King Size (2 places)">1 Lit King Size (2 places)</option>
+                    <option value="1 Lit Queen Size (2 places)">1 Lit Queen Size (2 places)</option>
+                    <option value="1 Lit Double Confort (2 places)">1 Lit Double Confort (2 places)</option>
+                    <option value="2 Lits simples séparés (2 places)">2 Lits simples séparés (2 places)</option>
+                    <option value="1 Lit King Size + 1 Lit d'appoint (3 places)">1 Lit King Size + 1 Lit d'appoint (3 places)</option>
+                    <option value="Suite Familiale 2 Grands Lits (4 places)">Suite Familiale 2 Grands Lits (4 places)</option>
+                    <option value="Pavillon 2 Chambres - 4 places">Pavillon 2 Chambres - 4 places</option>
+                  </select>
                 </div>
               </div>
 
@@ -4978,6 +6478,46 @@ function DashboardContent() {
                     <option value="NETTOYAGE">🟣 En Nettoyage</option>
                     <option value="MAINTENANCE">⚪ En Maintenance</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Checkboxes for all amenities */}
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1.5 flex items-center justify-between">
+                  <span>Commodités & Équipements Inclus (À cocher)</span>
+                  <span className="text-[10px] text-stone-400 font-normal">
+                    {(roomForm.amenities || []).length} cochée(s)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-stone-50 rounded-2xl border border-stone-200/80 max-h-44 overflow-y-auto">
+                  {ALL_AMENITY_OPTIONS.map((amenity) => {
+                    const isChecked = (roomForm.amenities || []).includes(amenity);
+                    return (
+                      <label
+                        key={amenity}
+                        className={`flex items-center gap-2 p-2 rounded-xl text-xs cursor-pointer border transition-all ${
+                          isChecked
+                            ? "bg-white border-[#184f28] text-stone-900 shadow-xs font-semibold"
+                            : "bg-white/60 border-stone-200/60 text-stone-600 hover:bg-white"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const current = roomForm.amenities || [];
+                            if (current.includes(amenity)) {
+                              setRoomForm({ ...roomForm, amenities: current.filter((a) => a !== amenity) });
+                            } else {
+                              setRoomForm({ ...roomForm, amenities: [...current, amenity] });
+                            }
+                          }}
+                          className="rounded text-[#184f28] focus:ring-[#184f28]"
+                        />
+                        <span className="truncate">{amenity}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -6621,6 +8161,407 @@ function DashboardContent() {
                   className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 font-semibold text-white shadow-md"
                 >
                   Enregistrer l&apos;Avis & Notifier
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GESTION DES STOCKS MULTI-SITES (PROMOTEUR & GÉRANT) */}
+      {stockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <h3 className="text-lg font-bold text-stone-900">
+                {editingStock ? "Ajuster / Réapprovisionner Stock" : "Nouvel Article de Stock Multi-Sites"}
+              </h3>
+              <button onClick={() => setStockModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === stockForm.propertyId) || SEED_PROPERTIES[0];
+                if (editingStock) {
+                  setStocks((prev) =>
+                    prev.map((s) =>
+                      s.id === editingStock.id
+                        ? ({ ...s, ...stockForm, propertyName: prop.name } as StockItemRecord)
+                        : s
+                    )
+                  );
+                } else {
+                  const newStock: StockItemRecord = {
+                    id: `stk-${Date.now()}`,
+                    sku: stockForm.sku || `STK-${Date.now().toString().slice(-4)}`,
+                    name: stockForm.name || "Nouvel Article Stock",
+                    category: (stockForm.category as any) || "VIVRES_CUISINE",
+                    propertyId: prop.id,
+                    propertyName: prop.name,
+                    unitMeasure: stockForm.unitMeasure || "Kg",
+                    currentQuantity: Number(stockForm.currentQuantity) || 10,
+                    alertThreshold: Number(stockForm.alertThreshold) || 5,
+                    securityThreshold: Number(stockForm.securityThreshold) || 2,
+                    unitCostXof: Number(stockForm.unitCostXof) || 5000,
+                    storageLocation: stockForm.storageLocation || "Économat Principal",
+                    supplierName: stockForm.supplierName || "Fournisseur Agréé",
+                  };
+                  setStocks((prev) => [newStock, ...prev]);
+                }
+                setStockModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Code SKU / Référence</label>
+                  <input
+                    type="text"
+                    required
+                    value={stockForm.sku}
+                    onChange={(e) => setStockForm({ ...stockForm, sku: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl font-mono uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Établissement / Site</label>
+                  <select
+                    disabled={isManager}
+                    value={stockForm.propertyId}
+                    onChange={(e) => setStockForm({ ...stockForm, propertyId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white disabled:opacity-75"
+                  >
+                    {SEED_PROPERTIES.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Désignation de l&apos;Article</label>
+                <input
+                  type="text"
+                  required
+                  value={stockForm.name}
+                  onChange={(e) => setStockForm({ ...stockForm, name: e.target.value })}
+                  placeholder="Ex: Riz Parfumé Long Grain 25kg, Serviettes Éponge Blanches..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Catégorie de Stock</label>
+                  <select
+                    value={stockForm.category}
+                    onChange={(e) => setStockForm({ ...stockForm, category: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="CAVE_A_VIN">🍷 Cave à Vin & Crus</option>
+                    <option value="BOISSON_BAR">🍹 Boissons Bar & Restaurant</option>
+                    <option value="VIVRES_CUISINE">🍗 Vivres & Denrées Cuisine</option>
+                    <option value="LINGERIE_CHAMBRE">🛏️ Lingerie & Matériel Chambres</option>
+                    <option value="PRODUIT_ENTRETIEN">🧼 Produits d&apos;Entretien & Hygiène</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Unité de Mesure</label>
+                  <select
+                    value={stockForm.unitMeasure}
+                    onChange={(e) => setStockForm({ ...stockForm, unitMeasure: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    <option value="Kg">Kg (Kilogrammes)</option>
+                    <option value="Bouteilles">Bouteilles</option>
+                    <option value="Cartons">Cartons</option>
+                    <option value="Sacs 25kg">Sacs 25kg</option>
+                    <option value="Litres">Litres / Bidons</option>
+                    <option value="Pièces">Pièces / Unités</option>
+                    <option value="Rouleaux">Rouleaux</option>
+                    <option value="Lots">Lots</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Quantité Actuelle</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    required
+                    value={stockForm.currentQuantity}
+                    onChange={(e) => setStockForm({ ...stockForm, currentQuantity: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl font-bold text-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-amber-700 mb-1">Seuil Alerte 🟠</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    required
+                    value={stockForm.alertThreshold}
+                    onChange={(e) => setStockForm({ ...stockForm, alertThreshold: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-amber-50/50 font-bold text-amber-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-rose-700 mb-1">Seuil Sécurité 🔴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    required
+                    value={stockForm.securityThreshold}
+                    onChange={(e) => setStockForm({ ...stockForm, securityThreshold: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-rose-300 rounded-xl bg-rose-50/50 font-bold text-rose-800"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Coût Unitaire (XOF)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={stockForm.unitCostXof}
+                    onChange={(e) => setStockForm({ ...stockForm, unitCostXof: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border rounded-xl font-bold text-[#184f28]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Lieu de Stockage</label>
+                  <input
+                    type="text"
+                    value={stockForm.storageLocation}
+                    onChange={(e) => setStockForm({ ...stockForm, storageLocation: e.target.value })}
+                    placeholder="Ex: Économat Principal, Cave..."
+                    className="w-full px-3 py-2 border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">Fournisseur Référencé (Optionnel)</label>
+                <input
+                  type="text"
+                  value={stockForm.supplierName || ""}
+                  onChange={(e) => setStockForm({ ...stockForm, supplierName: e.target.value })}
+                  placeholder="Ex: Ferme Avicole du Zou, Brasserie Sobebra..."
+                  className="w-full px-3 py-2 border rounded-xl"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setStockModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] font-semibold text-white shadow-md"
+                >
+                  {editingStock ? "Mettre à jour le Stock" : "Enregistrer l'Article"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL ATTRIBUTION DES RÔLES ET ATTRIBUTS DU PERSONNEL */}
+      {roleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-stone-100 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-stone-900">
+                  Modifier Rôle et Habilitations
+                </h3>
+                <p className="text-xs text-stone-500">
+                  {roleForm.fullName} ({roleForm.email})
+                </p>
+              </div>
+              <button onClick={() => setRoleModalOpen(false)} className="text-stone-400 hover:text-stone-700 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const prop = SEED_PROPERTIES.find((p) => p.id === roleForm.propertyId) || SEED_PROPERTIES[0];
+                if (editingRoleAssignment) {
+                  setStaffRoleAssignments((prev) =>
+                    prev.map((a) =>
+                      a.id === editingRoleAssignment.id
+                        ? ({
+                            ...a,
+                            ...roleForm,
+                            propertyName: prop.name,
+                          } as StaffRoleRecord)
+                        : a
+                    )
+                  );
+                }
+                setRoleModalOpen(false);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Poste & Rôle Attribué</label>
+                  <select
+                    value={roleForm.roleCode}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      let roleName = "Collaborateur";
+                      if (code === "PROMOTER") roleName = "Promoteur";
+                      else if (code === "FINANCIAL_DIRECTOR") roleName = "Directeur Administratif & Financier (DAF)";
+                      else if (code === "PROPERTY_MANAGER") roleName = "Gérant d'Agence";
+                      else if (code === "RECEPTIONIST") roleName = "Chef de Réception";
+                      else if (code === "WAITSTAFF") roleName = "Serveur(se) Restaurant & Bar";
+                      else if (code === "BARMAN") roleName = "Barman / Chef Bar";
+                      else if (code === "CHEF_CUISINE") roleName = "Chef de Cuisine";
+                      else if (code === "HOUSEKEEPING") roleName = "Gouvernante / Valet";
+                      else if (code === "DRIVER_LOGISTICS") roleName = "Chauffeur & Logistique";
+
+                      setRoleForm({
+                        ...roleForm,
+                        roleCode: code,
+                        roleName,
+                      });
+                    }}
+                    className="w-full px-3 py-2 border rounded-xl bg-white font-semibold"
+                  >
+                    <option value="PROMOTER">Promoteur (Groupe)</option>
+                    <option value="FINANCIAL_DIRECTOR">DAF (Finance & Audit)</option>
+                    <option value="PROPERTY_MANAGER">Gérant d&apos;Agence</option>
+                    <option value="RECEPTIONIST">Réceptionniste</option>
+                    <option value="WAITSTAFF">Serveur(se) Restaurant & Bar</option>
+                    <option value="BARMAN">Barman / Caviste</option>
+                    <option value="CHEF_CUISINE">Chef de Cuisine</option>
+                    <option value="HOUSEKEEPING">Gouvernante / Étage</option>
+                    <option value="DRIVER_LOGISTICS">Chauffeur / Navette VIP</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-stone-700 mb-1">Établissement d&apos;Affectation</label>
+                  <select
+                    value={roleForm.propertyId}
+                    onChange={(e) => setRoleForm({ ...roleForm, propertyId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-xl bg-white"
+                  >
+                    {SEED_PROPERTIES.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-1">
+                  Plafond de Remise Commerciale Autorisée (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={roleForm.maxDiscount ?? 0}
+                  onChange={(e) => setRoleForm({ ...roleForm, maxDiscount: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border rounded-xl font-bold text-stone-800"
+                />
+                <p className="text-[10px] text-stone-400 mt-0.5">
+                  Remise maximale accordée sur factures sans visa obligatoire de la direction.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-stone-700 mb-2">
+                  Habilitations & Accès Modulaires
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-3 bg-stone-50 rounded-2xl border border-stone-200/80">
+                  {[
+                    { key: "pmsReservations", label: "PMS Chambres & Planning" },
+                    { key: "posOrderTaking", label: "Prise de Commandes POS" },
+                    { key: "kitchenKds", label: "Écran KDS Cuisine" },
+                    { key: "barKds", label: "Écran KDS Bar" },
+                    { key: "cashFinance", label: "Encaissements & Caisse" },
+                    { key: "hallBooking", label: "Salles Conférences & Fêtes" },
+                    { key: "equipmentCatering", label: "Matériel & Traiteur" },
+                    { key: "reportsTreasury", label: "Rapports & Audit Trésorerie" },
+                    { key: "stocksManage", label: "Gestion des Stocks Multi-sites" },
+                    { key: "intersiteMessaging", label: "Messagerie Inter-agences" },
+                  ].map(({ key, label }) => {
+                    const currentRights = roleForm.rights || {
+                      pmsReservations: false,
+                      posOrderTaking: false,
+                      kitchenKds: false,
+                      barKds: false,
+                      cashFinance: false,
+                      hallBooking: false,
+                      equipmentCatering: false,
+                      reportsTreasury: false,
+                      intersiteMessaging: false,
+                      stocksManage: false,
+                    };
+                    const isChecked = !!(currentRights as any)[key];
+                    return (
+                      <label
+                        key={key}
+                        className={`flex items-center gap-2 p-2 rounded-xl cursor-pointer border transition-all ${
+                          isChecked
+                            ? "bg-white border-blue-500 text-stone-900 shadow-xs font-semibold"
+                            : "bg-white/60 border-stone-200/60 text-stone-500 hover:bg-white"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setRoleForm({
+                              ...roleForm,
+                              rights: {
+                                ...currentRights,
+                                [key]: !isChecked,
+                              },
+                            });
+                          }}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="truncate">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setRoleModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 font-semibold text-stone-700"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-white shadow-md"
+                >
+                  Enregistrer les Habilitations
                 </button>
               </div>
             </form>

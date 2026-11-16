@@ -35,6 +35,8 @@ interface AvailableItem {
   code: string;
   capacity: number;
   capacityLabel: string;
+  bedPlaces?: number;
+  bedConfiguration?: string;
   basePriceXof: number;
   pricePeriodLabel: string;
   description: string;
@@ -51,7 +53,9 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       name: "Chambre Standard Confort",
       code: "STD",
       capacity: 2,
-      capacityLabel: "2 personnes (Lit Queen Size)",
+      capacityLabel: "2 personnes (1 Lit Queen Size)",
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit Queen Size (2 places)",
       basePriceXof: 25000,
       pricePeriodLabel: "par nuitée",
       description:
@@ -59,7 +63,13 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       imageUrl:
         "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80",
       badge: "Gamme Confort",
-      amenities: ["Wi-Fi Fibre Dédié", "Climatisation Split", "Smart TV HD", "Bureau de Travail"],
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Eau chaude solaire",
+      ],
     },
     {
       id: "rm-sup",
@@ -68,6 +78,8 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       code: "SUP",
       capacity: 2,
       capacityLabel: "2 personnes (Balcon Privatif)",
+      bedPlaces: 2,
+      bedConfiguration: "1 Lit King Size (2 places)",
       basePriceXof: 38000,
       pricePeriodLabel: "par nuitée",
       description:
@@ -75,7 +87,14 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       imageUrl:
         "https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&w=1200&q=80",
       badge: "Vue Jardin & Balcon",
-      amenities: ["Balcon Aménagé", "Mini-bar Inclus", "Canal+ & Netflix", "Room Service 24/7"],
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Balcon privatif vue jardin",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Mini-bar réfrigéré",
+        "Room-service 24h/24",
+      ],
     },
     {
       id: "rm-ste",
@@ -84,6 +103,8 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       code: "STE",
       capacity: 3,
       capacityLabel: "3 personnes (Salon VIP & Baignoire Balnéo)",
+      bedPlaces: 3,
+      bedConfiguration: "1 Lit King Size + 1 Lit d'appoint (3 places)",
       basePriceXof: 65000,
       pricePeriodLabel: "par nuitée",
       description:
@@ -91,7 +112,16 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       imageUrl:
         "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1200&q=80",
       badge: "Prestige Impérial",
-      amenities: ["Salon Séparé VIP", "Baignoire Balnéo", "Bouteille Offerte", "Majordome Dédié"],
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Chaînes Câblées (Canal+ & Satellite)",
+        "Salle de bain privative",
+        "Mini-bar réfrigéré",
+        "Coffre-fort électronique",
+        "Petit-déjeuner inclus",
+        "Room-service 24h/24",
+      ],
     },
     {
       id: "rm-pav",
@@ -100,6 +130,8 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       code: "PAV",
       capacity: 4,
       capacityLabel: "4 personnes (2 Chambres & Terrasse)",
+      bedPlaces: 4,
+      bedConfiguration: "Pavillon 2 Chambres - 4 places",
       basePriceXof: 95000,
       pricePeriodLabel: "par nuitée",
       description:
@@ -107,7 +139,15 @@ const EXTENDED_ITEMS: Record<BookingCategory, AvailableItem[]> = {
       imageUrl:
         "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
       badge: "Exclusivité Domaine",
-      amenities: ["2 Chambres Doubles", "Terrasse Privative", "Kitchenette Aménagée", "Parking VIP Dédié"],
+      amenities: [
+        "Wi-Fi Haut Débit",
+        "Climatisation Split",
+        "Salle de bain privative",
+        "Balcon privatif vue jardin",
+        "Mini-bar réfrigéré",
+        "Petit-déjeuner inclus",
+        "Room-service 24h/24",
+      ],
     },
   ],
   RESTAURANT: [
@@ -672,17 +712,30 @@ export function BookingEngine() {
                         {item.description}
                       </p>
 
-                      <div className="mt-3 flex items-center gap-2 text-xs text-[#d9a844] font-medium">
-                        <Users className="w-3.5 h-3.5" />
-                        <span>Capacité : {item.capacityLabel}</span>
-                      </div>
+                      {bookingType === "CHAMBRE" ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-[#d9a844] font-medium">
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-800">
+                            <Bed className="w-3.5 h-3.5 text-[#d9a844]" />
+                            <span>{item.bedConfiguration || item.capacityLabel}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900 border border-stone-800">
+                            <Users className="w-3.5 h-3.5 text-[#d9a844]" />
+                            <span>Capacité max : {item.capacity} pers.</span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-[#d9a844] font-medium">
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Capacité : {item.capacityLabel}</span>
+                        </div>
+                      )}
 
                       {/* Amenities Pills */}
                       <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-stone-800/80">
                         {item.amenities.map((am, idx) => (
                           <span
                             key={idx}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-900 border border-stone-800 text-[11px] text-stone-300 font-medium"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-900 border border-stone-800 text-[11px] text-stone-200 font-medium"
                           >
                             <Check className="w-3 h-3 text-[#d9a844]" />
                             <span>{am}</span>

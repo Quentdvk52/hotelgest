@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SEED_PROPERTIES, SEED_USERS } from "@/lib/db/seed";
@@ -39,6 +39,9 @@ import {
   Star,
   Eye,
   EyeOff,
+  Boxes,
+  Upload,
+  Layers,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -95,7 +98,15 @@ function SidebarNavContent({
       badgeColor: "bg-stone-800 text-stone-300",
     },
     {
-      label: "Cave à Vin & Stocks",
+      label: "Stocks Multi-Sites",
+      href: "/dashboard?view=stocks",
+      view: "stocks",
+      icon: Boxes,
+      badge: "Global",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Cave à Vin & Boutique",
       href: "/dashboard?view=cave",
       view: "cave",
       icon: Wine,
@@ -149,6 +160,14 @@ function SidebarNavContent({
       icon: ArrowLeftRight,
       badge: "DAF/Promoteur",
       badgeColor: "bg-rose-500/20 text-rose-300 border border-rose-500/30",
+    },
+    {
+      label: "Rôles et Attributs",
+      href: "/dashboard?view=roles",
+      view: "roles",
+      icon: ShieldCheck,
+      badge: "Droits",
+      badgeColor: "bg-blue-500/20 text-blue-300 border border-blue-500/30",
     },
     {
       label: "Notation du personnel",
@@ -518,6 +537,7 @@ export default function WorkspaceLayout({
 
   // Profile Modal state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -895,8 +915,8 @@ export default function WorkspaceLayout({
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
               {/* Avatar Section */}
-              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-[#184f28] text-white flex items-center justify-center font-bold text-xl overflow-hidden shrink-0 shadow-md">
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/80 flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-20 h-20 rounded-2xl bg-[#184f28] text-white flex items-center justify-center font-bold text-2xl overflow-hidden shrink-0 shadow-md border-2 border-white">
                   {profileForm.avatarUrl ? (
                     <img
                       src={profileForm.avatarUrl}
@@ -907,21 +927,70 @@ export default function WorkspaceLayout({
                     activeUser.fullName.charAt(0)
                   )}
                 </div>
-                <div className="flex-1 space-y-1.5">
-                  <label className="block font-semibold text-stone-700 text-xs">
-                    Photo / Lien de l'Avatar
-                  </label>
+
+                <div className="flex-1 space-y-2 w-full">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-semibold text-stone-700 text-xs">
+                      Photo de Profil / Avatar
+                    </label>
+                    {profileForm.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, avatarUrl: "" })}
+                        className="text-[10px] text-red-600 hover:underline font-semibold"
+                      >
+                        Retirer la photo
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Hidden native file input for camera & file picker */}
                   <input
-                    type="url"
-                    value={profileForm.avatarUrl}
-                    onChange={(e) =>
-                      setProfileForm({ ...profileForm, avatarUrl: e.target.value })
-                    }
-                    placeholder="https://images.unsplash.com/... ou URL d'image"
-                    className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-[#184f28]"
+                    type="file"
+                    ref={avatarFileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          setProfileErrorMsg("L'image dépasse 5 Mo. Veuillez choisir une photo plus légère.");
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const base64 = event.target?.result as string;
+                          setProfileForm((prev) => ({ ...prev, avatarUrl: base64 }));
+                          setProfileSuccessMsg("Photo chargée depuis votre appareil ! Cliquez sur 'Enregistrer mon profil' pour l'appliquer.");
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                   />
+
+                  {/* Upload button for mobile & computer */}
+                  <button
+                    type="button"
+                    onClick={() => avatarFileInputRef.current?.click()}
+                    className="w-full py-2 px-3 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-[#184f28]" />
+                    <span>Téléverser depuis mon téléphone ou ordinateur</span>
+                  </button>
+
+                  <div className="relative">
+                    <input
+                      type="url"
+                      value={profileForm.avatarUrl.startsWith("data:image") ? "[Photo chargée depuis votre appareil]" : profileForm.avatarUrl}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, avatarUrl: e.target.value })
+                      }
+                      placeholder="Ou collez une URL d'image (ex: https://...)"
+                      className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-[11px] text-stone-600 focus:outline-none focus:border-[#184f28]"
+                    />
+                  </div>
                   <span className="text-[10px] text-stone-400 block">
-                    Personnalisez votre photo de profil pour les échanges internes et l'en-tête.
+                    Prenez une photo en direct avec votre smartphone ou importez une image depuis votre ordinateur.
                   </span>
                 </div>
               </div>
