@@ -74,12 +74,13 @@ describe("Universal Print Drivers & ESC/POS Generation", () => {
 
   it("generates valid ESC/POS byte sequence with cutter and cash drawer commands", () => {
     const bytes = generateEscPosReceipt({
+      title: "FACTURE NORMALISÉE",
       ifu: "0201910839213",
       nim: "MCF-BOH-0201-01",
       uid: "FV-0839213-20261116-A1B2C3",
       items: [
-        { name: "Chambre 101", qty: 1, lineTotal: 45000 },
-        { name: "Vin Rouge St-Emilion", qty: 1, lineTotal: 35000 },
+        { name: "Chambre 101", qty: 1, price: 45000, lineTotal: 45000 },
+        { name: "Vin Rouge St-Emilion", qty: 1, price: 35000, lineTotal: 35000 },
       ],
       totalTtc: 80000,
       qrCodeUrl: "https://facture.dgi.bj/v?test=1",

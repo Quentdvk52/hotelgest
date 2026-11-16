@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { SEED_ORGANIZATION, SEED_PROPERTIES } from "@/lib/db/seed";
-import { MapPin, Phone, Mail, Shield, Lock, Sparkles, ArrowRight } from "lucide-react";
+import { MapPin, Phone, Mail, Shield, Lock, Sparkles, ArrowRight, Cookie, FileText } from "lucide-react";
+import { openCookiePreferencesModal } from "@/components/legal/cookie-consent-banner";
 
 export function LuxuryFooter() {
   return (
@@ -147,17 +148,35 @@ export function LuxuryFooter() {
           </div>
         </div>
 
-        {/* Lower Bar: Copyright, Legal & Discretion */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-4">
-          <p>© {new Date().getFullYear()} Groupe Hôtelier Le Vignoble. Tous droits réservés.</p>
-          <div className="flex items-center gap-6">
-            <span className="hover:text-white cursor-pointer">Mentions Légales</span>
-            <span className="hover:text-white cursor-pointer">Politique de Confidentialité</span>
-            <span className="hover:text-white cursor-pointer">Conditions Générales de Séjour</span>
-            <Link href="/staff/login" className="text-stone-300 hover:text-[#d4af37] transition-colors">
+        {/* Lower Bar: Copyright, Legal & Cookie Preference Center */}
+        <div className="pt-8 flex flex-col lg:flex-row items-center justify-between text-xs text-stone-400 gap-4">
+          <p>© {new Date().getFullYear()} Groupe Hôtelier Le Vignoble (Bénin). Tous droits réservés.</p>
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 justify-center">
+            <Link href="/legal/mentions-legales" className="hover:text-white transition-colors">
+              Mentions Légales
+            </Link>
+            <Link href="/legal/politique-confidentialite" className="hover:text-white transition-colors">
+              Politique de Confidentialité
+            </Link>
+            <Link href="/legal/conditions-generales-sejour" className="hover:text-white transition-colors">
+              CGV & Séjour
+            </Link>
+            <Link href="/legal" className="text-stone-300 hover:text-[#d4af37] transition-colors flex items-center gap-1 font-medium">
+              <FileText className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Documents Légaux</span>
+            </Link>
+            <button
+              type="button"
+              onClick={openCookiePreferencesModal}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-[#d4af37] border border-stone-800 transition-colors"
+            >
+              <Cookie className="w-3 h-3 text-[#d4af37]" />
+              <span>Gérer les cookies</span>
+            </button>
+            <Link href="/staff/login" className="text-stone-400 hover:text-white transition-colors">
               Espace Staff
             </Link>
-            <Link href="/creator/login" className="text-stone-400 hover:text-blue-400 transition-colors">
+            <Link href="/creator/login" className="text-stone-500 hover:text-blue-400 transition-colors">
               Créateur Logiciel
             </Link>
           </div>

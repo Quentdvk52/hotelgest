@@ -58,6 +58,7 @@ import {
   SEED_PROPERTIES,
   SEED_USERS,
 } from "@/lib/db/seed";
+import { PromoterLegalManager } from "@/components/legal/promoter-legal-manager";
 
 // Types
 export interface OrderRecord {
@@ -6437,6 +6438,11 @@ function DashboardContent() {
         </div>
       )}
 
+
+      {/* VIEW 17: DOCUMENTS LÉGAUX & COOKIES */}
+      {currentView === "legal" && (
+        <PromoterLegalManager activeUser={activeUser} />
+      )}
 
       {/* MODAL CHAMBRE */}
       {roomModalOpen && (

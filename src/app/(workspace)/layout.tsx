@@ -42,6 +42,8 @@ import {
   Boxes,
   Upload,
   Layers,
+  Scale,
+  FileText,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -190,6 +192,14 @@ function SidebarNavContent({
       href: "/dashboard?view=tresorerie",
       view: "tresorerie",
       icon: Wallet,
+    },
+    {
+      label: "Documents Légaux",
+      href: "/dashboard?view=legal",
+      view: "legal",
+      icon: Scale,
+      badge: "Conformité",
+      badgeColor: "bg-amber-500/20 text-amber-300 border border-amber-500/30",
     },
     {
       label: "Abonnement Logiciel",
