@@ -10,6 +10,7 @@ import { DiningSection } from "@/components/marketing/dining-section";
 import { EventsKestrelCarousel } from "@/components/marketing/events-kestrel-carousel";
 import { VehicleRentalSection } from "@/components/marketing/vehicle-rental-section";
 import { EventsEquipmentSection } from "@/components/marketing/events-equipment-section";
+import { CateringAndMcSection } from "@/components/marketing/catering-mc-section";
 import { DirectBookingPerks } from "@/components/marketing/direct-booking-perks";
 import { PracticalInfoSection } from "@/components/marketing/practical-info-section";
 import { LuxuryFooter } from "@/components/marketing/luxury-footer";
@@ -102,6 +103,9 @@ export default function LuxuryHomePage() {
 
         {/* 8. Section: Salles de Réception & Matériel Événementiel */}
         <EventsEquipmentSection />
+
+        {/* 8b. Section: Service Traiteur et Maître de Cérémonies */}
+        <CateringAndMcSection />
 
         {/* 9. Section: Avantages de Réserver en Direct */}
         <DirectBookingPerks />

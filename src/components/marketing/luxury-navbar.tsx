@@ -56,9 +56,9 @@ export function LuxuryNavbar() {
 
   const servicesMegaMenu = [
     {
-      title: "Hébergements & Suites de Prestige",
-      tagline: "Standard Confort, Supérieure & Suite Royale",
-      description: "Suites climatisées de 24m² à 60m², literie king size, baignoire balnéo et vue jardin.",
+      title: "Hébergement",
+      tagline: "Suites Royales & Chambres de Prestige",
+      description: "Standard Confort, Supérieure vue jardin, Suite Royale & Pavillons indépendants au sein de nos 4 domaines.",
       price: "Dès 25 000 XOF / nuit",
       imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80",
       href: "/#hebergements",
@@ -66,9 +66,9 @@ export function LuxuryNavbar() {
       badge: "Hôtel 4 Étoiles",
     },
     {
-      title: "Haute Gastronomie & Bar Lounge",
-      tagline: "Saveurs d'Abomey & Cuisine Internationale",
-      description: "Amiwo au poulet bicyclette, sauce crincrin au mouton, carte QR et cocktails signatures.",
+      title: "Restaurant",
+      tagline: "Haute Gastronomie & Carte du Terroir",
+      description: "Amiwo au poulet bicyclette, sauce crincrin au mouton, carte QR en salle et salons privés VIP.",
       price: "Dès 4 500 XOF le plat",
       imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
       href: "/#restaurant",
@@ -76,44 +76,35 @@ export function LuxuryNavbar() {
       badge: "Cuisine Terroir",
     },
     {
-      title: "Cave à Vin & Champagnes",
-      tagline: "Boutique en Ligne & Grands Crus de Garde",
-      description: "Moët & Chandon, Veuve Clicquot, Châteauneuf-du-Pape, rhums vieux et boissons locales.",
+      title: "Service traiteur",
+      tagline: "Banquets & Maître de Cérémonies (MC)",
+      description: "Buffets prestigieux, dîners de gala et animation protocolaire d'éloquence pour mariages et réceptions officielles.",
+      price: "Dès 12 500 XOF / convive",
+      imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=600&q=80",
+      href: "/#traiteur-mc",
+      icon: <PartyPopper className="w-4 h-4 text-[#d4af37]" />,
+      badge: "Clé en Main",
+    },
+    {
+      title: "Location",
+      tagline: "Salles, Voitures, Dish, Couverts, Tables, Chaises, Bâches",
+      description: "Salles de fête & réunion, berlines VIP avec chauffeur, réchauds/dish, couverts dorés, tables, chaises Napoléon et hangars/bâches 50m² à 200m².",
+      price: "Dès 500 XOF / article / jour",
+      imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80",
+      href: "/#location",
+      icon: <Car className="w-4 h-4 text-[#d4af37]" />,
+      badge: "Stock Immédiat",
+      subItems: ["Salles", "Voitures", "Dish (Chafing)", "Couverts", "Tables", "Chaises", "Hangars & Bâches"],
+    },
+    {
+      title: "Cave à vin",
+      tagline: "Boutique en Ligne des Grands Crus",
+      description: "Boutique pour les vins de garde, champagnes, spiritueux et boissons avec panier en ligne et paiement.",
       price: "Dès 3 500 XOF la bouteille",
       imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80",
       href: "/cave-a-vin",
       icon: <Wine className="w-4 h-4 text-[#d4af37]" />,
       badge: "Boutique Officielle",
-    },
-    {
-      title: "Service Traiteur & Banquets",
-      tagline: "Buffets Prestigieux & Réceptions Clé en Main",
-      description: "Buffets béninois complets, cocktails dînatoires et brigade de maîtres d'hôtel en tenue.",
-      price: "Dès 8 500 XOF / convive",
-      imageUrl: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=600&q=80",
-      href: "/catering-equipment",
-      icon: <PartyPopper className="w-4 h-4 text-[#d4af37]" />,
-      badge: "Sur-Mesure",
-    },
-    {
-      title: "Location de Matériel Événementiel",
-      tagline: "Chaises Napoléon, Tables Rondes & Bâches 50m²",
-      description: "Mobilier VIP blanc, couverts dorés prestige, chafing dishes et livraison sur site.",
-      price: "Dès 500 XOF / article / jour",
-      imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80",
-      href: "/catering-equipment",
-      icon: <Sparkles className="w-4 h-4 text-[#d4af37]" />,
-      badge: "Stock Immédiat",
-    },
-    {
-      title: "Flotte de Véhicules VIP avec Chauffeur",
-      tagline: "Navettes Aéroport Cotonou & Excursions",
-      description: "Berlines de luxe climatisées et SUV 4x4 tout-terrain avec chauffeurs bilingues formés.",
-      price: "Dès 45 000 XOF le transfert",
-      imageUrl: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80",
-      href: "/#location",
-      icon: <Car className="w-4 h-4 text-[#d4af37]" />,
-      badge: "Service 24/7",
     },
   ];
 
@@ -244,6 +235,18 @@ export function LuxuryNavbar() {
                               <p className="text-[11px] text-stone-400 font-light mt-1 line-clamp-2 leading-relaxed">
                                 {service.description}
                               </p>
+                              {(service as any).subItems && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {(service as any).subItems.map((sub: string, sIdx: number) => (
+                                    <span
+                                      key={sIdx}
+                                      className="px-1.5 py-0.5 rounded bg-stone-800 text-[9px] font-medium text-[#d4af37] border border-stone-700/60"
+                                    >
+                                      {sub}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                             <div className="pt-2 mt-2 border-t border-stone-800/80 flex items-center justify-between text-[11px]">
                               <span className="font-bold text-[#d4af37]">{service.price}</span>

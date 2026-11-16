@@ -20,10 +20,15 @@ import {
   ShieldCheck,
   Award,
   Filter,
+  Plus,
+  Minus,
+  Trash2,
+  CreditCard,
+  Check,
 } from "lucide-react";
 import { KkiapayButton } from "@/components/payments/kkiapay-button";
 
-interface WineItem {
+export interface WineItem {
   id: string;
   name: string;
   category: "ROUGE" | "CHAMPAGNE" | "BLANC_ROSE" | "SPIRITUEUX" | "BOISSON_TERROIR";
@@ -37,6 +42,11 @@ interface WineItem {
   priceXof: number;
   imageUrl: string;
   badge?: string;
+}
+
+export interface CartItem {
+  wine: WineItem;
+  quantity: number;
 }
 
 const WINE_CATALOG: WineItem[] = [
@@ -240,33 +250,130 @@ const WINE_CATALOG: WineItem[] = [
 
 export default function CaveAVinPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [selectedWineForOrder, setSelectedWineForOrder] = useState<WineItem | null>(null);
-  const [orderQuantity, setOrderQuantity] = useState<number>(1);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState<boolean>(false);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Checkout form states
   const [selectedSite, setSelectedSite] = useState<string>(SEED_PROPERTIES[0].name);
   const [serviceOption, setServiceOption] = useState<string>("RESTAURANT");
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [roomOrTableNumber, setRoomOrTableNumber] = useState<string>("");
   const [orderSuccess, setOrderSuccess] = useState<boolean>(false);
+  const [lastOrderRef, setLastOrderRef] = useState<string>("");
 
   const filteredWines =
     selectedCategory === "ALL"
       ? WINE_CATALOG
       : WINE_CATALOG.filter((w) => w.category === selectedCategory);
 
-  const handleOpenOrder = (wine: WineItem) => {
-    setSelectedWineForOrder(wine);
-    setOrderQuantity(1);
-    setOrderSuccess(false);
+  const totalBottles = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPriceXof = cart.reduce((sum, item) => sum + item.wine.priceXof * item.quantity, 0);
+
+  const getQuantity = (id: string) => quantities[id] || 1;
+
+  const handleSetQuantity = (id: string, delta: number) => {
+    setQuantities((prev) => {
+      const current = prev[id] || 1;
+      const next = Math.max(1, current + delta);
+      return { ...prev, [id]: next };
+    });
   };
 
-  const handleSubmitWineOrder = (e: React.FormEvent) => {
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  const addToCart = (wine: WineItem, qty: number = 1) => {
+    setCart((prev) => {
+      const existingIndex = prev.findIndex((item) => item.wine.id === wine.id);
+      if (existingIndex > -1) {
+        const next = [...prev];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          quantity: next[existingIndex].quantity + qty,
+        };
+        return next;
+      } else {
+        return [...prev, { wine, quantity: qty }];
+      }
+    });
+    showToast(`✓ ${qty}x ${wine.name} ajouté au panier !`);
+  };
+
+  const updateCartItemQty = (wineId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((item) => {
+          if (item.wine.id === wineId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean) as CartItem[]
+    );
+  };
+
+  const removeFromCart = (wineId: string) => {
+    setCart((prev) => prev.filter((item) => item.wine.id !== wineId));
+  };
+
+  const handleDirectBuy = (wine: WineItem) => {
+    addToCart(wine, getQuantity(wine.id));
+    setCartOpen(true);
+  };
+
+  const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const ref = `CMD-CAVE-${Date.now().toString().slice(-6)}`;
+    setLastOrderRef(ref);
     setOrderSuccess(true);
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfcfb] text-stone-900 flex flex-col">
+    <div className="min-h-screen bg-[#fdfcfb] text-stone-900 flex flex-col relative">
       <LuxuryNavbar />
+
+      {/* Quick feedback Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-24 right-4 sm:right-8 z-50 bg-[#184f28] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[#d4af37]/60 flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Floating Shopping Cart Button (Always Visible) */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setCartOpen(true)}
+          className="relative px-5 py-3.5 rounded-2xl bg-stone-950 text-white font-bold text-xs uppercase tracking-wider shadow-2xl shadow-black/60 border border-[#d4af37]/70 hover:border-[#d4af37] flex items-center gap-3 transition-transform active:scale-95 group"
+          aria-label="Voir mon panier de vins"
+        >
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5 text-[#d4af37]" />
+            {totalBottles > 0 && (
+              <span className="absolute -top-2 -right-2.5 w-5 h-5 rounded-full bg-[#184f28] text-[#d4af37] text-[10px] font-black border border-stone-900 flex items-center justify-center">
+                {totalBottles}
+              </span>
+            )}
+          </div>
+          <div className="text-left">
+            <div className="text-[10px] text-stone-400 font-medium">Panier Sommelier</div>
+            <div className="text-sm font-black text-[#d4af37]">
+              {totalPriceXof.toLocaleString("fr-FR")} XOF
+            </div>
+          </div>
+          <span className="ml-1 px-2.5 py-1 rounded-xl bg-[#d4af37] text-stone-950 text-[10px] font-extrabold group-hover:bg-[#e4c26e] transition-colors">
+            Voir & Payer →
+          </span>
+        </button>
+      </div>
 
       <main className="flex-1 pt-28 pb-24">
         {/* Boutique Hero Banner */}
@@ -293,22 +400,21 @@ export default function CaveAVinPage() {
             </h1>
 
             <p className="max-w-2xl mx-auto text-stone-300 text-sm sm:text-base font-light leading-relaxed mb-8">
-              Découvrez notre collection exclusive de vins de garde, champagnes de prestige, spiritueux fins
-              et créations maison, conservés dans les caves climatisées des 4 établissements du Groupe Hôtel Le Vignoble.
+              Boutique officielle des 4 hôtels du Groupe Le Vignoble. Choisissez vos grands crus, champagnes, spiritueux ou boissons du terroir, ajoutez-les à votre panier et réglez en ligne ou à la livraison en chambre / table.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-stone-300">
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-stone-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
                 <span>Conservation hygrométrique 12°C - 14°C</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
-                <span>Service au restaurant, en chambre ou coffret à emporter</span>
+                <span>Service au restaurant, en suite ou à emporter</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-[#d4af37]" />
-                <span>Conseils sommellerie personnalisés</span>
+                <span>Paiement MoMo / Carte ou à la livraison</span>
               </div>
             </div>
           </div>
@@ -316,305 +422,468 @@ export default function CaveAVinPage() {
 
         {/* Catalog Container */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Category Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 mb-12">
-            {[
-              { id: "ALL", label: "Tous les flacons" },
-              { id: "ROUGE", label: "Vins Rouges de Garde" },
-              { id: "CHAMPAGNE", label: "Champagnes de Prestige" },
-              { id: "BLANC_ROSE", label: "Vins Blancs & Rosés" },
-              { id: "SPIRITUEUX", label: "Spiritueux Fins" },
-              { id: "BOISSON_TERROIR", label: "Boissons du Terroir" },
-            ].map((cat) => {
-              const active = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold tracking-wide transition-all ${
-                    active
-                      ? "bg-[#184f28] text-white shadow-lg shadow-[#184f28]/30 border border-[#d4af37]/60"
-                      : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-                  }`}
-                >
-                  {cat.label}
-                </button>
-              );
-            })}
+          {/* Top Bar with Category Filter Tabs & Cart Summary */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-4 border-b border-stone-200">
+            {/* Category Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: "ALL", label: "Tous les flacons" },
+                { id: "ROUGE", label: "Vins Rouges" },
+                { id: "CHAMPAGNE", label: "Champagnes" },
+                { id: "BLANC_ROSE", label: "Blancs & Rosés" },
+                { id: "SPIRITUEUX", label: "Spiritueux" },
+                { id: "BOISSON_TERROIR", label: "Boissons Terroir" },
+              ].map((cat) => {
+                const active = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-3.5 py-2 rounded-2xl text-xs font-bold tracking-wide transition-all ${
+                      active
+                        ? "bg-[#184f28] text-white shadow-md shadow-[#184f28]/30 border border-[#d4af37]/60"
+                        : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Cart Action in Catalog Bar */}
+            <button
+              onClick={() => setCartOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-stone-900 text-white text-xs font-bold uppercase tracking-wider hover:bg-[#184f28] transition-colors shadow-sm self-start md:self-auto"
+            >
+              <ShoppingBag className="w-4 h-4 text-[#d4af37]" />
+              <span>Panier ({totalBottles} bouteilles)</span>
+              <span className="text-[#d4af37] ml-1">
+                {totalPriceXof.toLocaleString("fr-FR")} XOF
+              </span>
+            </button>
           </div>
 
           {/* Grid of Wine Items */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredWines.map((wine) => (
-              <div
-                key={wine.id}
-                className="bg-white rounded-3xl border border-stone-200/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
-              >
-                <div>
-                  <div className="relative h-64 w-full overflow-hidden bg-stone-900">
-                    <Image
-                      src={wine.imageUrl}
-                      alt={wine.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" />
-
-                    {/* Floating Badges */}
-                    <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-                      <span className="px-3 py-1 rounded-full bg-stone-900/90 text-[#d4af37] text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border border-stone-700">
-                        {wine.categoryLabel}
-                      </span>
-                      {wine.badge && (
-                        <span className="px-3 py-1 rounded-full bg-[#184f28] text-white text-[10px] font-bold tracking-wide shadow-md">
-                          {wine.badge}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
-                      <div>
-                        <div className="text-2xl font-extrabold font-serif text-[#d4af37]">
-                          {wine.priceXof.toLocaleString("fr-FR")} XOF
-                        </div>
-                        <div className="text-[11px] text-stone-300 font-light">
-                          Bouteille 75 cl • TVA incluse
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="text-[11px] text-[#184f28] font-semibold uppercase tracking-wider mb-1">
-                      {wine.origin} • {wine.vintage}
-                    </div>
-                    <h3 className="text-xl font-bold font-serif text-stone-900 mb-2 group-hover:text-[#184f28] transition-colors">
-                      {wine.name}
-                    </h3>
-                    <p className="text-xs text-stone-600 leading-relaxed font-light mb-4">
-                      {wine.description}
-                    </p>
-
-                    <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1.5 text-[11px] text-stone-700 mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-stone-500">Degré & Service :</span>
-                        <span className="font-semibold">{wine.alcoholVolume} ({wine.temperature})</span>
-                      </div>
-                      <div className="pt-1 border-t border-stone-200">
-                        <span className="text-stone-500 block mb-0.5">Accord Conseillé :</span>
-                        <span className="font-medium text-[#184f28]">{wine.pairings}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6 pt-0">
-                  <button
-                    onClick={() => handleOpenOrder(wine)}
-                    className="w-full py-3 px-4 rounded-xl bg-stone-900 hover:bg-[#184f28] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors shadow-sm"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-[#d4af37]" />
-                    <span>Commander ce flacon</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Modal De Commande Bouteille */}
-        {selectedWineForOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-stone-950 border border-stone-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 text-white relative shadow-2xl">
-              <button
-                onClick={() => setSelectedWineForOrder(null)}
-                className="absolute top-5 right-5 text-stone-400 hover:text-white p-1 rounded-lg"
-                aria-label="Fermer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              {!orderSuccess ? (
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-[#d4af37] font-bold block mb-1">
-                    Commander depuis la Cave du Vignoble
-                  </span>
-                  <h3 className="text-2xl font-bold font-serif mb-2">
-                    {selectedWineForOrder.name}
-                  </h3>
-                  <p className="text-xs text-stone-400 mb-6">
-                    {selectedWineForOrder.origin} • {selectedWineForOrder.vintage}
-                  </p>
-
-                  <div className="bg-stone-900/90 rounded-2xl p-4 border border-stone-800 mb-6 space-y-2 text-xs">
-                    <div className="flex justify-between text-stone-300">
-                      <span>Prix unitaire :</span>
-                      <span className="font-semibold">{selectedWineForOrder.priceXof.toLocaleString("fr-FR")} XOF</span>
-                    </div>
-                    <div className="flex justify-between items-center text-stone-300">
-                      <span>Nombre de bouteilles :</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setOrderQuantity(Math.max(1, orderQuantity - 1))}
-                          className="w-7 h-7 rounded-lg bg-stone-800 text-white font-bold flex items-center justify-center"
-                        >
-                          -
-                        </button>
-                        <span className="w-6 text-center font-bold text-white">{orderQuantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => setOrderQuantity(orderQuantity + 1)}
-                          className="w-7 h-7 rounded-lg bg-stone-800 text-white font-bold flex items-center justify-center"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                    <div className="pt-2 border-t border-stone-800 flex justify-between text-sm font-bold text-[#d4af37]">
-                      <span>Montant Total :</span>
-                      <span>{(selectedWineForOrder.priceXof * orderQuantity).toLocaleString("fr-FR")} XOF</span>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleSubmitWineOrder} className="space-y-4 text-xs">
-                    <div>
-                      <label className="block text-stone-300 font-semibold mb-1">
-                        Établissement de retrait ou de service :
-                      </label>
-                      <select
-                        value={selectedSite}
-                        onChange={(e) => setSelectedSite(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
-                      >
-                        {SEED_PROPERTIES.map((p) => (
-                          <option key={p.id} value={p.name} className="bg-stone-900 text-white">
-                            {p.name} ({p.city})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-stone-300 font-semibold mb-1">
-                        Mode de service souhaité :
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: "RESTAURANT", label: "À Table" },
-                          { id: "ROOM", label: "En Chambre" },
-                          { id: "TAKEAWAY", label: "À Emporter" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setServiceOption(opt.id)}
-                            className={`py-2 px-2 rounded-xl text-[11px] font-semibold border ${
-                              serviceOption === opt.id
-                                ? "bg-[#184f28] border-[#d4af37] text-white"
-                                : "bg-stone-900 border-stone-800 text-stone-400"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-stone-300 font-semibold mb-1">
-                          Nom & Prénom
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={customerName}
-                          onChange={(e) => setCustomerName(e.target.value)}
-                          placeholder="Mme / M. Dossou"
-                          className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-stone-300 font-semibold mb-1">
-                          Téléphone / WhatsApp
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          value={customerPhone}
-                          onChange={(e) => setCustomerPhone(e.target.value)}
-                          placeholder="+229 97 00 00 00"
-                          className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 pt-2">
-                      {/* Option 1: Online direct payment via KkiaPay */}
-                      <KkiapayButton
-                        amount={selectedWineForOrder.priceXof * orderQuantity}
-                        type="WINE_STORE"
-                        referenceId={`CAVE-${Date.now().toString().slice(-6)}`}
-                        customerName={customerName || "Client Cave Le Vignoble"}
-                        customerPhone={customerPhone}
-                        label={`Payer en Ligne via KkiaPay (${(selectedWineForOrder.priceXof * orderQuantity).toLocaleString("fr-FR")} XOF)`}
-                        onSuccess={() => {
-                          setOrderSuccess(true);
-                        }}
-                        className="w-full py-3.5"
+            {filteredWines.map((wine) => {
+              const qty = getQuantity(wine.id);
+              return (
+                <div
+                  key={wine.id}
+                  className="bg-white rounded-3xl border border-stone-200/90 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* Bottle Photography */}
+                    <div className="relative h-64 w-full overflow-hidden bg-stone-900">
+                      <Image
+                        src={wine.imageUrl}
+                        alt={wine.name}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/20 to-transparent" />
 
-                      {/* Option 2: Pay on delivery / service */}
+                      {/* Floating Badges */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-1.5">
+                        <span className="px-3 py-1 rounded-full bg-stone-900/90 text-[#d4af37] text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border border-stone-700">
+                          {wine.categoryLabel}
+                        </span>
+                        {wine.badge && (
+                          <span className="px-3 py-1 rounded-full bg-[#184f28] text-white text-[10px] font-bold tracking-wide shadow-md">
+                            {wine.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between text-white">
+                        <div>
+                          <div className="text-2xl font-extrabold font-serif text-[#d4af37]">
+                            {wine.priceXof.toLocaleString("fr-FR")} XOF
+                          </div>
+                          <div className="text-[11px] text-stone-300 font-light">
+                            Bouteille 75 cl • TVA incluse
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <div className="text-[11px] text-[#184f28] font-semibold uppercase tracking-wider mb-1">
+                        {wine.origin} • {wine.vintage}
+                      </div>
+                      <h3 className="text-xl font-bold font-serif text-stone-900 mb-2 group-hover:text-[#184f28] transition-colors">
+                        {wine.name}
+                      </h3>
+                      <p className="text-xs text-stone-600 leading-relaxed font-light mb-4">
+                        {wine.description}
+                      </p>
+
+                      <div className="p-3 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1.5 text-[11px] text-stone-700 mb-4">
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Degré & Service :</span>
+                          <span className="font-semibold">
+                            {wine.alcoholVolume} ({wine.temperature})
+                          </span>
+                        </div>
+                        <div className="pt-1 border-t border-stone-200">
+                          <span className="text-stone-500 block mb-0.5">Accord Conseillé :</span>
+                          <span className="font-medium text-[#184f28]">{wine.pairings}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quantity and Cart Controls */}
+                  <div className="p-6 pt-0 space-y-2">
+                    <div className="flex items-center gap-2">
+                      {/* Quantity Stepper */}
+                      <div className="flex items-center border border-stone-300 rounded-xl overflow-hidden bg-stone-50">
+                        <button
+                          type="button"
+                          onClick={() => handleSetQuantity(wine.id, -1)}
+                          className="px-2.5 py-2 text-stone-600 hover:bg-stone-200 transition-colors"
+                          aria-label="Diminuer la quantité"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-3 text-xs font-bold text-stone-900 w-8 text-center">
+                          {qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSetQuantity(wine.id, 1)}
+                          className="px-2.5 py-2 text-stone-600 hover:bg-stone-200 transition-colors"
+                          aria-label="Augmenter la quantité"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Add To Cart Button */}
                       <button
-                        type="submit"
-                        className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                        onClick={() => addToCart(wine, qty)}
+                        className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-[#184f28] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors shadow-sm"
                       >
-                        <Wine className="w-4 h-4 text-[#d4af37]" />
-                        <span>Commander avec Règlement à la Livraison</span>
+                        <ShoppingBag className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>Ajouter au Panier</span>
                       </button>
                     </div>
 
-                    <p className="text-[10px] text-stone-500 text-center font-light">
-                      Paiements directs sécurisés KkiaPay par Mobile Money (MTN MoMo, Moov Flooz, Celtiis) ou Carte Bancaire.
-                    </p>
-                  </form>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-2xl font-bold font-serif mb-2">Commande Enregistrée !</h3>
-                  <p className="text-xs text-stone-300 max-w-sm mx-auto leading-relaxed mb-6">
-                    Merci <span className="font-semibold text-white">{customerName}</span>. Le sommelier de{" "}
-                    <span className="text-[#d4af37] font-semibold">{selectedSite}</span> prépare vos{" "}
-                    <span className="font-semibold text-white">{orderQuantity} bouteille(s) de {selectedWineForOrder.name}</span>.
-                    Vous serez contacté au <span className="font-semibold text-white">{customerPhone}</span>.
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href={`https://wa.me/22997001122?text=Bonjour%2C%20je%20souhaite%20confirmer%20ma%20commande%20cave%20de%20${orderQuantity}%20bouteille(s)%20de%20${encodeURIComponent(
-                        selectedWineForOrder.name
-                      )}%20au%20Vignoble`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Confirmer par WhatsApp (+229 97 00 11 22)</span>
-                    </a>
+                    {/* Direct Buy Button */}
                     <button
-                      onClick={() => setSelectedWineForOrder(null)}
-                      className="px-5 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-semibold"
+                      onClick={() => handleDirectBuy(wine)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e4c26e] to-[#c59b27] hover:opacity-95 text-stone-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all"
                     >
-                      Fermer
+                      <span>Commander & Payer Directement</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-stone-950" />
                     </button>
                   </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* =========================================================================
+            SLIDE-OVER SHOPPING CART DRAWER & CHECKOUT
+           ========================================================================= */}
+        {cartOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-stone-950 border-l border-stone-800 w-full max-w-xl h-full flex flex-col justify-between text-white shadow-2xl animate-in slide-in-from-right duration-300">
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-stone-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#184f28]/30 border border-[#184f28]/60 text-[#d4af37] flex items-center justify-center">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold font-serif text-white">Mon Panier Sommelier</h3>
+                    <p className="text-xs text-stone-400">
+                      {totalBottles} bouteille{totalBottles > 1 ? "s" : ""} sélectionnée{totalBottles > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCartOpen(false)}
+                  className="p-2 text-stone-400 hover:text-white rounded-xl hover:bg-stone-800 transition-colors"
+                  aria-label="Fermer le panier"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="p-6 flex-1 overflow-y-auto space-y-6">
+                {!orderSuccess ? (
+                  cart.length === 0 ? (
+                    <div className="text-center py-16 space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-stone-900 border border-stone-800 text-stone-500 flex items-center justify-center mx-auto">
+                        <Wine className="w-8 h-8" />
+                      </div>
+                      <h4 className="text-base font-bold text-stone-300">Votre panier est vide</h4>
+                      <p className="text-xs text-stone-500 max-w-xs mx-auto">
+                        Parcourez notre collection de vins, champagnes et spiritueux et ajoutez vos flacons préférés.
+                      </p>
+                      <button
+                        onClick={() => setCartOpen(false)}
+                        className="px-5 py-2.5 rounded-xl bg-[#184f28] text-white text-xs font-semibold"
+                      >
+                        Explorer la cave
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Items List */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-xs text-stone-400 pb-2 border-b border-stone-800">
+                          <span>Articles Sélectionnés</span>
+                          <button
+                            onClick={() => setCart([])}
+                            className="text-stone-500 hover:text-red-400 transition-colors text-[11px]"
+                          >
+                            Vider le panier
+                          </button>
+                        </div>
+
+                        {cart.map((cartItem) => (
+                          <div
+                            key={cartItem.wine.id}
+                            className="p-3.5 rounded-2xl bg-stone-900/90 border border-stone-800 flex items-center justify-between gap-3"
+                          >
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-stone-800 shrink-0">
+                              <Image
+                                src={cartItem.wine.imageUrl}
+                                alt={cartItem.wine.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <h5 className="text-xs font-bold text-white truncate font-serif">
+                                {cartItem.wine.name}
+                              </h5>
+                              <div className="text-[10px] text-stone-400">
+                                {cartItem.wine.priceXof.toLocaleString("fr-FR")} XOF / unité
+                              </div>
+                              <div className="text-xs font-bold text-[#d4af37] mt-0.5">
+                                {(cartItem.wine.priceXof * cartItem.quantity).toLocaleString("fr-FR")} XOF
+                              </div>
+                            </div>
+
+                            {/* Stepper & Trash */}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <div className="flex items-center bg-stone-950 border border-stone-800 rounded-lg overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQty(cartItem.wine.id, -1)}
+                                  className="px-2 py-1 text-stone-400 hover:text-white"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="px-2 text-xs font-bold text-white">
+                                  {cartItem.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartItemQty(cartItem.wine.id, 1)}
+                                  className="px-2 py-1 text-stone-400 hover:text-white"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(cartItem.wine.id)}
+                                className="p-1.5 text-stone-500 hover:text-red-400 transition-colors"
+                                aria-label="Supprimer l'article"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Checkout Information Form */}
+                      <form onSubmit={handleCheckoutSubmit} className="space-y-4 pt-4 border-t border-stone-800 text-xs">
+                        <div>
+                          <label className="block text-stone-300 font-semibold mb-1">
+                            Établissement de retrait ou de service :
+                          </label>
+                          <select
+                            value={selectedSite}
+                            onChange={(e) => setSelectedSite(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
+                          >
+                            {SEED_PROPERTIES.map((p) => (
+                              <option key={p.id} value={p.name} className="bg-stone-900 text-white">
+                                {p.name} ({p.city})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-stone-300 font-semibold mb-1">
+                            Mode de consommation / livraison :
+                          </label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "RESTAURANT", label: "À Table Restaurant" },
+                              { id: "ROOM", label: "En Chambre (Room)" },
+                              { id: "TAKEAWAY", label: "Coffret à Emporter" },
+                            ].map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => setServiceOption(opt.id)}
+                                className={`py-2 px-2 rounded-xl text-[10px] font-semibold border text-center ${
+                                  serviceOption === opt.id
+                                    ? "bg-[#184f28] border-[#d4af37] text-white"
+                                    : "bg-stone-900 border-stone-800 text-stone-400"
+                                }`}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-stone-300 font-semibold mb-1">
+                              Nom complet du client
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={customerName}
+                              onChange={(e) => setCustomerName(e.target.value)}
+                              placeholder="Mme / M. Bio KANHO"
+                              className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-stone-300 font-semibold mb-1">
+                              Téléphone / WhatsApp
+                            </label>
+                            <input
+                              type="tel"
+                              required
+                              value={customerPhone}
+                              onChange={(e) => setCustomerPhone(e.target.value)}
+                              placeholder="+229 97 00 00 00"
+                              className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-stone-300 font-semibold mb-1">
+                            Précision Chambre / Table (Optionnel) :
+                          </label>
+                          <input
+                            type="text"
+                            value={roomOrTableNumber}
+                            onChange={(e) => setRoomOrTableNumber(e.target.value)}
+                            placeholder="Ex: Suite Royale 101, Table 4 Terrasse..."
+                            className="w-full px-3.5 py-2.5 bg-stone-900 border border-stone-800 rounded-xl text-white focus:outline-none focus:border-[#d4af37]"
+                          />
+                        </div>
+
+                        {/* Order Summary Box */}
+                        <div className="p-4 rounded-2xl bg-stone-900 border border-stone-800 space-y-1.5">
+                          <div className="flex justify-between text-stone-400">
+                            <span>Total Bouteilles :</span>
+                            <span className="font-bold text-white">{totalBottles}</span>
+                          </div>
+                          <div className="flex justify-between text-stone-400">
+                            <span>Service sommellerie & TVA :</span>
+                            <span className="text-emerald-400 font-bold">Inclus (0 XOF)</span>
+                          </div>
+                          <div className="pt-2 border-t border-stone-800 flex justify-between text-base font-bold text-[#d4af37]">
+                            <span>Total à Régler :</span>
+                            <span>{totalPriceXof.toLocaleString("fr-FR")} XOF</span>
+                          </div>
+                        </div>
+
+                        {/* Payment CTAs */}
+                        <div className="space-y-3 pt-2">
+                          <KkiapayButton
+                            amount={totalPriceXof}
+                            type="WINE_STORE"
+                            referenceId={`CAVE-${Date.now().toString().slice(-6)}`}
+                            customerName={customerName || "Client Cave Le Vignoble"}
+                            customerPhone={customerPhone}
+                            label={`Payer en Ligne via KkiaPay (${totalPriceXof.toLocaleString("fr-FR")} XOF)`}
+                            onSuccess={() => {
+                              const ref = `CMD-CAVE-${Date.now().toString().slice(-6)}`;
+                              setLastOrderRef(ref);
+                              setOrderSuccess(true);
+                              setCart([]);
+                            }}
+                            className="w-full py-3.5"
+                          />
+
+                          <button
+                            type="submit"
+                            className="w-full py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-800 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                          >
+                            <Wine className="w-4 h-4 text-[#d4af37]" />
+                            <span>Commander avec Règlement à la Livraison</span>
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  )
+                ) : (
+                  /* Order Confirmation Screen */
+                  <div className="text-center py-12 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-2xl font-bold font-serif text-white">Commande Validée avec Succès !</h4>
+                    <p className="text-xs text-stone-300 leading-relaxed max-w-sm mx-auto">
+                      Merci <span className="font-semibold text-white">{customerName}</span>. Votre commande de cave N°{" "}
+                      <span className="font-mono text-[#d4af37] font-bold">{lastOrderRef}</span> a été transmise au sommelier de{" "}
+                      <span className="text-[#d4af37] font-semibold">{selectedSite}</span>. Nos équipes vous contactent au{" "}
+                      <span className="font-semibold text-white">{customerPhone}</span>.
+                    </p>
+
+                    <div className="pt-4 flex flex-col gap-2.5">
+                      <a
+                        href={`https://wa.me/22997001122?text=Bonjour%2C%20je%20confirme%20ma%20commande%20cave%20${lastOrderRef}%20au%20Vignoble`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Suivre ma commande sur WhatsApp (+229 97 00 11 22)</span>
+                      </a>
+                      <button
+                        onClick={() => {
+                          setOrderSuccess(false);
+                          setCartOpen(false);
+                          setCart([]);
+                        }}
+                        className="py-2.5 px-4 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-semibold"
+                      >
+                        Continuer mes achats
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-4 bg-stone-950 border-t border-stone-800/80 text-[11px] text-stone-500 text-center">
+                Paiements sécurisés par Mobile Money (MTN MoMo, Moov Flooz, Celtiis) et Cartes bancaires Visa / Mastercard.
+              </div>
             </div>
           </div>
         )}
