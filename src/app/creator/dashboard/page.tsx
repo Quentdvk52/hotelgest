@@ -549,69 +549,152 @@ export default function CreatorDashboardPage() {
 
         {/* TAB 3: Gateways & Architecture */}
         {activeTab === "GATEWAYS" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-stone-900/90 border border-stone-800 rounded-3xl p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                  CH
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-stone-900/90 border border-stone-800 rounded-3xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                    CH
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Chariow — Abonnements Logiciel</h4>
+                    <p className="text-[11px] text-stone-400">
+                      Gestion exclusive des souscriptions et licences HotelGest
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-white text-sm">Chariow — Abonnements Logiciel</h4>
-                  <p className="text-[11px] text-stone-400">
-                    Gestion exclusive des souscriptions et licences HotelGest
-                  </p>
+
+                <div className="space-y-2 text-xs text-stone-300 border-t border-stone-800 pt-3">
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Rôle :</span>
+                    <span className="font-semibold text-white">Créateur du Logiciel (Vous) ↔ Promoteur</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Mode :</span>
+                    <span className="text-emerald-400 font-medium">Production Live</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Signature Webhook :</span>
+                    <span className="font-mono text-[10px] text-stone-400">HMAC-SHA256 (Vérifiée)</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Webhook URL :</span>
+                    <span className="font-mono text-[10px] text-blue-400">/api/webhooks/chariow</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Serveur MCP Chariow :</span>
+                    <span className="font-mono text-[10px] text-[#d4af37]">https://chariow.dev/mcp</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs text-stone-300 border-t border-stone-800 pt-3">
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Rôle :</span>
-                  <span className="font-semibold text-white">Créateur du Logiciel (Vous) ↔ Promoteur</span>
+              <div className="bg-stone-900/90 border border-stone-800 rounded-3xl p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                    KK
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">KkiaPay — Encaissements Clients</h4>
+                    <p className="text-[11px] text-stone-400">
+                      Paiements réservations, cave à vin et traiteur
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Mode :</span>
-                  <span className="text-emerald-400 font-medium">Production Live</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Signature Webhook :</span>
-                  <span className="font-mono text-[10px] text-stone-400">HMAC-SHA256 (Vérifiée)</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Webhook URL :</span>
-                  <span className="font-mono text-[10px] text-blue-400">/api/webhooks/chariow</span>
+
+                <div className="space-y-2 text-xs text-stone-300 border-t border-stone-800 pt-3">
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Rôle :</span>
+                    <span className="font-semibold text-white">Clients de l&apos;Hôtel ↔ Groupe Le Vignoble</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Canaux :</span>
+                    <span className="text-emerald-400 font-medium">MTN MoMo, Moov Flooz, Celtiis, Visa/Mastercard</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Agrégateur :</span>
+                    <span className="text-stone-300">KkiaPay Bénin (Agréé BCEAO)</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-stone-400">Validation URL :</span>
+                    <span className="font-mono text-[10px] text-emerald-400">/api/payments/kkiapay/verify</span>
+                  </div>
                 </div>
               </div>
             </div>
 
+            {/* Direct Chariow Product Links */}
             <div className="bg-stone-900/90 border border-stone-800 rounded-3xl p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                  KK
-                </div>
+              <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-white text-sm">KkiaPay — Encaissements Clients</h4>
-                  <p className="text-[11px] text-stone-400">
-                    Paiements réservations, cave à vin et traiteur
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-blue-400" />
+                    <span>Liens Directs Produits Chariow (Boutique Narcpdfi)</span>
+                  </h4>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    Pages de commande officielles Chariow hébergées pour chaque formule de souscription.
                   </p>
                 </div>
+                <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] font-bold">
+                  3 Forfaits Live
+                </span>
               </div>
 
-              <div className="space-y-2 text-xs text-stone-300 border-t border-stone-800 pt-3">
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Rôle :</span>
-                  <span className="font-semibold text-white">Clients de l&apos;Hôtel ↔ Groupe Le Vignoble</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
+                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">Formule 1 Mois</span>
+                    <span className="text-[11px] font-bold text-stone-400">100 000 XOF</span>
+                  </div>
+                  <div className="font-mono text-[10px] text-stone-400 truncate">
+                    prd_rzhtvh59
+                  </div>
+                  <a
+                    href="https://narcpdfi.mychariow.market/prd_rzhtvh59"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-semibold text-[11px] pt-1"
+                  >
+                    <span>Ouvrir sur Chariow</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Canaux :</span>
-                  <span className="text-emerald-400 font-medium">MTN MoMo, Moov Flooz, Celtiis, Visa/Mastercard</span>
+
+                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">Formule 6 Mois (-10%)</span>
+                    <span className="text-[11px] font-bold text-[#d4af37]">540 000 XOF</span>
+                  </div>
+                  <div className="font-mono text-[10px] text-stone-400 truncate">
+                    prd_n0s8gwxg
+                  </div>
+                  <a
+                    href="https://narcpdfi.mychariow.market/prd_n0s8gwxg"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[#d4af37] hover:text-amber-300 font-semibold text-[11px] pt-1"
+                  >
+                    <span>Ouvrir sur Chariow</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Agrégateur :</span>
-                  <span className="text-stone-300">KkiaPay Bénin (Agréé BCEAO)</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-stone-400">Validation URL :</span>
-                  <span className="font-mono text-[10px] text-emerald-400">/api/payments/kkiapay/verify</span>
+
+                <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white">Formule 12 Mois (-30%)</span>
+                    <span className="text-[11px] font-bold text-purple-400">840 000 XOF</span>
+                  </div>
+                  <div className="font-mono text-[10px] text-stone-400 truncate">
+                    prd_taderm68
+                  </div>
+                  <a
+                    href="https://narcpdfi.mychariow.market/prd_taderm68"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-purple-400 hover:text-purple-300 font-semibold text-[11px] pt-1"
+                  >
+                    <span>Ouvrir sur Chariow</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             </div>

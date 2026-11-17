@@ -62,6 +62,7 @@ import {
 import { PromoterLegalManager } from "@/components/legal/promoter-legal-manager";
 import { PromoterQrSitePlanManager } from "@/components/workspace/promoter-qr-site-plan-manager";
 import { ClientsManager } from "@/components/workspace/clients-manager";
+import { SubscriptionManager } from "@/components/workspace/subscription-manager";
 import {
   CsvExcelImporterModal,
   ImportType,
@@ -5205,50 +5206,9 @@ function DashboardContent() {
           VIEW 9: ABONNEMENT LOGICIEL (CHARIOW)
          ========================================================================= */}
       {currentView === "abonnement" && (
-        <div className="max-w-2xl mx-auto bg-stone-900 text-white rounded-3xl border border-stone-800 p-6 sm:p-8 space-y-6 animate-in fade-in duration-150">
-          <div className="flex items-center justify-between border-b border-stone-800 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-lg">
-                CH
-              </div>
-              <div>
-                <h3 className="text-xl font-bold font-serif text-white">
-                  Abonnement Logiciel HotelGest
-                </h3>
-                <p className="text-xs text-stone-400">
-                  Géré et prélevé de manière sécurisée via <strong>Chariow</strong> pour l&apos;éditeur de la plateforme.
-                </p>
-              </div>
-            </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase">
-              Actif
-            </span>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-stone-950 border border-stone-800 space-y-2 text-xs">
-            <div className="flex justify-between text-stone-300">
-              <span>Formule :</span>
-              <span className="font-bold text-white">HotelGest Enterprise Multi-Sites (4 Agences)</span>
-            </div>
-            <div className="flex justify-between text-stone-300">
-              <span>Montant :</span>
-              <span className="font-bold text-[#d4af37]">100 000 XOF / mois</span>
-            </div>
-            <div className="flex justify-between text-stone-300">
-              <span>Passerelle d&apos;abonnement :</span>
-              <span className="font-semibold text-blue-400">Chariow (MoMo / Carte)</span>
-            </div>
-          </div>
-
-          <a
-            href="https://checkout.chariow.com/pay/chariow_chk_vignoble"
-            target="_blank"
-            rel="noreferrer"
-            className="block w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-center font-bold text-xs uppercase tracking-wider shadow-lg shadow-blue-900/40"
-          >
-            Payer / Renouveler l&apos;Abonnement via Chariow (100 000 XOF)
-          </a>
-        </div>
+        <ErrorBoundary fallbackTitle="Module d'Abonnement Chariow">
+          <SubscriptionManager isPromoter={isPromoter} />
+        </ErrorBoundary>
       )}
 
       {/* =========================================================================

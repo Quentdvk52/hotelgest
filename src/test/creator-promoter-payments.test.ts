@@ -30,9 +30,7 @@ describe("Creator Cockpit, Promoter Governance & Payment Gateway Separation", ()
 
       expect(checkout.sessionId).toContain("chariow_chk_");
       expect(checkout.amountXof).toBe(100000);
-      expect(checkout.checkoutUrl).toContain("https://checkout.chariow.com/pay/");
-      expect(checkout.checkoutUrl).toContain("tenant=tenant-vignoble-001");
-      expect(checkout.checkoutUrl).toContain("plan=MONTHLY_100K");
+      expect(checkout.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_rzhtvh59");
     });
 
     it("allows the creator to toggle tenant license status (Active / Past Due)", () => {

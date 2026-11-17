@@ -124,5 +124,73 @@ describe("SYSCOHADA Accounting & Chariow SaaS Billing", () => {
       const replay = await chariowService.processWebhook(rawPayload, signature);
       expect(replay.isDuplicate).toBe(true);
     });
+
+    it("processes webhooks with sha256= prefix and resolves Chariow product IDs (prd_n0s8gwxg for 6 months)", async () => {
+      const payloadObj = {
+        event_id: "evt_pulse_6months_001",
+        event_type: "successful.sale",
+        data: {
+          purchase: {
+            id: "sale_chariow_semiannual_123",
+            product_id: "prd_n0s8gwxg", // 6 Months plan ID
+            amount: { value: 540000, currency: "XOF" },
+            custom_metadata: { tenant_id: "tenant-vignoble-001" },
+          },
+        },
+      };
+      const rawPayload = JSON.stringify(payloadObj);
+      const signature = `sha256=${signPayload(rawPayload)}`;
+
+      const result = await chariowService.processWebhook(rawPayload, signature);
+      expect(result.success).toBe(true);
+      expect(result.planCode).toBe("SEMIANNUAL_540K");
+
+      const sub = chariowService.getSubscription("tenant-vignoble-001");
+      expect(sub?.status).toBe("ACTIVE");
+      expect(sub?.planCode).toBe("SEMIANNUAL_540K");
+      expect(sub?.amountXof).toBe(540000);
+      expect(sub?.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_n0s8gwxg");
+    });
+
+    it("processes webhooks with annual product ID (prd_taderm68 for 12 months with 30% discount)", async () => {
+      const payloadObj = {
+        event_id: "evt_pulse_annual_001",
+        event_type: "successful.sale",
+        data: {
+          purchase: {
+            id: "sale_chariow_annual_456",
+            product_id: "prd_taderm68", // 12 Months plan ID
+            amount: { value: 840000, currency: "XOF" },
+            custom_metadata: { tenant_id: "tenant-vignoble-001" },
+          },
+        },
+      };
+      const rawPayload = JSON.stringify(payloadObj);
+      const signature = signPayload(rawPayload);
+
+      const result = await chariowService.processWebhook(rawPayload, signature);
+      expect(result.success).toBe(true);
+      expect(result.planCode).toBe("ANNUAL_840K");
+
+      const sub = chariowService.getSubscription("tenant-vignoble-001");
+      expect(sub?.status).toBe("ACTIVE");
+      expect(sub?.planCode).toBe("ANNUAL_840K");
+      expect(sub?.amountXof).toBe(840000);
+      expect(sub?.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_taderm68");
+    });
+
+    it("generates correct direct Chariow checkout URLs for all 3 subscription plans", async () => {
+      const monthly = await chariowService.createCheckoutSession("tenant-vignoble-001", "MONTHLY_100K");
+      expect(monthly.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_rzhtvh59");
+      expect(monthly.amountXof).toBe(100000);
+
+      const semiannual = await chariowService.createCheckoutSession("tenant-vignoble-001", "SEMIANNUAL_540K");
+      expect(semiannual.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_n0s8gwxg");
+      expect(semiannual.amountXof).toBe(540000);
+
+      const annual = await chariowService.createCheckoutSession("tenant-vignoble-001", "ANNUAL_840K");
+      expect(annual.checkoutUrl).toBe("https://narcpdfi.mychariow.market/prd_taderm68");
+      expect(annual.amountXof).toBe(840000);
+    });
   });
 });

@@ -13,13 +13,30 @@ const envSchema = z.object({
   ),
   AWS_REGION: z.string().default(process.env.AWS_REGION || "us-east-2"),
   S3_BUCKET_NAME: z.string().default(process.env.S3_BUCKET_NAME || "assets"),
-  CHARIOW_API_KEY: z.string().default(process.env.CHARIOW_API_KEY || "napi_placeholder_test"),
+  CHARIOW_SECRET_KEY: z.string().default(
+    process.env.CHARIOW_SECRET_KEY || process.env.CHARIOW_API_KEY || "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066"
+  ),
+  CHARIOW_API_KEY: z.string().default(
+    process.env.CHARIOW_API_KEY || process.env.CHARIOW_SECRET_KEY || "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066"
+  ),
   CHARIOW_WEBHOOK_SECRET: z.string().default(
     process.env.CHARIOW_WEBHOOK_SECRET || "chariow_sec_dev_hotelgest_placeholder"
   ),
   CHARIOW_PLAN_MONTHLY_XOF: z.coerce.number().default(100000),
   CHARIOW_PLAN_SEMIANNUAL_XOF: z.coerce.number().default(540000),
   CHARIOW_PLAN_ANNUAL_XOF: z.coerce.number().default(840000),
+  CHARIOW_PLAN_1_MONTH_URL: z.string().default(
+    process.env.NEXT_PUBLIC_CHARIOW_PLAN_1_MONTH_URL || process.env.CHARIOW_PLAN_1_MONTH_URL || "https://narcpdfi.mychariow.market/prd_rzhtvh59"
+  ),
+  CHARIOW_PLAN_6_MONTHS_URL: z.string().default(
+    process.env.NEXT_PUBLIC_CHARIOW_PLAN_6_MONTHS_URL || process.env.CHARIOW_PLAN_6_MONTHS_URL || "https://narcpdfi.mychariow.market/prd_n0s8gwxg"
+  ),
+  CHARIOW_PLAN_12_MONTHS_URL: z.string().default(
+    process.env.NEXT_PUBLIC_CHARIOW_PLAN_12_MONTHS_URL || process.env.CHARIOW_PLAN_12_MONTHS_URL || "https://narcpdfi.mychariow.market/prd_taderm68"
+  ),
+  CHARIOW_PLAN_1_MONTH_ID: z.string().default(process.env.CHARIOW_PLAN_1_MONTH_ID || "prd_rzhtvh59"),
+  CHARIOW_PLAN_6_MONTHS_ID: z.string().default(process.env.CHARIOW_PLAN_6_MONTHS_ID || "prd_n0s8gwxg"),
+  CHARIOW_PLAN_12_MONTHS_ID: z.string().default(process.env.CHARIOW_PLAN_12_MONTHS_ID || "prd_taderm68"),
   KKIAPAY_PUBLIC_KEY: z.string().default(process.env.KKIAPAY_PUBLIC_KEY || "kkiapay_pk_placeholder"),
   KKIAPAY_PRIVATE_KEY: z.string().default(process.env.KKIAPAY_PRIVATE_KEY || "kkiapay_tpk_placeholder"),
   KKIAPAY_SECRET: z.string().default(process.env.KKIAPAY_SECRET || "kkiapay_tsk_placeholder"),
@@ -43,13 +60,20 @@ export const envConfig = {
     BUCKET: parsedEnv.success ? parsedEnv.data.S3_BUCKET_NAME : envSchema.shape.S3_BUCKET_NAME.parse(undefined),
   },
   CHARIOW: {
-    API_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_API_KEY : envSchema.shape.CHARIOW_API_KEY.parse(undefined),
+    SECRET_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_SECRET_KEY : "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066",
+    API_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_API_KEY : "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066",
     WEBHOOK_SECRET: parsedEnv.success ? parsedEnv.data.CHARIOW_WEBHOOK_SECRET : envSchema.shape.CHARIOW_WEBHOOK_SECRET.parse(undefined),
   },
   CHARIOW_PLANS: {
     MONTHLY_XOF: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_MONTHLY_XOF : 100000,
     SEMIANNUAL_XOF: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_SEMIANNUAL_XOF : 540000,
     ANNUAL_XOF: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_ANNUAL_XOF : 840000,
+    PLAN_1_MONTH_URL: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_1_MONTH_URL : "https://narcpdfi.mychariow.market/prd_rzhtvh59",
+    PLAN_6_MONTHS_URL: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_6_MONTHS_URL : "https://narcpdfi.mychariow.market/prd_n0s8gwxg",
+    PLAN_12_MONTHS_URL: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_12_MONTHS_URL : "https://narcpdfi.mychariow.market/prd_taderm68",
+    PLAN_1_MONTH_ID: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_1_MONTH_ID : "prd_rzhtvh59",
+    PLAN_6_MONTHS_ID: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_6_MONTHS_ID : "prd_n0s8gwxg",
+    PLAN_12_MONTHS_ID: parsedEnv.success ? parsedEnv.data.CHARIOW_PLAN_12_MONTHS_ID : "prd_taderm68",
   },
   KKIAPAY: {
     PUBLIC_KEY: parsedEnv.success ? parsedEnv.data.KKIAPAY_PUBLIC_KEY : "96e1b730129a11eba62483505cf48759",
