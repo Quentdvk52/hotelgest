@@ -50,6 +50,7 @@ import {
   BookOpen,
   QrCode,
   Send,
+  Lock,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
 
@@ -850,6 +851,16 @@ export default function WorkspaceLayout({
   const [selectedPropertyId, setSelectedPropertyId] = useState(SEED_PROPERTIES[0].id);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
+  // Subscription & Trial status state
+  const [subscriptionInfo, setSubscriptionInfo] = useState<{
+    status: string;
+    isTrial: boolean;
+    isExpired: boolean;
+    trialDaysRemaining: number;
+    operationsAllowed: boolean;
+    reason?: string;
+  } | null>(null);
+
   // Profile Modal state
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
@@ -866,6 +877,24 @@ export default function WorkspaceLayout({
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Fetch subscription & 50-day trial status
+  useEffect(() => {
+    async function fetchSub() {
+      try {
+        const res = await fetch("/api/subscription/status");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.subscription) {
+            setSubscriptionInfo(json.subscription);
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+    fetchSub();
+  }, []);
 
   // Fetch unread messages periodically
   useEffect(() => {
@@ -1126,6 +1155,20 @@ export default function WorkspaceLayout({
             <span className="text-xs bg-stone-100 text-stone-700 font-semibold px-2 py-0.5 rounded-md">
               Bénin • XOF
             </span>
+
+            {/* Trial badge in Header */}
+            {subscriptionInfo?.isTrial && !subscriptionInfo?.isExpired && (
+              <div className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-semibold shadow-xs">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                <span>Essai Promoteur (50j) : <strong>{subscriptionInfo.trialDaysRemaining} j restants</strong></span>
+              </div>
+            )}
+            {subscriptionInfo?.isExpired && (
+              <div className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-bold shadow-xs">
+                <Lock className="w-3.5 h-3.5 text-red-600" />
+                <span>Essai 50j Expiré • Consultation Seule</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -1184,6 +1227,35 @@ export default function WorkspaceLayout({
             </button>
           </div>
         </header>
+
+        {/* Warning Banner: When 50-day trial is expired */}
+        {subscriptionInfo && (!subscriptionInfo.operationsAllowed || subscriptionInfo.isExpired) && (
+          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white px-4 sm:px-6 py-3 shadow-md border-b border-red-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm animate-in fade-in duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <div className="font-extrabold flex items-center gap-2">
+                  <span>Période d&apos;essai de 50 jours expirée — Mode Consultation Seule</span>
+                  <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded font-mono uppercase">Opérations bloquées</span>
+                </div>
+                <p className="text-red-100 text-xs mt-0.5">
+                  Le personnel peut se connecter pour consulter l&apos;historique, mais <strong>toutes les opérations (commandes, facturation, encaissements, réservations) sont suspendues</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/dashboard?view=abonnement"
+                className="px-4 py-2 bg-white text-red-700 hover:bg-stone-100 font-bold rounded-xl shadow-md transition-all text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>Régler l&apos;Abonnement Chariow</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">

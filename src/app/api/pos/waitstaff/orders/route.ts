@@ -5,6 +5,7 @@ import {
   advanceOrderItemStatus,
   settleWaitstaffOrder,
 } from "@/modules/pos/waitstaff-service";
+import { chariowService } from "@/modules/subscription/chariow-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const opsCheck = chariowService.canPerformOperations("tenant-vignoble-001");
+    if (!opsCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "TRIAL_EXPIRED", message: opsCheck.reason },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { propertyId, tableLabel, zone, waitstaffId, waitstaffName, clientName, notes, items } = body;
 
@@ -50,6 +59,14 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const opsCheck = chariowService.canPerformOperations("tenant-vignoble-001");
+    if (!opsCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "TRIAL_EXPIRED", message: opsCheck.reason },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { action } = body;
 

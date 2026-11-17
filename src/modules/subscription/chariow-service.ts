@@ -3,6 +3,10 @@ import { envConfig } from "../../lib/config";
 import { createAuditLogEntry } from "../../lib/audit/logger";
 
 export type ChariowPlanCode = "MONTHLY_100K" | "SEMIANNUAL_540K" | "ANNUAL_840K";
+export type SubscriptionStatus = "ACTIVE" | "PAST_DUE" | "CANCELLED" | "TRIAL" | "EXPIRED";
+
+export const DEFAULT_TRIAL_DAYS = 50;
+export const TRIAL_START_DATE_ISO = "2026-11-17T00:00:00.000Z";
 
 export interface SubscriptionRecord {
   tenantId: string;
@@ -11,7 +15,11 @@ export interface SubscriptionRecord {
   planCode: ChariowPlanCode;
   planName: string;
   amountXof: number;
-  status: "ACTIVE" | "PAST_DUE" | "CANCELLED";
+  status: SubscriptionStatus;
+  isTrial: boolean;
+  trialDurationDays: number;
+  trialStartDate: Date;
+  trialEndDate: Date;
   nextBillingDate: Date;
   updatedAt: Date;
   lastPaymentRef?: string;
@@ -92,21 +100,28 @@ class ChariowService {
   private subscriptions = new Map<string, SubscriptionRecord>();
 
   constructor() {
-    // Seed default subscription for Groupe Le Vignoble
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + 28);
+    this.seedDefaultSubscription();
+  }
+
+  private seedDefaultSubscription() {
+    const trialStart = new Date(TRIAL_START_DATE_ISO);
+    const trialEnd = new Date(trialStart.getTime() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
     this.subscriptions.set("tenant-vignoble-001", {
       tenantId: "tenant-vignoble-001",
       tenantName: "Groupe Hôtelier Le Vignoble (4 Agences)",
       provider: "CHARIOW",
       planCode: "MONTHLY_100K",
-      planName: "HotelGest Enterprise Multi-Sites",
+      planName: "HotelGest Enterprise Multi-Sites (Essai 50 Jours)",
       amountXof: envConfig.CHARIOW_PLANS.MONTHLY_XOF,
       status: "ACTIVE",
-      nextBillingDate: nextDate,
+      isTrial: true,
+      trialDurationDays: DEFAULT_TRIAL_DAYS,
+      trialStartDate: trialStart,
+      trialEndDate: trialEnd,
+      nextBillingDate: trialEnd,
       updatedAt: new Date(),
-      lastPaymentRef: "chariow_inv_live_884920",
+      lastPaymentRef: "trial_promoter_50d",
       checkoutUrl: CHARIOW_SUBSCRIPTION_PLANS.MONTHLY_100K.url,
     });
   }
@@ -114,9 +129,10 @@ class ChariowService {
   public resetState() {
     this.processedEvents.clear();
     this.subscriptions.clear();
+    this.seedDefaultSubscription();
   }
 
-  public getSubscription(tenantId: string): SubscriptionRecord | undefined {
+  public getSubscription(tenantId: string = "tenant-vignoble-001"): SubscriptionRecord | undefined {
     return this.subscriptions.get(tenantId);
   }
 
@@ -148,6 +164,154 @@ class ChariowService {
     return plan.url;
   }
 
+  /**
+   * Vérifie si le tenant a le droit d'effectuer des opérations opérationnelles sur le site.
+   * Règle d'entreprise :
+   * - Pendant les 50 jours d'essai du promoteur : opérations autorisées.
+   * - À l'issue des 50 jours : le personnel peut se connecter (authentification OK)
+   *   mais NE PEUT PLUS faire aucune opération (commandes, encaissements, réservations, facturation).
+   * - Dès règlement Chariow (1, 6 ou 12 mois) : licence active, opérations débloquées.
+   */
+  public canPerformOperations(tenantId: string = "tenant-vignoble-001"): {
+    allowed: boolean;
+    status: SubscriptionStatus;
+    isTrial: boolean;
+    isExpired: boolean;
+    daysRemaining: number;
+    trialEndDate: Date;
+    reason?: string;
+  } {
+    const sub = this.getSubscription(tenantId);
+    const now = new Date();
+
+    if (!sub) {
+      return {
+        allowed: true,
+        status: "ACTIVE",
+        isTrial: false,
+        isExpired: false,
+        daysRemaining: 0,
+        trialEndDate: new Date(),
+      };
+    }
+
+    // Cas 1 : Abonnement Chariow payant (non essai)
+    if (!sub.isTrial) {
+      const isPastDue =
+        sub.status === "PAST_DUE" ||
+        sub.status === "CANCELLED" ||
+        sub.status === "EXPIRED" ||
+        now.getTime() > new Date(sub.nextBillingDate).getTime();
+
+      if (isPastDue) {
+        return {
+          allowed: false,
+          status: "EXPIRED",
+          isTrial: false,
+          isExpired: true,
+          daysRemaining: 0,
+          trialEndDate: sub.trialEndDate,
+          reason:
+            "L'abonnement Chariow a expiré. Veuillez renouveler la licence logicielle pour réactiver les opérations.",
+        };
+      }
+
+      return {
+        allowed: true,
+        status: "ACTIVE",
+        isTrial: false,
+        isExpired: false,
+        daysRemaining: 0,
+        trialEndDate: sub.trialEndDate,
+      };
+    }
+
+    // Cas 2 : Période d'essai de 50 jours
+    const end = new Date(sub.trialEndDate).getTime();
+    const isExpired =
+      now.getTime() > end ||
+      sub.status === "EXPIRED" ||
+      sub.status === "PAST_DUE" ||
+      sub.status === "CANCELLED";
+
+    if (isExpired) {
+      return {
+        allowed: false,
+        status: "EXPIRED",
+        isTrial: true,
+        isExpired: true,
+        daysRemaining: 0,
+        trialEndDate: sub.trialEndDate,
+        reason:
+          "La période d'essai de 50 jours du promoteur est expirée. Toutes les opérations (commandes, encaissements, réservations, facturation) sont suspendues. Le personnel reste connecté en consultation seule jusqu'au règlement de la licence par le promoteur via Chariow.",
+      };
+    }
+
+    const diffMs = end - now.getTime();
+    const daysRemaining = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+    return {
+      allowed: true,
+      status: "ACTIVE",
+      isTrial: true,
+      isExpired: false,
+      daysRemaining,
+      trialEndDate: sub.trialEndDate,
+    };
+  }
+
+  /**
+   * Lève une exception si les opérations ne sont pas permises.
+   */
+  public assertOperationsAllowed(tenantId: string = "tenant-vignoble-001"): void {
+    const check = this.canPerformOperations(tenantId);
+    if (!check.allowed) {
+      const err: any = new Error(check.reason || "Période d'essai expirée. Opérations suspendues.");
+      err.code = "TRIAL_EXPIRED";
+      err.statusCode = 403;
+      throw err;
+    }
+  }
+
+  /**
+   * Modifie dynamiquement la durée d'essai restante (utile pour les simulations et les tests).
+   */
+  public setTrialPeriod(daysRemaining: number, tenantId: string = "tenant-vignoble-001"): SubscriptionRecord {
+    const sub = this.getSubscription(tenantId) || {
+      tenantId,
+      tenantName: "Groupe Hôtelier Le Vignoble",
+      provider: "CHARIOW" as const,
+      planCode: "MONTHLY_100K" as ChariowPlanCode,
+      planName: "HotelGest Enterprise Multi-Sites (Essai 50 Jours)",
+      amountXof: envConfig.CHARIOW_PLANS.MONTHLY_XOF,
+      status: "ACTIVE" as const,
+      isTrial: true,
+      trialDurationDays: DEFAULT_TRIAL_DAYS,
+      trialStartDate: new Date(TRIAL_START_DATE_ISO),
+      trialEndDate: new Date(),
+      nextBillingDate: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const now = new Date();
+    const newEndDate =
+      daysRemaining > 0
+        ? new Date(now.getTime() + daysRemaining * 24 * 60 * 60 * 1000)
+        : new Date(now.getTime() - 3600 * 1000); // 1h dans le passé
+
+    const updated: SubscriptionRecord = {
+      ...sub,
+      isTrial: true,
+      status: daysRemaining > 0 ? "ACTIVE" : "EXPIRED",
+      trialEndDate: newEndDate,
+      nextBillingDate: newEndDate,
+      updatedAt: new Date(),
+    };
+
+    this.subscriptions.set(tenantId, updated);
+    return updated;
+  }
+
   public async createCheckoutSession(
     tenantId: string,
     planCode: ChariowPlanCode = "MONTHLY_100K",
@@ -156,8 +320,6 @@ class ChariowService {
     const plan = this.getPlanInfo(planCode);
     const amountXof = plan.amountXof;
     const sessionId = `chariow_chk_${Date.now()}`;
-
-    // Le lien officiel direct Chariow vers la page produit avec support MoMo et Carte Bancaire
     const checkoutUrl = plan.url;
 
     createAuditLogEntry({
@@ -184,7 +346,7 @@ class ChariowService {
 
   public updateSubscriptionStatus(
     tenantId: string,
-    status: "ACTIVE" | "PAST_DUE" | "CANCELLED",
+    status: SubscriptionStatus,
     planCode?: ChariowPlanCode
   ): SubscriptionRecord {
     const existing = this.subscriptions.get(tenantId) || {
@@ -195,6 +357,10 @@ class ChariowService {
       planName: "HotelGest Enterprise Multi-Sites",
       amountXof: envConfig.CHARIOW_PLANS.MONTHLY_XOF,
       status: "ACTIVE" as const,
+      isTrial: false,
+      trialDurationDays: DEFAULT_TRIAL_DAYS,
+      trialStartDate: new Date(TRIAL_START_DATE_ISO),
+      trialEndDate: new Date(),
       nextBillingDate: new Date(),
       updatedAt: new Date(),
     };
@@ -204,6 +370,7 @@ class ChariowService {
     const updated: SubscriptionRecord = {
       ...existing,
       status,
+      isTrial: status === "ACTIVE" ? (existing.isTrial ?? false) : false,
       planCode: targetPlan.code,
       amountXof: targetPlan.amountXof,
       checkoutUrl: targetPlan.url,
@@ -321,9 +488,13 @@ class ChariowService {
       tenantName: "Groupe Hôtelier Le Vignoble (4 Agences)",
       provider: "CHARIOW",
       planCode: resolvedPlanCode,
-      planName: `HotelGest - ${planInfo.name}`,
+      planName: planInfo.name,
       amountXof,
       status: "ACTIVE",
+      isTrial: false, // Dès le paiement Chariow, la licence devient commerciale et payée
+      trialDurationDays: DEFAULT_TRIAL_DAYS,
+      trialStartDate: new Date(TRIAL_START_DATE_ISO),
+      trialEndDate: nextBilling,
       nextBillingDate: nextBilling,
       updatedAt: new Date(),
       lastPaymentRef: saleId,
@@ -336,20 +507,18 @@ class ChariowService {
       tenantId,
       action: "CHARIOW_WEBHOOK_PROCESSED",
       entityType: "SUBSCRIPTION",
-      entityId: eventId,
+      entityId: saleId,
       details: {
-        eventType: event.event_type || event.event || "successful.sale",
         planCode: resolvedPlanCode,
         amountXof,
-        saleId,
-        productId: rawProductId,
-        durationDays: planInfo.durationDays,
+        status: "ACTIVE",
+        isTrial: false,
+        nextBillingDate: nextBilling.toISOString(),
       },
     });
 
     return {
       success: true,
-      isDuplicate: false,
       status: "ACTIVE",
       planCode: resolvedPlanCode,
       saleId,

@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeInvoiceWithEmecef, EmecefInvoicePayload } from "@/lib/fiscal/emecef-service";
+import { chariowService } from "@/modules/subscription/chariow-service";
 
 export async function POST(req: NextRequest) {
   try {
+    const opsCheck = chariowService.canPerformOperations("tenant-vignoble-001");
+    if (!opsCheck.allowed) {
+      return NextResponse.json(
+        { error: opsCheck.reason || "Période d'essai expirée. Opérations fiscales suspendues." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
 
     const { client, items, payment, type = "FV", ifu, operator, reference } = body;

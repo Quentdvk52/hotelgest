@@ -33,6 +33,9 @@ export function SubscriptionManager({ isPromoter }: SubscriptionManagerProps) {
   const [selectedPlan, setSelectedPlan] = useState<ChariowPlanCode>("SEMIANNUAL_540K");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
+  const ops = chariowService.canPerformOperations("tenant-vignoble-001");
+  const sub = chariowService.getSubscription("tenant-vignoble-001");
+
   // Invoices history for Groupe Le Vignoble
   const invoices = [
     {
@@ -81,32 +84,66 @@ export function SubscriptionManager({ isPromoter }: SubscriptionManagerProps) {
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Licence SaaS Active • Multi-Établissements
-            </div>
+            {ops.isTrial ? (
+              ops.isExpired ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
+                  Période d'Essai de 50 Jours Expirée • Opérations Suspendues
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  Période d'Essai Promoteur Active • {ops.daysRemaining} Jours Restants (sur 50j)
+                </div>
+              )
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Licence Commerciale Chariow Active • Multi-Établissements
+              </div>
+            )}
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Abonnement & Facturation Logiciel
             </h2>
             <p className="text-stone-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Le logiciel <strong>HotelGest</strong> est hébergé et maintenu pour le{" "}
-              <strong className="text-[#d4af37]">Groupe Hôtelier Le Vignoble</strong> couvrant 4 établissements
-              (Bohicon, Abomey, Abomey-Calavi et Zogbodomey). Les renouvellements sont traités en toute sécurité
-              via la passerelle officielle <strong className="text-blue-400">Chariow</strong>.
+              {ops.isTrial ? (
+                ops.isExpired ? (
+                  <>
+                    <strong className="text-red-400">Attention :</strong> La période d&apos;essai gratuite de 50 jours accordée au promoteur (M. Eddy GNACADJA) est arrivée à expiration. Le personnel peut continuer à se connecter en consultation seule, mais <strong>toutes les opérations (commandes, factures, encaissements, réservations) sont bloquées</strong>. Activez un forfait ci-dessous pour débloquer immédiatement le système.
+                  </>
+                ) : (
+                  <>
+                    Le logiciel <strong>HotelGest</strong> fonctionne actuellement sous la <strong className="text-amber-300">période d&apos;essai gratuite de 50 jours</strong> accordée au promoteur à compter d&apos;aujourd&apos;hui (17 Novembre 2026). À la fin de cette période ({new Date("2027-01-06T00:00:00.000Z").toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}), le personnel pourra toujours se connecter mais ne pourra plus effectuer d&apos;opérations jusqu&apos;à activation de l&apos;un des forfaits Chariow ci-dessous.
+                  </>
+                )
+              ) : (
+                <>
+                  Le logiciel <strong>HotelGest</strong> est hébergé et maintenu pour le{" "}
+                  <strong className="text-[#d4af37]">Groupe Hôtelier Le Vignoble</strong> couvrant 4 établissements
+                  (Bohicon, Abomey, Abomey-Calavi et Zogbodomey). Les renouvellements sont traités en toute sécurité
+                  via la passerelle officielle <strong className="text-blue-400">Chariow</strong>.
+                </>
+              )}
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+            <div className={`border rounded-2xl p-4 backdrop-blur-md ${ops.isTrial && ops.isExpired ? "bg-red-950/40 border-red-500/30" : "bg-white/5 border-white/10"}`}>
               <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">
-                Prochain renouvellement
+                {ops.isTrial ? (ops.isExpired ? "Statut Licence" : "Fin Période d'Essai") : "Prochain renouvellement"}
               </span>
-              <div className="text-lg font-bold text-[#d4af37] mt-0.5 flex items-center gap-1.5">
+              <div className={`text-lg font-bold mt-0.5 flex items-center gap-1.5 ${ops.isTrial && ops.isExpired ? "text-red-400" : "text-[#d4af37]"}`}>
                 <Clock className="w-4 h-4" />
-                <span>15 Décembre 2026</span>
+                <span>
+                  {ops.isTrial
+                    ? (ops.isExpired ? "Expirée (0 jour restant)" : "6 Janvier 2027 (50j)")
+                    : "15 Décembre 2026"}
+                </span>
               </div>
               <span className="text-[10px] text-stone-400 mt-1 block">
-                Prélèvement sécurisé Chariow • MoMo / Cartes
+                {ops.isTrial && ops.isExpired
+                  ? "Opérations suspendues • Action requise"
+                  : "Passerelle officielle Chariow • MoMo & Cartes"}
               </span>
             </div>
           </div>
