@@ -28,6 +28,7 @@ export interface DiningTableRecord {
   spaceType: SpaceType;
   capacity: number;
   zoneId?: string;
+  imageUrl?: string;
 }
 
 export interface RoomUnitRecord {
@@ -36,6 +37,7 @@ export interface RoomUnitRecord {
   unitNumber: string;
   roomName: string;
   floor: string;
+  imageUrl?: string;
 }
 
 export interface QrResourceRecord {
@@ -55,6 +57,7 @@ export interface QrResourceRecord {
   spaceType?: SpaceType;
   unitNumber?: string;
   roomName?: string;
+  imageUrl?: string;
   directUrl: string;
   revoked: boolean;
   createdAt: Date;
@@ -85,52 +88,58 @@ const INITIAL_ZONES: ZoneRecord[] = [
   { id: "zone-zog-paillote", propertyId: "prop-zogbo-004", name: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 120, description: "Plein air sous ombrage naturel", createdAt: new Date() },
 ];
 
+export const DEFAULT_TABLE_IMAGE =
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
+
+export const DEFAULT_ROOM_IMAGE =
+  "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80";
+
 // Initial multi-space tables across Groupe Le Vignoble
 const INITIAL_TABLES: DiningTableRecord[] = [
   // Bohicon
-  { id: "tbl-boh-01", propertyId: "prop-bohicon-001", tableNumber: "Table 01", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto" },
-  { id: "tbl-boh-02", propertyId: "prop-bohicon-001", tableNumber: "Table 02", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto" },
-  { id: "tbl-boh-03", propertyId: "prop-bohicon-001", tableNumber: "Table 03", spaceName: "Terrasse Piscine & Paillotes", spaceType: "TERRASSE", capacity: 6, zoneId: "zone-boh-terrasse" },
-  { id: "tbl-boh-bar-01", propertyId: "prop-bohicon-001", tableNumber: "Comptoir Bar 1", spaceName: "Bar & Cave d'Exception", spaceType: "BAR", capacity: 2, zoneId: "zone-boh-bar" },
-  { id: "tbl-boh-fete-01", propertyId: "prop-bohicon-001", tableNumber: "Table Royale 01", spaceName: "Salle des Fêtes & Banquets Agadja", spaceType: "BANQUET", capacity: 10, zoneId: "zone-boh-fete" },
-  { id: "tbl-boh-conf-01", propertyId: "prop-bohicon-001", tableNumber: "Tribune Conférence A", spaceName: "Salle de Conférences & Séminaires", spaceType: "CONFERENCE", capacity: 12, zoneId: "zone-boh-conf" },
-  { id: "tbl-boh-vip-01", propertyId: "prop-bohicon-001", tableNumber: "Salon Privé Danxomè", spaceName: "Espace VIP & Lounge Exécutif", spaceType: "VIP", capacity: 8, zoneId: "zone-boh-vip" },
+  { id: "tbl-boh-01", propertyId: "prop-bohicon-001", tableNumber: "Table 01", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto", imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-02", propertyId: "prop-bohicon-001", tableNumber: "Table 02", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto", imageUrl: "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-03", propertyId: "prop-bohicon-001", tableNumber: "Table 03", spaceName: "Terrasse Piscine & Paillotes", spaceType: "TERRASSE", capacity: 6, zoneId: "zone-boh-terrasse", imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-bar-01", propertyId: "prop-bohicon-001", tableNumber: "Comptoir Bar 1", spaceName: "Bar & Cave d'Exception", spaceType: "BAR", capacity: 2, zoneId: "zone-boh-bar", imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-fete-01", propertyId: "prop-bohicon-001", tableNumber: "Table Royale 01", spaceName: "Salle des Fêtes & Banquets Agadja", spaceType: "BANQUET", capacity: 10, zoneId: "zone-boh-fete", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-conf-01", propertyId: "prop-bohicon-001", tableNumber: "Tribune Conférence A", spaceName: "Salle de Conférences & Séminaires", spaceType: "CONFERENCE", capacity: 12, zoneId: "zone-boh-conf", imageUrl: "https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-boh-vip-01", propertyId: "prop-bohicon-001", tableNumber: "Salon Privé Danxomè", spaceName: "Espace VIP & Lounge Exécutif", spaceType: "VIP", capacity: 8, zoneId: "zone-boh-vip", imageUrl: "https://images.unsplash.com/photo-1578474846511-04ba529f0b88?auto=format&fit=crop&w=1200&q=80" },
 
   // Abomey
-  { id: "tbl-abm-01", propertyId: "prop-abomey-002", tableNumber: "Table 01", spaceName: "Restaurant Roi Béhanzin", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abm-resto" },
-  { id: "tbl-abm-fete-01", propertyId: "prop-abomey-002", tableNumber: "Table Prestige 01", spaceName: "Salle des Fêtes & Événements", spaceType: "BANQUET", capacity: 10, zoneId: "zone-abm-fete" },
-  { id: "tbl-abm-conf-01", propertyId: "prop-abomey-002", tableNumber: "Plénière 01", spaceName: "Salle de Séminaires Historique", spaceType: "CONFERENCE", capacity: 14, zoneId: "zone-abm-conf" },
+  { id: "tbl-abm-01", propertyId: "prop-abomey-002", tableNumber: "Table 01", spaceName: "Restaurant Roi Béhanzin", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abm-resto", imageUrl: "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-abm-fete-01", propertyId: "prop-abomey-002", tableNumber: "Table Prestige 01", spaceName: "Salle des Fêtes & Événements", spaceType: "BANQUET", capacity: 10, zoneId: "zone-abm-fete", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-abm-conf-01", propertyId: "prop-abomey-002", tableNumber: "Plénière 01", spaceName: "Salle de Séminaires Historique", spaceType: "CONFERENCE", capacity: 14, zoneId: "zone-abm-conf", imageUrl: "https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=1200&q=80" },
 
   // Abomey-Calavi
-  { id: "tbl-abc-01", propertyId: "prop-calavi-003", tableNumber: "Table 01", spaceName: "Restaurant Gastronomique Calavi", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abc-resto" },
-  { id: "tbl-abc-fete-01", propertyId: "prop-calavi-003", tableNumber: "Table Gala 01", spaceName: "Grande Salle de Réception Calavi", spaceType: "BANQUET", capacity: 12, zoneId: "zone-abc-fete" },
-  { id: "tbl-abc-conf-01", propertyId: "prop-calavi-003", tableNumber: "Salle Conseil", spaceName: "Espace Conférences & Affaires UAC", spaceType: "CONFERENCE", capacity: 16, zoneId: "zone-abc-conf" },
+  { id: "tbl-abc-01", propertyId: "prop-calavi-003", tableNumber: "Table 01", spaceName: "Restaurant Gastronomique Calavi", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abc-resto", imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-abc-fete-01", propertyId: "prop-calavi-003", tableNumber: "Table Gala 01", spaceName: "Grande Salle de Réception Calavi", spaceType: "BANQUET", capacity: 12, zoneId: "zone-abc-fete", imageUrl: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-abc-conf-01", propertyId: "prop-calavi-003", tableNumber: "Salle Conseil", spaceName: "Espace Conférences & Affaires UAC", spaceType: "CONFERENCE", capacity: 16, zoneId: "zone-abc-conf", imageUrl: "https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=1200&q=80" },
 
   // Zogbodomey
-  { id: "tbl-zog-01", propertyId: "prop-zogbo-004", tableNumber: "Table 01", spaceName: "Restaurant Terroir & Saveurs", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-zog-resto" },
-  { id: "tbl-zog-paillote-01", propertyId: "prop-zogbo-004", tableNumber: "Paillote Centrale", spaceName: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 8, zoneId: "zone-zog-paillote" },
+  { id: "tbl-zog-01", propertyId: "prop-zogbo-004", tableNumber: "Table 01", spaceName: "Restaurant Terroir & Saveurs", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-zog-resto", imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80" },
+  { id: "tbl-zog-paillote-01", propertyId: "prop-zogbo-004", tableNumber: "Paillote Centrale", spaceName: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 8, zoneId: "zone-zog-paillote", imageUrl: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80" },
 ];
 
 // Initial rooms across all 4 properties of Groupe Le Vignoble
 const INITIAL_ROOMS: RoomUnitRecord[] = [
   // Bohicon
-  { id: "unit-101", propertyId: "prop-bohicon-001", unitNumber: "101", roomName: "Suite Royale Le Vignoble", floor: "1er étage" },
-  { id: "unit-102", propertyId: "prop-bohicon-001", unitNumber: "102", roomName: "Suite Supérieure Exécutive", floor: "1er étage" },
-  { id: "unit-103", propertyId: "prop-bohicon-001", unitNumber: "103", roomName: "Chambre Standard Confort", floor: "1er étage" },
-  { id: "unit-201", propertyId: "prop-bohicon-001", unitNumber: "201", roomName: "Chambre Supérieure Balcon", floor: "2ème étage" },
-  { id: "unit-301", propertyId: "prop-bohicon-001", unitNumber: "301", roomName: "Pavillon Familial Jardin", floor: "Rez-de-jardin" },
+  { id: "unit-101", propertyId: "prop-bohicon-001", unitNumber: "101", roomName: "Suite Royale Le Vignoble", floor: "1er étage", imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-102", propertyId: "prop-bohicon-001", unitNumber: "102", roomName: "Suite Supérieure Exécutive", floor: "1er étage", imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-103", propertyId: "prop-bohicon-001", unitNumber: "103", roomName: "Chambre Standard Confort", floor: "1er étage", imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-201", propertyId: "prop-bohicon-001", unitNumber: "201", roomName: "Chambre Supérieure Balcon", floor: "2ème étage", imageUrl: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-301", propertyId: "prop-bohicon-001", unitNumber: "301", roomName: "Pavillon Familial Jardin", floor: "Rez-de-jardin", imageUrl: "https://images.unsplash.com/photo-1540518614846-7ede433c4550?auto=format&fit=crop&w=1200&q=80" },
 
   // Abomey
-  { id: "unit-abm-101", propertyId: "prop-abomey-002", unitNumber: "101", roomName: "Chambre Confort Patrimoine", floor: "1er étage" },
-  { id: "unit-abm-201", propertyId: "prop-abomey-002", unitNumber: "201", roomName: "Suite Historique Abomey", floor: "2ème étage" },
+  { id: "unit-abm-101", propertyId: "prop-abomey-002", unitNumber: "101", roomName: "Chambre Confort Patrimoine", floor: "1er étage", imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-abm-201", propertyId: "prop-abomey-002", unitNumber: "201", roomName: "Suite Historique Abomey", floor: "2ème étage", imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80" },
 
   // Abomey-Calavi
-  { id: "unit-abc-101", propertyId: "prop-calavi-003", unitNumber: "101", roomName: "Suite Affaires & Congrès", floor: "1er étage" },
-  { id: "unit-abc-201", propertyId: "prop-calavi-003", unitNumber: "201", roomName: "Chambre Exécutive Calavi", floor: "2ème étage" },
+  { id: "unit-abc-101", propertyId: "prop-calavi-003", unitNumber: "101", roomName: "Suite Affaires & Congrès", floor: "1er étage", imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-abc-201", propertyId: "prop-calavi-003", unitNumber: "201", roomName: "Chambre Exécutive Calavi", floor: "2ème étage", imageUrl: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80" },
 
   // Zogbodomey
-  { id: "unit-zog-101", propertyId: "prop-zogbo-004", unitNumber: "101", roomName: "Bungalow Prestige Nature", floor: "Rez-de-chaussée" },
-  { id: "unit-zog-102", propertyId: "prop-zogbo-004", unitNumber: "102", roomName: "Chambre Détente & Terroir", floor: "Rez-de-chaussée" },
+  { id: "unit-zog-101", propertyId: "prop-zogbo-004", unitNumber: "101", roomName: "Bungalow Prestige Nature", floor: "Rez-de-chaussée", imageUrl: "https://images.unsplash.com/photo-1540518614846-7ede433c4550?auto=format&fit=crop&w=1200&q=80" },
+  { id: "unit-zog-102", propertyId: "prop-zogbo-004", unitNumber: "102", roomName: "Chambre Détente & Terroir", floor: "Rez-de-chaussée", imageUrl: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1200&q=80" },
 ];
 
 class QrService {
@@ -207,6 +216,7 @@ class QrService {
       tableNumber: table.tableNumber,
       spaceName: table.spaceName,
       spaceType: table.spaceType,
+      imageUrl: table.imageUrl || DEFAULT_TABLE_IMAGE,
       directUrl: `/order/${token}`,
       revoked: false,
       createdAt: new Date(),
@@ -235,6 +245,7 @@ class QrService {
       unitId: unit.id,
       unitNumber: unit.unitNumber,
       roomName: unit.roomName,
+      imageUrl: unit.imageUrl || DEFAULT_ROOM_IMAGE,
       directUrl: `/order/${token}`,
       revoked: false,
       createdAt: new Date(),
@@ -321,7 +332,8 @@ class QrService {
     spaceName: string,
     spaceType: SpaceType = "RESTAURANT",
     capacity: number = 4,
-    zoneId?: string
+    zoneId?: string,
+    imageUrl?: string
   ): { table: DiningTableRecord; qr: QrResourceRecord } {
     const tableId = `tbl-${propertyId.replace("prop-", "")}-${Date.now().toString(36)}`;
     const table: DiningTableRecord = {
@@ -332,6 +344,7 @@ class QrService {
       spaceType,
       capacity,
       zoneId,
+      imageUrl: imageUrl || DEFAULT_TABLE_IMAGE,
     };
     this.diningTables.push(table);
     const qr = this.createTableQrResource(table);
@@ -355,7 +368,8 @@ class QrService {
     propertyId: string,
     unitNumber: string,
     roomName: string,
-    floor: string = "RDC"
+    floor: string = "RDC",
+    imageUrl?: string
   ): { room: RoomUnitRecord; qr: QrResourceRecord } {
     const unitId = `unit-${propertyId.replace("prop-", "")}-${unitNumber.toLowerCase().replace(/\s+/g, "-")}`;
     const room: RoomUnitRecord = {
@@ -364,6 +378,7 @@ class QrService {
       unitNumber,
       roomName,
       floor,
+      imageUrl: imageUrl || DEFAULT_ROOM_IMAGE,
     };
     this.roomUnits.push(room);
     const qr = this.createRoomQrResource(room);
@@ -435,6 +450,7 @@ class QrService {
           unitId: matchedRoom.id,
           unitNumber: matchedRoom.unitNumber,
           roomName: matchedRoom.roomName,
+          imageUrl: matchedRoom.imageUrl || DEFAULT_ROOM_IMAGE,
           directUrl: `/order/${token}`,
           revoked: false,
           createdAt: new Date(),
@@ -467,6 +483,7 @@ class QrService {
           tableNumber: matchedTable.tableNumber,
           spaceName: matchedTable.spaceName,
           spaceType: matchedTable.spaceType,
+          imageUrl: matchedTable.imageUrl || DEFAULT_TABLE_IMAGE,
           directUrl: `/order/${token}`,
           revoked: false,
           createdAt: new Date(),

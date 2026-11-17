@@ -121,6 +121,19 @@ export default function GuestQrOrderPage() {
     loadData();
   }, [token]);
 
+  // Close modals & drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isCartOpen) setIsCartOpen(false);
+        if (selectedMealForCustomization) setSelectedMealForCustomization(null);
+        if (isCheckoutOpen) setIsCheckoutOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCartOpen, selectedMealForCustomization, isCheckoutOpen]);
+
   // Current items filtered by active tab & search
   const currentItems = useMemo(() => {
     let items: MenuItem[] = [];
@@ -191,6 +204,9 @@ export default function GuestQrOrderPage() {
         },
       ];
     });
+
+    // AUTO-OPEN: Automatically opens the responsive cart drawer on every add
+    setIsCartOpen(true);
   };
 
   const updateCartLineQty = (lineId: string, delta: number) => {
@@ -455,10 +471,13 @@ export default function GuestQrOrderPage() {
 
       {/* Main Body */}
       <main className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
-        {/* 1. Interactive 3D Luxury Cloche Showcase */}
+        {/* 1. Interactive Showcase: Photo of Table/Room with 3D Cloche Toggle */}
         <LuxuryCloche3d
           propertyName={property?.name || "Hôtel Le Vignoble"}
           tableOrRoom={destinationText}
+          imageUrl={resource?.imageUrl}
+          spaceName={resource?.spaceName || resource?.roomName}
+          resourceType={resource?.resourceType || "TABLE"}
           onExploreMenu={() => {
             menuListRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
@@ -724,92 +743,174 @@ export default function GuestQrOrderPage() {
         </div>
       )}
 
-      {/* 6. BOTTOM SHEET / CART DRAWER */}
+      {/* 6. RESPONSIVE CART DRAWER: Volet latéral droit sur PC, Tiroir automatique depuis le bas sur Mobile */}
       {isCartOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end justify-center animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-gradient-to-b from-[#1a1714] to-[#0e0d0c] border-t border-[#d4af37]/40 rounded-t-3xl p-5 text-white max-h-[85vh] flex flex-col shadow-2xl">
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Backdrop with blur & close handler */}
+          <div
+            onClick={() => setIsCartOpen(false)}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+          />
+
+          {/* Drawer container:
+              - Mobile (< md): fixed at bottom, full width, rounded top, max-h-[85vh], slide-in-from-bottom
+              - Desktop (>= md): fixed at top-right, w-[460px], full height, rounded-l-3xl, border-l, slide-in-from-right
+          */}
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Votre Panier"
+            className="fixed z-50 bg-gradient-to-b from-[#1c1815] via-[#141210] to-[#0e0d0c] text-white flex flex-col shadow-2xl transition-transform duration-300 ease-out
+                       bottom-0 inset-x-0 max-h-[85vh] rounded-t-3xl border-t border-[#d4af37]/40 animate-in slide-in-from-bottom
+                       md:top-0 md:bottom-0 md:right-0 md:left-auto md:w-[460px] md:h-full md:max-h-full md:rounded-none md:rounded-l-3xl md:border-l md:border-t-0 md:border-[#d4af37]/40 md:slide-in-from-right"
+          >
+            {/* Mobile drag handle */}
+            <div className="w-12 h-1 bg-stone-600 rounded-full mx-auto my-2 md:hidden" />
+
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-stone-800">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-[#d4af37]" />
-                <h3 className="font-bold text-base text-stone-100">Votre Sélection</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[#d4af37]/20 text-[#d4af37] font-bold">
-                  {cartItemCount}
-                </span>
+            <div className="px-5 py-3.5 border-b border-stone-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#d4af37] text-black flex items-center justify-center font-black">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm text-stone-100 font-serif">Votre Panier</h3>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#d4af37]/20 text-[#d4af37] font-bold">
+                      {cartItemCount} {cartItemCount > 1 ? "articles" : "article"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-stone-400">
+                    Destination : <span className="text-amber-300 font-medium">{destinationText}</span>
+                  </p>
+                </div>
               </div>
+
+              {/* Close Button */}
               <button
                 onClick={() => setIsCartOpen(false)}
-                className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center text-stone-400 hover:text-white"
+                className="px-3 py-1.5 rounded-full bg-stone-800/90 hover:bg-stone-700 text-stone-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors border border-stone-700"
+                title="Fermer le panier"
               >
                 <X className="w-4 h-4" />
+                <span>Fermer</span>
               </button>
             </div>
 
             {/* Items scroll */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-3">
-              {cart.map((ci) => (
-                <div
-                  key={ci.id}
-                  className="p-3 rounded-xl bg-stone-900/70 border border-stone-800 flex items-center justify-between gap-3"
-                >
-                  <div className="flex-1">
-                    <h4 className="font-bold text-xs text-stone-100">{ci.product.name}</h4>
-                    {ci.accompaniment && (
-                      <p className="text-[11px] text-amber-300 font-medium">
-                        + {ci.accompaniment}
-                      </p>
-                    )}
-                    {ci.specialInstructions && (
-                      <p className="text-[10px] text-stone-400 italic">
-                        Note: {ci.specialInstructions}
-                      </p>
-                    )}
-                    <span className="text-xs font-bold text-[#d4af37] mt-1 inline-block">
-                      {(ci.product.priceXof * ci.quantity).toLocaleString("fr-FR")} XOF
-                    </span>
-                  </div>
-
-                  {/* Quantity controls */}
-                  <div className="flex items-center gap-2 bg-stone-800 p-1 rounded-lg">
-                    <button
-                      onClick={() => updateCartLineQty(ci.id, -1)}
-                      className="w-7 h-7 rounded bg-stone-700 text-stone-200 flex items-center justify-center active:scale-95"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-5 text-center text-xs font-bold">{ci.quantity}</span>
-                    <button
-                      onClick={() => updateCartLineQty(ci.id, 1)}
-                      className="w-7 h-7 rounded bg-[#d4af37] text-black flex items-center justify-center active:scale-95"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {cart.length === 0 ? (
+                <div className="py-12 text-center text-stone-500 text-xs">
+                  <ShoppingBag className="w-10 h-10 mx-auto text-stone-600 mb-2 opacity-50" />
+                  <p>Votre panier est vide</p>
                 </div>
-              ))}
+              ) : (
+                cart.map((ci) => (
+                  <div
+                    key={ci.id}
+                    className="p-3 rounded-2xl bg-stone-900/80 border border-stone-800/90 flex items-center gap-3 shadow-sm hover:border-stone-700 transition-colors"
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-950 flex-shrink-0 border border-stone-800">
+                      {ci.product.imageUrl ? (
+                        <img
+                          src={ci.product.imageUrl}
+                          alt={ci.product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-stone-600">
+                          {ci.product.unit === "MEAL" ? (
+                            <Utensils className="w-5 h-5" />
+                          ) : ci.product.unit === "WINE" ? (
+                            <Wine className="w-5 h-5" />
+                          ) : (
+                            <Coffee className="w-5 h-5" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-xs text-stone-100 truncate">{ci.product.name}</h4>
+                      {ci.accompaniment && (
+                        <p className="text-[11px] text-amber-300 font-medium truncate">
+                          + {ci.accompaniment}
+                        </p>
+                      )}
+                      {ci.specialInstructions && (
+                        <p className="text-[10px] text-stone-400 italic truncate">
+                          Note : {ci.specialInstructions}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="text-xs font-extrabold text-[#d4af37]">
+                          {(ci.product.priceXof * ci.quantity).toLocaleString("fr-FR")} XOF
+                        </span>
+                        <span className="text-[10px] text-stone-500">
+                          ({ci.product.priceXof.toLocaleString("fr-FR")} × {ci.quantity})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quantity controls */}
+                    <div className="flex flex-col items-center gap-1 bg-stone-950 p-1 rounded-xl border border-stone-800 flex-shrink-0">
+                      <button
+                        onClick={() => updateCartLineQty(ci.id, 1)}
+                        className="w-6 h-6 rounded-lg bg-[#d4af37] text-black flex items-center justify-center active:scale-90 font-bold"
+                        title="Ajouter"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-xs font-bold text-stone-100 py-0.5">{ci.quantity}</span>
+                      <button
+                        onClick={() => updateCartLineQty(ci.id, -1)}
+                        className="w-6 h-6 rounded-lg bg-stone-800 text-stone-300 hover:text-white flex items-center justify-center active:scale-90"
+                        title="Diminuer"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Footer Summary & Checkout Button */}
-            <div className="pt-3 border-t border-stone-800 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-stone-400">Total à régler :</span>
+            {/* Footer Summary & Dual Actions */}
+            <div className="p-5 border-t border-stone-800/90 bg-[#141210]/95 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-stone-400">Total à régler :</span>
                 <span className="text-xl font-extrabold text-[#d4af37]">
                   {cartTotalAmountXof.toLocaleString("fr-FR")} XOF
                 </span>
               </div>
 
-              <button
-                onClick={() => {
-                  setIsCartOpen(false);
-                  setIsCheckoutOpen(true);
-                }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2 shadow-lg"
-              >
-                <span>Passer la commande & Payer</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {/* Two clear buttons: "Continuer mes choix" vs "Passer la commande" */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsCartOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs uppercase tracking-wider transition-all border border-stone-700 flex items-center justify-center gap-1.5 active:scale-98"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Continuer mes choix</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-extrabold text-xs uppercase tracking-wider hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-1.5 shadow-lg"
+                >
+                  <span>Passer commande</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
       )}
 

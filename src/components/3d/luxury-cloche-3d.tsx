@@ -1,23 +1,37 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Sparkles, Utensils, Wine, RefreshCw } from "lucide-react";
+import { Sparkles, Utensils, Wine, RefreshCw, Camera, Bed } from "lucide-react";
 
 interface LuxuryCloche3dProps {
   propertyName?: string;
   tableOrRoom?: string;
+  imageUrl?: string;
+  spaceName?: string;
+  resourceType?: "TABLE" | "ROOM";
   onExploreMenu?: () => void;
 }
 
 export function LuxuryCloche3d({
   propertyName = "Hôtel Le Vignoble",
   tableOrRoom = "Votre Table",
+  imageUrl,
+  spaceName,
+  resourceType = "TABLE",
   onExploreMenu,
 }: LuxuryCloche3dProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [viewMode, setViewMode] = useState<"PHOTO" | "3D">("PHOTO");
   const [isHovered, setIsHovered] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [rotationAngle, setRotationAngle] = useState(0.35);
+
+  const defaultImage =
+    resourceType === "ROOM"
+      ? "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80"
+      : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80";
+
+  const displayImage = imageUrl || defaultImage;
 
   // Drag interaction state
   const isDraggingRef = useRef(false);
@@ -306,57 +320,124 @@ export function LuxuryCloche3d({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#181512] via-[#0f0e0c] to-[#1a1714] border border-[#d4af37]/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-5 text-white">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#181512] via-[#0f0e0c] to-[#1a1714] border border-[#d4af37]/35 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-4 sm:p-5 text-white">
       {/* Ambient background glow */}
       <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-amber-500/10 blur-3xl rounded-full" />
       <div className="pointer-events-none absolute -bottom-24 right-0 w-60 h-60 bg-[#7c3c46]/15 blur-3xl rounded-full" />
 
       {/* Top Header Badge */}
-      <div className="relative z-10 flex items-center justify-between">
+      <div className="relative z-10 flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[11px] uppercase tracking-widest text-amber-200/90 font-medium font-serif">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+          <span className="text-[11px] sm:text-xs uppercase tracking-widest text-amber-200/90 font-medium font-serif truncate">
             Service en Direct • {propertyName}
           </span>
         </div>
-        <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 font-semibold tracking-wide">
+        <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 font-semibold tracking-wide flex-shrink-0">
           {tableOrRoom}
         </span>
       </div>
 
-      {/* Interactive 3D Canvas */}
-      <div
-        className="relative my-1 cursor-grab active:cursor-grabbing select-none"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <canvas
-          ref={canvasRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="w-full h-[220px] touch-none block"
-        />
+      {/* PHOTO VIEW (DEFAULT) */}
+      {viewMode === "PHOTO" ? (
+        <div className="relative my-1 rounded-2xl overflow-hidden border border-[#d4af37]/40 shadow-xl group h-[220px] sm:h-[250px] bg-stone-950">
+          <img
+            src={displayImage}
+            alt={tableOrRoom}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          />
 
-        {/* Floating action pill on the canvas */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <button
-            onClick={toggleCloche}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/30 text-[11px] text-amber-200 font-medium hover:bg-black/80 transition-all active:scale-95 shadow-lg"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            {isOpen ? "Reposer le dôme royal" : "Soulever le dôme royal"}
-          </button>
+          {/* Vignette Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/35 pointer-events-none" />
+
+          {/* Mode Switcher (top right) */}
+          <div className="absolute top-2.5 right-2.5 z-10">
+            <button
+              onClick={() => setViewMode("3D")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-amber-400/40 text-[11px] text-amber-200 font-medium hover:bg-black/90 transition-all active:scale-95 shadow-lg"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Dôme 3D</span>
+            </button>
+          </div>
+
+          {/* Location Badge & Info (bottom left) */}
+          <div className="absolute bottom-3 left-3 right-3 z-10">
+            <div className="flex items-center gap-1.5 mb-1">
+              {resourceType === "ROOM" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#d4af37]/25 border border-[#d4af37]/50 text-[#d4af37] text-[10px] font-bold">
+                  <Bed className="w-3 h-3" /> Chambre / Suite
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#d4af37]/25 border border-[#d4af37]/50 text-[#d4af37] text-[10px] font-bold">
+                  <Utensils className="w-3 h-3" /> Table Restaurant
+                </span>
+              )}
+            </div>
+            <h3 className="font-serif font-black text-base sm:text-lg text-white drop-shadow-md leading-tight">
+              {spaceName || (resourceType === "ROOM" ? "Chambre & Suite Prestige" : "Restaurant Le Vignoble")}
+            </h3>
+            <p className="text-[11px] text-stone-300 drop-shadow line-clamp-1 mt-0.5">
+              {resourceType === "ROOM"
+                ? "Service en chambre 24h/24 • Boissons fraîches & carte gastronomique"
+                : "Service en salle en direct • Boissons au bar, cuisine & cave à vin"}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* INTERACTIVE 3D CANVAS VIEW */
+        <div
+          className="relative my-1 cursor-grab active:cursor-grabbing select-none"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <canvas
+            ref={canvasRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className="w-full h-[220px] touch-none block"
+          />
+
+          {/* Top Right Switch to Photo */}
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              onClick={() => setViewMode("PHOTO")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-amber-400/40 text-[11px] text-amber-200 font-medium hover:bg-black/90 transition-all active:scale-95 shadow-lg"
+            >
+              <Camera className="w-3.5 h-3.5 text-amber-400" />
+              <span>Photo du Lieu</span>
+            </button>
+          </div>
+
+          {/* Floating action pill on the canvas */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <button
+              onClick={toggleCloche}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-400/30 text-[11px] text-amber-200 font-medium hover:bg-black/80 transition-all active:scale-95 shadow-lg"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              {isOpen ? "Reposer le dôme royal" : "Soulever le dôme royal"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer controls & prompt */}
-      <div className="relative z-10 pt-1 border-t border-amber-400/15 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-stone-400 text-[11px]">
-          <RefreshCw className="w-3 h-3 text-amber-400/80 animate-spin" style={{ animationDuration: "14s" }} />
-          <span>Faites glisser pour tourner en 3D</span>
-        </div>
+      <div className="relative z-10 pt-2 mt-1 border-t border-amber-400/15 flex items-center justify-between text-xs">
+        {viewMode === "PHOTO" ? (
+          <div className="flex items-center gap-1.5 text-stone-300 text-[11px]">
+            <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Cadre authentique • Service dédié 24h/24</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-stone-400 text-[11px]">
+            <RefreshCw className="w-3 h-3 text-amber-400/80 animate-spin" style={{ animationDuration: "14s" }} />
+            <span>Faites glisser pour tourner en 3D</span>
+          </div>
+        )}
+
         {onExploreMenu && (
           <button
             onClick={onExploreMenu}

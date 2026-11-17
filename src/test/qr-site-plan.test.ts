@@ -35,6 +35,24 @@ describe("Promoter QR Site Plan & QR Matrix Generator", () => {
     expect(resolved?.roomName).toBe("Suite Royale Le Vignoble");
     expect(resolved?.propertyName).toBe("Hôtel Le Vignoble - Bohicon");
     expect(resolved?.propertyPhone).toBe("+229 97 00 11 22");
+    expect(resolved?.imageUrl).toBeDefined();
+    expect(resolved?.imageUrl).toContain("unsplash.com");
+  });
+
+  it("should provide high-definition images for all rooms and tables in QR resources", () => {
+    const tables = qrService.listDiningTables();
+    tables.forEach((t) => {
+      const qr = qrService.getQrForTable(t.id);
+      expect(qr?.imageUrl).toBeDefined();
+      expect(qr?.imageUrl).toContain("images.unsplash.com");
+    });
+
+    const rooms = qrService.listRoomUnits();
+    rooms.forEach((r) => {
+      const qr = qrService.getQrForRoom(r.id);
+      expect(qr?.imageUrl).toBeDefined();
+      expect(qr?.imageUrl).toContain("images.unsplash.com");
+    });
   });
 
   it("should generate the full 8 cm x 14 cm printable stand SVG with all required mentions", () => {
