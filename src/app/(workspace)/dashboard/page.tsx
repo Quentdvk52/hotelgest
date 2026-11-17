@@ -59,6 +59,7 @@ import {
   SEED_USERS,
 } from "@/lib/db/seed";
 import { PromoterLegalManager } from "@/components/legal/promoter-legal-manager";
+import { PromoterQrSitePlanManager } from "@/components/workspace/promoter-qr-site-plan-manager";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 
 // Types
@@ -6444,6 +6445,13 @@ function DashboardContent() {
       {currentView === "legal" && (
         <ErrorBoundary fallbackTitle="Module de Gestion des Documents Légaux">
           <PromoterLegalManager activeUser={activeUser} />
+        </ErrorBoundary>
+      )}
+
+      {/* VIEW 18: QR CODE ET PLAN DE SITE */}
+      {currentView === "qrcodes" && (
+        <ErrorBoundary fallbackTitle="Module QR Codes et Plan de Site">
+          <PromoterQrSitePlanManager activeUser={activeUser} />
         </ErrorBoundary>
       )}
 

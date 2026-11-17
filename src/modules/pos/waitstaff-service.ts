@@ -525,9 +525,124 @@ export function getWaitstaffTables(propertyId: string): WaitstaffTable[] {
 
 export function getWaitstaffOrders(waitstaffId: string, propertyId?: string): WaitstaffActiveOrder[] {
   return activeOrdersStore.filter((o) => {
-    if (propertyId && o.propertyId !== propertyId) return false;
-    return o.waitstaffId === waitstaffId || o.waitstaffId.includes("srv");
+    if (propertyId && propertyId !== "ALL" && o.propertyId !== propertyId) return false;
+    if (waitstaffId === "all") return true;
+    return o.waitstaffId === waitstaffId || o.waitstaffId.includes("srv") || o.waitstaffId.startsWith("qr-");
   });
+}
+
+export function getAllActiveOrders(propertyId?: string): WaitstaffActiveOrder[] {
+  if (!propertyId || propertyId === "ALL") return activeOrdersStore;
+  return activeOrdersStore.filter((o) => o.propertyId === propertyId);
+}
+
+export function dispatchQrClientOrder(data: {
+  propertyId: string;
+  tableLabel: string;
+  zone: string;
+  clientName?: string;
+  customerNotes?: string;
+  paymentMethod: "ONLINE_KKIAPAY" | "PAY_ON_DELIVERY";
+  kkiapayPhone?: string;
+  kkiapayTransactionId?: string;
+  items: {
+    productId: string;
+    quantity: number;
+    accompaniment?: string;
+    specialInstructions?: string;
+  }[];
+}): WaitstaffActiveOrder {
+  const property = SEED_PROPERTIES.find((p) => p.id === data.propertyId) || SEED_PROPERTIES[0];
+  const orderNumber = `CMD-${property.code}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  let totalAmountXof = 0;
+  const orderItems: WaitstaffOrderItem[] = [];
+
+  for (const item of data.items) {
+    const product = WAITSTAFF_CATALOG.find((p) => p.id === item.productId);
+    if (!product) continue;
+
+    const lineTotal = product.priceXof * item.quantity;
+    totalAmountXof += lineTotal;
+
+    orderItems.push({
+      id: `it-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      productId: product.id,
+      productName: product.name,
+      quantity: item.quantity,
+      unitPriceXof: product.priceXof,
+      totalPriceXof: lineTotal,
+      fulfillmentUnit: product.unit,
+      accompaniment: product.unit === "MEAL" ? (item.accompaniment || "Aucun accompagnement") : undefined,
+      specialInstructions: item.specialInstructions,
+      preparationStatus: "PENDING",
+      targetStationCode: product.targetStationCode,
+    });
+  }
+
+  const isPaidOnline = data.paymentMethod === "ONLINE_KKIAPAY";
+  const now = new Date();
+  const dateStr = now.toISOString().replace(/[-:T]/g, "").slice(0, 14);
+  const companyIfu = "0201910839213";
+  const randomSuffix = Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
+  const fiscalUid = `FV-${companyIfu.slice(-6)}-${dateStr}-${randomSuffix}`;
+  const fiscalNim = `MCF-${property.code}-0201-01`;
+  const fiscalQrCodeUrl = `https://facture.dgi.bj/v?ifu=${companyIfu}&uid=${fiscalUid}&ttc=${totalAmountXof}`;
+
+  const payments: WaitstaffPayment[] = isPaidOnline
+    ? [
+        {
+          id: `pay-qr-${Date.now()}`,
+          orderId: `ord-qr-${Date.now()}`,
+          paymentMethod: "MOMO",
+          cashAmountXof: 0,
+          mobileAmountXof: totalAmountXof,
+          totalAmountXof,
+          mobileOperator: "MTN",
+          mobileNumber: data.kkiapayPhone || "97000000",
+          kkiapayTransactionId: data.kkiapayTransactionId || `KKIA-${Date.now()}`,
+          status: "SUCCEEDED",
+          fiscalNormalized: true,
+          fiscalUid,
+          fiscalNim,
+          fiscalQrCodeUrl,
+          processedAt: now.toISOString(),
+          processedBy: "Paiement en ligne Client QR (KKiaPay)",
+        },
+      ]
+    : [];
+
+  const newOrder: WaitstaffActiveOrder = {
+    id: `ord-qr-${Date.now()}`,
+    orderNumber,
+    propertyId: property.id,
+    propertyName: property.name,
+    tableLabel: data.tableLabel,
+    zone: data.zone,
+    waitstaffId: "qr-client-direct",
+    waitstaffName: "Client QR Direct",
+    clientName: data.clientName?.trim() || `Client ${data.tableLabel}`,
+    status: isPaidOnline ? "PAID" : "PENDING",
+    totalAmountXof,
+    paidAmountXof: isPaidOnline ? totalAmountXof : 0,
+    items: orderItems,
+    payments,
+    createdAt: now.toISOString(),
+    notes: data.customerNotes
+      ? `${data.customerNotes} • Mode règlement: ${isPaidOnline ? "Payé en ligne (KKiaPay)" : "À régler à la livraison"}`
+      : `Mode règlement: ${isPaidOnline ? "Payé en ligne (KKiaPay)" : "À régler à la livraison"}`,
+  };
+
+  activeOrdersStore.unshift(newOrder);
+
+  // If table, mark occupied
+  const table = WAITSTAFF_TABLES.find((t) => t.propertyId === property.id && t.label === data.tableLabel);
+  if (table) {
+    table.status = "OCCUPIED";
+    table.assignedWaitstaffId = "qr-client-direct";
+  }
+
+  return newOrder;
 }
 
 export function createWaitstaffOrder(data: {

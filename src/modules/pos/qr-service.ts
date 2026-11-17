@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { SEED_PROPERTIES } from "../../lib/db/seed";
+import { generateQrSvgString } from "../../lib/qr/qr-generator";
 
 export type SpaceType =
   | "RESTAURANT"
@@ -9,6 +10,16 @@ export type SpaceType =
   | "TERRASSE"
   | "VIP";
 
+export interface ZoneRecord {
+  id: string;
+  propertyId: string;
+  name: string;
+  spaceType: SpaceType;
+  capacity?: number;
+  description?: string;
+  createdAt: Date;
+}
+
 export interface DiningTableRecord {
   id: string;
   propertyId: string;
@@ -16,6 +27,7 @@ export interface DiningTableRecord {
   spaceName: string;
   spaceType: SpaceType;
   capacity: number;
+  zoneId?: string;
 }
 
 export interface RoomUnitRecord {
@@ -44,30 +56,55 @@ export interface QrResourceRecord {
   createdAt: Date;
 }
 
+// Initial predefined zones for each property
+const INITIAL_ZONES: ZoneRecord[] = [
+  // Bohicon (BOH)
+  { id: "zone-boh-resto", propertyId: "prop-bohicon-001", name: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 80, description: "Grande salle climatisée et service gastronomique", createdAt: new Date() },
+  { id: "zone-boh-terrasse", propertyId: "prop-bohicon-001", name: "Terrasse Piscine & Paillotes", spaceType: "TERRASSE", capacity: 60, description: "Espace extérieur ventilé aux abords de la piscine", createdAt: new Date() },
+  { id: "zone-boh-bar", propertyId: "prop-bohicon-001", name: "Bar & Cave d'Exception", spaceType: "BAR", capacity: 35, description: "Comptoir lounge et cave à vin climatisée", createdAt: new Date() },
+  { id: "zone-boh-vip", propertyId: "prop-bohicon-001", name: "Espace VIP & Lounge Exécutif", spaceType: "VIP", capacity: 25, description: "Salons privés insonorisés Danxomè", createdAt: new Date() },
+  { id: "zone-boh-fete", propertyId: "prop-bohicon-001", name: "Salle des Fêtes & Banquets Agadja", spaceType: "BANQUET", capacity: 250, description: "Grande salle modulable réceptions et mariages", createdAt: new Date() },
+  { id: "zone-boh-conf", propertyId: "prop-bohicon-001", name: "Salle de Conférences & Séminaires", spaceType: "CONFERENCE", capacity: 120, description: "Équipée vidéo-projecteurs et sonorisation HD", createdAt: new Date() },
+
+  // Abomey (ABM)
+  { id: "zone-abm-resto", propertyId: "prop-abomey-002", name: "Restaurant Roi Béhanzin", spaceType: "RESTAURANT", capacity: 70, description: "Ambiance historique et spécialités royales", createdAt: new Date() },
+  { id: "zone-abm-fete", propertyId: "prop-abomey-002", name: "Salle des Fêtes & Événements", spaceType: "BANQUET", capacity: 180, description: "Espace événementiel de prestige", createdAt: new Date() },
+  { id: "zone-abm-conf", propertyId: "prop-abomey-002", name: "Salle de Séminaires Historique", spaceType: "CONFERENCE", capacity: 90, description: "Colloques et formations", createdAt: new Date() },
+
+  // Abomey-Calavi (ABC)
+  { id: "zone-abc-resto", propertyId: "prop-calavi-003", name: "Restaurant Gastronomique Calavi", spaceType: "RESTAURANT", capacity: 90, description: "Cuisine moderne et mets du terroir", createdAt: new Date() },
+  { id: "zone-abc-fete", propertyId: "prop-calavi-003", name: "Grande Salle de Réception Calavi", spaceType: "BANQUET", capacity: 200, description: "Banquets d'entreprise et cérémonies", createdAt: new Date() },
+  { id: "zone-abc-conf", propertyId: "prop-calavi-003", name: "Espace Conférences & Affaires UAC", spaceType: "CONFERENCE", capacity: 150, description: "Séminaires universitaires et corporatifs", createdAt: new Date() },
+
+  // Zogbodomey (ZOG)
+  { id: "zone-zog-resto", propertyId: "prop-zogbo-004", name: "Restaurant Terroir & Saveurs", spaceType: "RESTAURANT", capacity: 60, description: "Spécialités locales du Zou", createdAt: new Date() },
+  { id: "zone-zog-paillote", propertyId: "prop-zogbo-004", name: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 120, description: "Plein air sous ombrage naturel", createdAt: new Date() },
+];
+
 // Initial multi-space tables across Groupe Le Vignoble
 const INITIAL_TABLES: DiningTableRecord[] = [
   // Bohicon
-  { id: "tbl-boh-01", propertyId: "prop-bohicon-001", tableNumber: "Table 01", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4 },
-  { id: "tbl-boh-02", propertyId: "prop-bohicon-001", tableNumber: "Table 02", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4 },
-  { id: "tbl-boh-03", propertyId: "prop-bohicon-001", tableNumber: "Table 03", spaceName: "Terrasse Piscine & Paillotes", spaceType: "TERRASSE", capacity: 6 },
-  { id: "tbl-boh-bar-01", propertyId: "prop-bohicon-001", tableNumber: "Comptoir Bar 1", spaceName: "Bar & Cave d'Exception", spaceType: "BAR", capacity: 2 },
-  { id: "tbl-boh-fete-01", propertyId: "prop-bohicon-001", tableNumber: "Table Royale 01", spaceName: "Salle des Fêtes & Banquets Agadja", spaceType: "BANQUET", capacity: 10 },
-  { id: "tbl-boh-conf-01", propertyId: "prop-bohicon-001", tableNumber: "Tribune Conférence A", spaceName: "Salle de Conférences & Séminaires", spaceType: "CONFERENCE", capacity: 12 },
-  { id: "tbl-boh-vip-01", propertyId: "prop-bohicon-001", tableNumber: "Salon Privé Danxomè", spaceName: "Espace VIP & Lounge Exécutif", spaceType: "VIP", capacity: 8 },
+  { id: "tbl-boh-01", propertyId: "prop-bohicon-001", tableNumber: "Table 01", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto" },
+  { id: "tbl-boh-02", propertyId: "prop-bohicon-001", tableNumber: "Table 02", spaceName: "Restaurant Le Vignoble", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-boh-resto" },
+  { id: "tbl-boh-03", propertyId: "prop-bohicon-001", tableNumber: "Table 03", spaceName: "Terrasse Piscine & Paillotes", spaceType: "TERRASSE", capacity: 6, zoneId: "zone-boh-terrasse" },
+  { id: "tbl-boh-bar-01", propertyId: "prop-bohicon-001", tableNumber: "Comptoir Bar 1", spaceName: "Bar & Cave d'Exception", spaceType: "BAR", capacity: 2, zoneId: "zone-boh-bar" },
+  { id: "tbl-boh-fete-01", propertyId: "prop-bohicon-001", tableNumber: "Table Royale 01", spaceName: "Salle des Fêtes & Banquets Agadja", spaceType: "BANQUET", capacity: 10, zoneId: "zone-boh-fete" },
+  { id: "tbl-boh-conf-01", propertyId: "prop-bohicon-001", tableNumber: "Tribune Conférence A", spaceName: "Salle de Conférences & Séminaires", spaceType: "CONFERENCE", capacity: 12, zoneId: "zone-boh-conf" },
+  { id: "tbl-boh-vip-01", propertyId: "prop-bohicon-001", tableNumber: "Salon Privé Danxomè", spaceName: "Espace VIP & Lounge Exécutif", spaceType: "VIP", capacity: 8, zoneId: "zone-boh-vip" },
 
   // Abomey
-  { id: "tbl-abm-01", propertyId: "prop-abomey-002", tableNumber: "Table 01", spaceName: "Restaurant Roi Béhanzin", spaceType: "RESTAURANT", capacity: 4 },
-  { id: "tbl-abm-fete-01", propertyId: "prop-abomey-002", tableNumber: "Table Prestige 01", spaceName: "Salle des Fêtes & Événements", spaceType: "BANQUET", capacity: 10 },
-  { id: "tbl-abm-conf-01", propertyId: "prop-abomey-002", tableNumber: "Plénière 01", spaceName: "Salle de Séminaires Historique", spaceType: "CONFERENCE", capacity: 14 },
+  { id: "tbl-abm-01", propertyId: "prop-abomey-002", tableNumber: "Table 01", spaceName: "Restaurant Roi Béhanzin", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abm-resto" },
+  { id: "tbl-abm-fete-01", propertyId: "prop-abomey-002", tableNumber: "Table Prestige 01", spaceName: "Salle des Fêtes & Événements", spaceType: "BANQUET", capacity: 10, zoneId: "zone-abm-fete" },
+  { id: "tbl-abm-conf-01", propertyId: "prop-abomey-002", tableNumber: "Plénière 01", spaceName: "Salle de Séminaires Historique", spaceType: "CONFERENCE", capacity: 14, zoneId: "zone-abm-conf" },
 
   // Abomey-Calavi
-  { id: "tbl-abc-01", propertyId: "prop-calavi-003", tableNumber: "Table 01", spaceName: "Restaurant Gastronomique Calavi", spaceType: "RESTAURANT", capacity: 4 },
-  { id: "tbl-abc-fete-01", propertyId: "prop-calavi-003", tableNumber: "Table Gala 01", spaceName: "Grande Salle de Réception Calavi", spaceType: "BANQUET", capacity: 12 },
-  { id: "tbl-abc-conf-01", propertyId: "prop-calavi-003", tableNumber: "Salle Conseil", spaceName: "Espace Conférences & Affaires UAC", spaceType: "CONFERENCE", capacity: 16 },
+  { id: "tbl-abc-01", propertyId: "prop-calavi-003", tableNumber: "Table 01", spaceName: "Restaurant Gastronomique Calavi", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-abc-resto" },
+  { id: "tbl-abc-fete-01", propertyId: "prop-calavi-003", tableNumber: "Table Gala 01", spaceName: "Grande Salle de Réception Calavi", spaceType: "BANQUET", capacity: 12, zoneId: "zone-abc-fete" },
+  { id: "tbl-abc-conf-01", propertyId: "prop-calavi-003", tableNumber: "Salle Conseil", spaceName: "Espace Conférences & Affaires UAC", spaceType: "CONFERENCE", capacity: 16, zoneId: "zone-abc-conf" },
 
   // Zogbodomey
-  { id: "tbl-zog-01", propertyId: "prop-zogbo-004", tableNumber: "Table 01", spaceName: "Restaurant Terroir & Saveurs", spaceType: "RESTAURANT", capacity: 4 },
-  { id: "tbl-zog-paillote-01", propertyId: "prop-zogbo-004", tableNumber: "Paillote Centrale", spaceName: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 8 },
+  { id: "tbl-zog-01", propertyId: "prop-zogbo-004", tableNumber: "Table 01", spaceName: "Restaurant Terroir & Saveurs", spaceType: "RESTAURANT", capacity: 4, zoneId: "zone-zog-resto" },
+  { id: "tbl-zog-paillote-01", propertyId: "prop-zogbo-004", tableNumber: "Paillote Centrale", spaceName: "Jardin Événementiel & Paillotes", spaceType: "TERRASSE", capacity: 8, zoneId: "zone-zog-paillote" },
 ];
 
 // Initial rooms across all 4 properties of Groupe Le Vignoble
@@ -96,6 +133,7 @@ class QrService {
   private resources: QrResourceRecord[] = [];
   private diningTables: DiningTableRecord[] = [];
   private roomUnits: RoomUnitRecord[] = [];
+  private zones: ZoneRecord[] = [];
 
   constructor() {
     this.resetState();
@@ -103,6 +141,7 @@ class QrService {
 
   public resetState() {
     this.resources = [];
+    this.zones = [...INITIAL_ZONES];
     this.diningTables = [...INITIAL_TABLES];
     this.roomUnits = [...INITIAL_ROOMS];
 
@@ -117,20 +156,15 @@ class QrService {
     });
   }
 
-  /**
-   * Generates a cryptographically strong unpredictable opaque token (OWASP ASVS V3.2 / V3.4).
-   * Format: hg_<type>_<32-byte-hex>
-   */
-  private generateSecureToken(resourceType: "table" | "room"): string {
-    const randomHex = crypto.randomBytes(16).toString("hex");
-    return `hg_${resourceType}_${randomHex}`;
-  }
-
   private getPropertyName(propertyId: string): string {
     return SEED_PROPERTIES.find((p) => p.id === propertyId)?.name || "Hôtel Le Vignoble";
   }
 
   public createTableQrResource(table: DiningTableRecord): QrResourceRecord {
+    // Check if an active token already exists for this table
+    const existing = this.resources.find((r) => r.tableId === table.id && !r.revoked);
+    if (existing) return existing;
+
     const token = `hg_table_${table.id.replace(/-/g, "_")}_${crypto.randomBytes(8).toString("hex")}`;
     const resource: QrResourceRecord = {
       id: `qr-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
@@ -151,6 +185,10 @@ class QrService {
   }
 
   public createRoomQrResource(unit: RoomUnitRecord): QrResourceRecord {
+    // Check if an active token already exists for this room
+    const existing = this.resources.find((r) => r.unitId === unit.id && !r.revoked);
+    if (existing) return existing;
+
     const token = `hg_room_${unit.id.replace(/-/g, "_")}_${crypto.randomBytes(8).toString("hex")}`;
     const resource: QrResourceRecord = {
       id: `qr-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
@@ -204,16 +242,50 @@ class QrService {
     }
   }
 
-  /**
-   * Creates a dining table dynamically in any space (Restaurant, Bar, Salle des fêtes, Salle de conférence, etc.)
-   * and automatically provisions its unique cryptographically secure QR code.
-   */
+  // --- ZONES MANAGEMENT ---
+  public listZones(propertyId?: string): ZoneRecord[] {
+    if (!propertyId || propertyId === "ALL") return this.zones;
+    return this.zones.filter((z) => z.propertyId === propertyId);
+  }
+
+  public createZone(
+    propertyId: string,
+    name: string,
+    spaceType: SpaceType = "RESTAURANT",
+    capacity: number = 40,
+    description: string = ""
+  ): ZoneRecord {
+    const id = `zone-${propertyId.replace("prop-", "")}-${Date.now().toString(36)}`;
+    const newZone: ZoneRecord = {
+      id,
+      propertyId,
+      name,
+      spaceType,
+      capacity,
+      description,
+      createdAt: new Date(),
+    };
+    this.zones.push(newZone);
+    return newZone;
+  }
+
+  public deleteZone(zoneId: string): boolean {
+    const idx = this.zones.findIndex((z) => z.id === zoneId);
+    if (idx >= 0) {
+      this.zones.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  // --- TABLES MANAGEMENT ---
   public createTableWithQr(
     propertyId: string,
     tableNumber: string,
     spaceName: string,
     spaceType: SpaceType = "RESTAURANT",
-    capacity: number = 4
+    capacity: number = 4,
+    zoneId?: string
   ): { table: DiningTableRecord; qr: QrResourceRecord } {
     const tableId = `tbl-${propertyId.replace("prop-", "")}-${Date.now().toString(36)}`;
     const table: DiningTableRecord = {
@@ -223,15 +295,26 @@ class QrService {
       spaceName,
       spaceType,
       capacity,
+      zoneId,
     };
     this.diningTables.push(table);
     const qr = this.createTableQrResource(table);
     return { table, qr };
   }
 
-  /**
-   * Creates a room unit and provisions its secure QR code.
-   */
+  public deleteTable(tableId: string): boolean {
+    const idx = this.diningTables.findIndex((t) => t.id === tableId);
+    if (idx >= 0) {
+      this.diningTables.splice(idx, 1);
+      // Also revoke or remove corresponding QR
+      const qr = this.resources.find((r) => r.tableId === tableId);
+      if (qr) qr.revoked = true;
+      return true;
+    }
+    return false;
+  }
+
+  // --- ROOMS MANAGEMENT ---
   public createRoomWithQr(
     propertyId: string,
     unitNumber: string,
@@ -254,22 +337,28 @@ class QrService {
   public listQrResources(propertyId?: string, resourceType?: "TABLE" | "ROOM"): QrResourceRecord[] {
     return this.resources.filter((r) => {
       if (r.revoked) return false;
-      if (propertyId && r.propertyId !== propertyId) return false;
+      if (propertyId && propertyId !== "ALL" && r.propertyId !== propertyId) return false;
       if (resourceType && r.resourceType !== resourceType) return false;
       return true;
     });
   }
 
+  public getQrForTable(tableId: string): QrResourceRecord | undefined {
+    return this.resources.find((r) => r.tableId === tableId && !r.revoked);
+  }
+
+  public getQrForRoom(unitId: string): QrResourceRecord | undefined {
+    return this.resources.find((r) => r.unitId === unitId && !r.revoked);
+  }
+
   public listDiningTables(propertyId?: string): DiningTableRecord[] {
-    return propertyId
-      ? this.diningTables.filter((t) => t.propertyId === propertyId)
-      : this.diningTables;
+    if (!propertyId || propertyId === "ALL") return this.diningTables;
+    return this.diningTables.filter((t) => t.propertyId === propertyId);
   }
 
   public listRoomUnits(propertyId?: string): RoomUnitRecord[] {
-    return propertyId
-      ? this.roomUnits.filter((u) => u.propertyId === propertyId)
-      : this.roomUnits;
+    if (!propertyId || propertyId === "ALL") return this.roomUnits;
+    return this.roomUnits.filter((u) => u.propertyId === propertyId);
   }
 
   public resolveToken(token: string): QrResourceRecord | null {
@@ -287,6 +376,13 @@ class QrService {
       return true;
     }
     return false;
+  }
+
+  public generateQrSvg(token: string, size = 260): string {
+    const fullUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/order/${token}`
+      : `https://hotelgestion.vercel.app/order/${token}`;
+    return generateQrSvgString(fullUrl, { size });
   }
 }
 

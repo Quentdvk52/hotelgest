@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { orderService } from "@/modules/pos/order-service";
+import { dispatchQrClientOrder } from "@/modules/pos/waitstaff-service";
 import { resolveSessionContext } from "@/lib/auth/session";
 
 export async function GET(req: Request) {
@@ -33,6 +34,33 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // 1. QR Client Direct Flow
+    if (body.source === "QR_CLIENT") {
+      const waitstaffOrder = dispatchQrClientOrder({
+        propertyId: body.propertyId,
+        tableLabel: body.tableLabel || body.tableNumber || (body.unitNumber ? `Chambre ${body.unitNumber}` : "Table Directe"),
+        zone: body.zone || body.spaceName || "Salle Restaurant",
+        clientName: body.clientName,
+        customerNotes: body.customerNotes,
+        paymentMethod: body.paymentMethod || "PAY_ON_DELIVERY",
+        kkiapayPhone: body.kkiapayPhone,
+        kkiapayTransactionId: body.kkiapayTransactionId,
+        items: body.items.map((it: any) => ({
+          productId: it.productId || it.menuItemId,
+          quantity: it.quantity,
+          accompaniment: it.accompaniment,
+          specialInstructions: it.specialInstructions,
+        })),
+      });
+
+      return NextResponse.json({
+        success: true,
+        data: waitstaffOrder,
+      });
+    }
+
+    // 2. Standard POS Staff Flow
     const order = await orderService.createOrder(body);
     return NextResponse.json({ success: true, data: order });
   } catch (error: any) {

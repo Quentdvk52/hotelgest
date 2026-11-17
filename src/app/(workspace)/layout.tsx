@@ -48,6 +48,7 @@ import {
   Coffee,
   Utensils,
   BookOpen,
+  QrCode,
   Send,
 } from "lucide-react";
 import { NotificationBell } from "@/components/workspace/notification-bell";
@@ -238,6 +239,14 @@ function SidebarNavContent({
       view: "cockpit",
       icon: LayoutDashboard,
       badge: "KPIs",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
+      label: "Qr Code et plan de site",
+      href: "/dashboard?view=qrcodes",
+      view: "qrcodes",
+      icon: QrCode,
+      badge: "Sites & QR",
       badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
     },
     {
