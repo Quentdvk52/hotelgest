@@ -14,10 +14,10 @@ const envSchema = z.object({
   AWS_REGION: z.string().default(process.env.AWS_REGION || "us-east-2"),
   S3_BUCKET_NAME: z.string().default(process.env.S3_BUCKET_NAME || "assets"),
   CHARIOW_SECRET_KEY: z.string().default(
-    process.env.CHARIOW_SECRET_KEY || process.env.CHARIOW_API_KEY || "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066"
+    process.env.CHARIOW_SECRET_KEY || process.env.CHARIOW_API_KEY || ""
   ),
   CHARIOW_API_KEY: z.string().default(
-    process.env.CHARIOW_API_KEY || process.env.CHARIOW_SECRET_KEY || "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066"
+    process.env.CHARIOW_API_KEY || process.env.CHARIOW_SECRET_KEY || ""
   ),
   CHARIOW_WEBHOOK_SECRET: z.string().default(
     process.env.CHARIOW_WEBHOOK_SECRET || "chariow_sec_dev_hotelgest_placeholder"
@@ -60,8 +60,8 @@ export const envConfig = {
     BUCKET: parsedEnv.success ? parsedEnv.data.S3_BUCKET_NAME : envSchema.shape.S3_BUCKET_NAME.parse(undefined),
   },
   CHARIOW: {
-    SECRET_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_SECRET_KEY : "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066",
-    API_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_API_KEY : "sk_fg7y2lk3_f77f2c683238f5c78105cda5d8737066",
+    SECRET_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_SECRET_KEY : "",
+    API_KEY: parsedEnv.success ? parsedEnv.data.CHARIOW_API_KEY : "",
     WEBHOOK_SECRET: parsedEnv.success ? parsedEnv.data.CHARIOW_WEBHOOK_SECRET : envSchema.shape.CHARIOW_WEBHOOK_SECRET.parse(undefined),
   },
   CHARIOW_PLANS: {
