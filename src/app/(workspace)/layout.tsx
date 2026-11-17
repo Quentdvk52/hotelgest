@@ -258,6 +258,14 @@ function SidebarNavContent({
       badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
     },
     {
+      label: "Fichier Clients",
+      href: "/dashboard?view=clients",
+      view: "clients",
+      icon: Users,
+      badge: "Multi-Sites",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    },
+    {
       label: "Chambres",
       href: "/dashboard?view=chambres",
       view: "chambres",
@@ -392,6 +400,14 @@ function SidebarNavContent({
       icon: ShoppingCart,
       badge: "Direct",
       badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+    },
+    {
+      label: "Clients de l'Agence",
+      href: "/dashboard?view=clients",
+      view: "clients",
+      icon: Users,
+      badge: "Mon Agence",
+      badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
     },
     {
       label: "Chambres du Site",

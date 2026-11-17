@@ -53,6 +53,7 @@ import {
   UserX,
   Tag,
   Boxes,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   SEED_PROPERTIES,
@@ -60,6 +61,11 @@ import {
 } from "@/lib/db/seed";
 import { PromoterLegalManager } from "@/components/legal/promoter-legal-manager";
 import { PromoterQrSitePlanManager } from "@/components/workspace/promoter-qr-site-plan-manager";
+import { ClientsManager } from "@/components/workspace/clients-manager";
+import {
+  CsvExcelImporterModal,
+  ImportType,
+} from "@/components/common/csv-excel-importer-modal";
 import { ErrorBoundary } from "@/components/common/error-boundary";
 
 // Types
@@ -2259,6 +2265,111 @@ function DashboardContent() {
     supplierName: "",
   });
 
+  // Universal CSV & Excel Importer Modal State
+  const [universalImportModal, setUniversalImportModal] = useState<{
+    isOpen: boolean;
+    type: ImportType;
+  }>({
+    isOpen: false,
+    type: "WINES",
+  });
+
+  const handleUniversalImport = (items: any[]) => {
+    if (universalImportModal.type === "WINES") {
+      const newWines: WineRecord[] = items.map((it, idx) => ({
+        id: `wine-imp-${Date.now()}-${idx}`,
+        name: it.name,
+        category: it.category || "ROUGE",
+        origin: it.origin || "France / Terroir",
+        millesime: it.millesime || "2020",
+        priceXof: it.priceXof || 25000,
+        stockBottles: it.stockBottles || 12,
+        minStockAlert: it.minStockAlert || 5,
+        pairings: it.pairings || "Viandes braisées, fromages",
+        imageUrl: it.imageUrl || "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
+      }));
+      setWines((prev) => [...newWines, ...prev]);
+    } else if (universalImportModal.type === "MEALS") {
+      const newMeals: MealRecord[] = items.map((it, idx) => ({
+        id: `meal-imp-${Date.now()}-${idx}`,
+        name: it.name,
+        category: it.category || "PLAT_TRADITIONNEL",
+        priceXof: it.priceXof || 6500,
+        prepTimeMinutes: it.prepTimeMinutes || 20,
+        accompaniments: it.accompaniments || ["Alloco", "Piment frais"],
+        description: it.description || "Spécialité du Chef préparée à la commande",
+        available: true,
+        imageUrl: it.imageUrl || "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+      }));
+      setMeals((prev) => [...newMeals, ...prev]);
+    } else if (universalImportModal.type === "ROOMS") {
+      const newRooms: RoomRecord[] = items.map((it, idx) => {
+        const propId = it.propertyId || (isManager && managerPropertyId ? managerPropertyId : "prop-bohicon-001");
+        const prop = SEED_PROPERTIES.find((p) => p.id === propId) || SEED_PROPERTIES[0];
+        return {
+          id: `room-imp-${Date.now()}-${idx}`,
+          number: it.number || `${rooms.length + idx + 101}`,
+          name: it.name || "Suite Confortable",
+          propertyId: prop.id,
+          propertyName: prop.name,
+          type: it.type || "SUPERIEURE",
+          basePriceXof: it.basePriceXof || 35000,
+          capacity: it.capacity || 2,
+          bedPlaces: it.bedPlaces || 2,
+          bedConfiguration: it.bedConfiguration || "1 Lit King Size (2 places)",
+          amenities: it.amenities || ["Climatisation", "Wi-Fi Dédié"],
+          status: it.status || "DISPONIBLE",
+          imageUrl: it.imageUrl || "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+        };
+      });
+      setRooms((prev) => [...newRooms, ...prev]);
+    } else if (universalImportModal.type === "RENTALS") {
+      const newRentals: RentalRecord[] = items.map((it, idx) => ({
+        id: `rent-imp-${Date.now()}-${idx}`,
+        name: it.name,
+        type: it.type || "VOITURES",
+        dailyPriceXof: it.dailyPriceXof || 45000,
+        depositXof: it.depositXof || 50000,
+        totalQuantity: it.totalQuantity || 1,
+        availableQuantity: it.availableQuantity || 1,
+        specs: it.specs || "Équipement disponible",
+        imageUrl: it.imageUrl || "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80",
+      }));
+      setRentals((prev) => [...newRentals, ...prev]);
+    } else if (universalImportModal.type === "CATERING") {
+      const newCatering: CateringRecord[] = items.map((it, idx) => ({
+        id: `cat-imp-${Date.now()}-${idx}`,
+        name: it.name,
+        pricePerPersonXof: it.pricePerPersonXof || 15000,
+        minGuests: it.minGuests || 30,
+        inclusions: it.inclusions || ["Cocktail d'accueil", "Entrée", "Plat principal", "Dessert"],
+        serviceLevel: it.serviceLevel || "Personnel en tenue, chauffe-plats et nappage inclus",
+        imageUrl: it.imageUrl || "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80",
+      }));
+      setCateringFormulas((prev) => [...newCatering, ...prev]);
+    } else if (universalImportModal.type === "STOCKS") {
+      const newStocks: StockItemRecord[] = items.map((it, idx) => {
+        const prop = SEED_PROPERTIES.find((p) => p.id === it.propertyId) || SEED_PROPERTIES[0];
+        return {
+          id: `stk-imp-${Date.now()}-${idx}`,
+          sku: it.sku || `STK-${Date.now().toString().slice(-4)}-${idx + 1}`,
+          name: it.name,
+          category: it.category || "VIVRES_CUISINE",
+          propertyId: prop.id,
+          propertyName: prop.name,
+          unitMeasure: it.unitMeasure || "Unité",
+          currentQuantity: it.currentQuantity || 10,
+          alertThreshold: it.alertThreshold || 5,
+          securityThreshold: it.securityThreshold || 2,
+          unitCostXof: it.unitCostXof || 2000,
+          storageLocation: it.storageLocation || "Économat Principal",
+          supplierName: it.supplierName || "Fournisseur Agréé",
+        };
+      });
+      setStocks((prev) => [...newStocks, ...prev]);
+    }
+  };
+
   // =========================================================================
   // 13. DATA: ROLES ET ATTRIBUTS DU PERSONNEL (HABILITATIONS & DROITS MODULAIRES)
   // =========================================================================
@@ -3297,30 +3408,40 @@ function DashboardContent() {
                 Filtrez par agence, statut (libres, occupées, réservées), type, ajustez les prix par nuit et mettez à jour les photos.
               </p>
             </div>
-            <button
-              onClick={() => {
-                const defaultProp = isManager && managerPropertyId
-                  ? SEED_PROPERTIES.find((p) => p.id === managerPropertyId) || SEED_PROPERTIES[0]
-                  : SEED_PROPERTIES[0];
-                setEditingRoom(null);
-                setRoomForm({
-                  number: `${rooms.length + 101}`,
-                  name: "Nouvelle Suite",
-                  propertyId: defaultProp.id,
-                  type: "SUPERIEURE",
-                  basePriceXof: 45000,
-                  capacity: 2,
-                  amenities: ["Climatisation", "Wi-Fi Dédié"],
-                  status: "DISPONIBLE",
-                  imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-                });
-                setRoomModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ajouter une Chambre</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setUniversalImportModal({ isOpen: true, type: "ROOMS" })}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Importer CSV / Excel</span>
+              </button>
+              <button
+                onClick={() => {
+                  const defaultProp = isManager && managerPropertyId
+                    ? SEED_PROPERTIES.find((p) => p.id === managerPropertyId) || SEED_PROPERTIES[0]
+                    : SEED_PROPERTIES[0];
+                  setEditingRoom(null);
+                  setRoomForm({
+                    number: `${rooms.length + 101}`,
+                    name: "Nouvelle Suite",
+                    propertyId: defaultProp.id,
+                    type: "SUPERIEURE",
+                    basePriceXof: 45000,
+                    capacity: 2,
+                    amenities: ["Climatisation", "Wi-Fi Dédié"],
+                    status: "DISPONIBLE",
+                    imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+                  });
+                  setRoomModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#184f28] hover:bg-[#123c1f] text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter une Chambre</span>
+              </button>
+            </div>
           </div>
 
           {/* Top Filter Toolbar for Chambres */}
@@ -3618,9 +3739,18 @@ function DashboardContent() {
               </p>
             </div>
             {(!isManager || isBohiconManager) && (
-              <button
-                onClick={() => {
-                  setEditingWine(null);
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setUniversalImportModal({ isOpen: true, type: "WINES" })}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                  <span>Importer CSV / Excel</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingWine(null);
                   setWineForm({
                     name: "",
                     category: "ROUGE",
@@ -3639,6 +3769,7 @@ function DashboardContent() {
                 <Plus className="w-4 h-4" />
                 <span>Ajouter un Cru / Boisson</span>
               </button>
+              </div>
             )}
           </div>
 
@@ -3906,9 +4037,18 @@ function DashboardContent() {
                 Créez les plats traditionnels béninois, les accompagnements (Amiwo, Djenkoumé, Alloco...), fixez les prix et photos.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingMeal(null);
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setUniversalImportModal({ isOpen: true, type: "MEALS" })}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Importer CSV / Excel</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingMeal(null);
                 setMealForm({
                   name: "",
                   category: "PLAT_TRADITIONNEL",
@@ -3926,6 +4066,7 @@ function DashboardContent() {
               <Plus className="w-4 h-4" />
               <span>Créer un Plat / Accompagnement</span>
             </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -4027,9 +4168,18 @@ function DashboardContent() {
                 Voitures VIP, chafing dishes, couverts dorés, tables banquet, chaises, salles de fête, salles de réunion, salles d&apos;atelier et bâches/hangars.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingRental(null);
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setUniversalImportModal({ isOpen: true, type: "RENTALS" })}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Importer CSV / Excel</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingRental(null);
                 setRentalForm({
                   name: "",
                   type: "VOITURES",
@@ -4047,6 +4197,7 @@ function DashboardContent() {
               <Plus className="w-4 h-4" />
               <span>Ajouter un Article / Salle</span>
             </button>
+            </div>
           </div>
 
           {/* Top Category Filter Pills for Location */}
@@ -4230,9 +4381,18 @@ function DashboardContent() {
                 Configurez les forfaits de banquets, mariages et galas avec prix par personne et photos.
               </p>
             </div>
-            <button
-              onClick={() => {
-                setEditingCatering(null);
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setUniversalImportModal({ isOpen: true, type: "CATERING" })}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Importer CSV / Excel</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingCatering(null);
                 setCateringForm({
                   name: "",
                   pricePerPersonXof: 15000,
@@ -4248,6 +4408,7 @@ function DashboardContent() {
               <Plus className="w-4 h-4" />
               <span>Créer un Forfait Traiteur</span>
             </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -5957,6 +6118,14 @@ function DashboardContent() {
               </div>
 
               <button
+                type="button"
+                onClick={() => setUniversalImportModal({ isOpen: true, type: "STOCKS" })}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-semibold shadow-xs transition-all active:scale-95"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Importer CSV / Excel</span>
+              </button>
+              <button
                 onClick={() => {
                   setEditingStock(null);
                   setStockForm({
@@ -6452,6 +6621,17 @@ function DashboardContent() {
       {currentView === "qrcodes" && (
         <ErrorBoundary fallbackTitle="Module QR Codes et Plan de Site">
           <PromoterQrSitePlanManager activeUser={activeUser} />
+        </ErrorBoundary>
+      )}
+
+      {/* VIEW 19: FICHIER CLIENTS MULTI-SITES & AGENCES */}
+      {currentView === "clients" && (
+        <ErrorBoundary fallbackTitle="Module Fichier Clients">
+          <ClientsManager
+            isPromoter={isPromoter}
+            isManager={isManager}
+            managerPropertyId={managerPropertyId}
+          />
         </ErrorBoundary>
       )}
 
@@ -8715,6 +8895,15 @@ function DashboardContent() {
           </div>
         </div>
       )}
+
+      {/* MODAL UNIVERSEL IMPORTATION CSV / EXCEL */}
+      <CsvExcelImporterModal
+        isOpen={universalImportModal.isOpen}
+        onClose={() => setUniversalImportModal((prev) => ({ ...prev, isOpen: false }))}
+        importType={universalImportModal.type}
+        defaultPropertyId={isManager && managerPropertyId ? managerPropertyId : undefined}
+        onImport={handleUniversalImport}
+      />
     </div>
   );
 }
