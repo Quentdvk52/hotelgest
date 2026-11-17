@@ -26,6 +26,37 @@ describe("Promoter QR Site Plan & QR Matrix Generator", () => {
     expect(svg).toContain("</svg>");
   });
 
+  it("should resolve user's reported room token (hg_room_unit_101_664d22d61a15dea4)", () => {
+    const reportedToken = "hg_room_unit_101_664d22d61a15dea4";
+    const resolved = qrService.resolveToken(reportedToken);
+    expect(resolved).not.toBeNull();
+    expect(resolved?.unitId).toBe("unit-101");
+    expect(resolved?.unitNumber).toBe("101");
+    expect(resolved?.roomName).toBe("Suite Royale Le Vignoble");
+    expect(resolved?.propertyName).toBe("Hôtel Le Vignoble - Bohicon");
+    expect(resolved?.propertyPhone).toBe("+229 97 00 11 22");
+  });
+
+  it("should generate the full 8 cm x 14 cm printable stand SVG with all required mentions", () => {
+    const standSvg = qrService.generateStandSvg({
+      propertyName: "Hôtel Le Vignoble - Abomey",
+      locationName: "Restaurant",
+      numberLabel: "Table 01",
+      token: "hg_table_tbl_abm_01_12345",
+      phone: "+229 97 00 22 33",
+      email: "abomey@hotel-levignoble.bj",
+    });
+
+    expect(standSvg).toContain('width="80mm"');
+    expect(standSvg).toContain('height="140mm"');
+    expect(standSvg).toContain("HÔTEL LE VIGNOBLE");
+    expect(standSvg).toContain("Hôtel Le Vignoble - Abomey");
+    expect(standSvg).toContain("Restaurant");
+    expect(standSvg).toContain("Table 01");
+    expect(standSvg).toContain("+229 97 00 22 33");
+    expect(standSvg).toContain("Merci pour votre Fidélité");
+  });
+
   it("should have predefined zones and tables for all establishments", () => {
     const zones = qrService.listZones();
     expect(zones.length).toBeGreaterThanOrEqual(8);

@@ -26,6 +26,8 @@ import {
   ChevronRight,
   ShieldAlert,
   Share2,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { SEED_PROPERTIES } from "@/lib/db/seed";
 import {
@@ -65,14 +67,16 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
   const [isNewTableModalOpen, setIsNewTableModalOpen] = useState(false);
   const [selectedZoneForNewTable, setSelectedZoneForNewTable] = useState<ZoneRecord | null>(null);
 
-  // Print & Preview Modal
-  const [previewQrItem, setPreviewQrItem] = useState<{
-    title: string;
-    subtitle: string;
+  // Print & Preview Modal (Format 8 cm x 14 cm)
+  const [previewStandItem, setPreviewStandItem] = useState<{
     propertyName: string;
+    locationName: string; // "Restaurant" or Room name
+    numberLabel: string;   // Table number or Room number
     token: string;
     directUrl: string;
     resourceType: "TABLE" | "ROOM";
+    phone?: string;
+    email?: string;
   } | null>(null);
 
   // Copied feedback
@@ -132,6 +136,33 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
     setTimeout(() => setCopiedToken(null), 2500);
   };
 
+  // Download 8cm x 14cm SVG Stand helper
+  const handleDownloadStandSvg = (item: {
+    propertyName: string;
+    locationName: string;
+    numberLabel: string;
+    token: string;
+    phone?: string;
+    email?: string;
+  }) => {
+    const svgContent = qrService.generateStandSvg({
+      propertyName: item.propertyName,
+      locationName: item.locationName,
+      numberLabel: item.numberLabel,
+      token: item.token,
+      phone: item.phone,
+      email: item.email,
+    });
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Chevalet-${item.numberLabel.replace(/\s+/g, "_")}-8x14cm.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Creation of Zone
   const handleCreateZone = (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,9 +210,21 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
     }
   };
 
-  // Trigger browser print
-  const handlePrint = () => {
-    window.print();
+  // Trigger print
+  const handlePrintStand = (item: {
+    propertyName: string;
+    locationName: string;
+    numberLabel: string;
+    token: string;
+    phone?: string;
+    email?: string;
+    directUrl: string;
+    resourceType: "TABLE" | "ROOM";
+  }) => {
+    setPreviewStandItem(item);
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   return (
@@ -199,9 +242,8 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
               </h2>
             </div>
             <p className="text-xs text-stone-400 max-w-2xl leading-relaxed">
-              Générez, personnalisez et imprimez les chevalets de table et cartonnettes de chambre.
-              Chaque QR code dirige instantanément le client vers le menu digital du site avec routage direct
-              vers le Barman, le Chef Cuisine et la Cave.
+              Générez, prévisualisez et imprimez les chevalets de table et cartonnettes de chambre au format officiel <strong>8 cm × 14 cm</strong>.
+              Chaque code QR dirige instantanément le client vers la boutique du site avec routage direct vers le Barman, le Chef Cuisine et la Cave.
             </p>
           </div>
 
@@ -242,7 +284,7 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
             <p className="text-lg font-black text-emerald-400 mt-0.5">{filteredRooms.length}</p>
           </div>
           <div className="p-3 rounded-xl bg-stone-950/50 border border-stone-800/80">
-            <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider">Commandes en Direct</span>
+            <span className="text-[10px] text-stone-400 uppercase font-bold tracking-wider">Commandes Directes</span>
             <p className="text-lg font-black text-blue-400 mt-0.5">{filteredOrders.length}</p>
           </div>
         </div>
@@ -365,6 +407,17 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
                         const qr = qrService.getQrForTable(table.id);
                         const isCopied = qr && copiedToken === qr.token;
 
+                        const standPayload = {
+                          propertyName: propertyObj?.name || "Hôtel Le Vignoble",
+                          locationName: zone.name, // e.g. "Restaurant" or "Terrasse Piscine"
+                          numberLabel: table.tableNumber,
+                          token: qr?.token || "",
+                          phone: propertyObj?.phone,
+                          email: propertyObj?.email,
+                          directUrl: qr?.directUrl || `/order/${qr?.token}`,
+                          resourceType: "TABLE" as const,
+                        };
+
                         return (
                           <div
                             key={table.id}
@@ -387,58 +440,75 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
                                 <div className="flex items-center justify-between text-[11px] text-stone-500 font-mono">
                                   <span>Token : {qr.token.slice(0, 14)}...</span>
                                   <span className="text-emerald-700 font-semibold bg-emerald-100 px-1.5 py-0.5 rounded text-[10px]">
-                                    Actif
+                                    Format 8×14 cm
                                   </span>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 pt-1">
+                                {/* THE 3 REQUESTED BUTTONS: "VOIR", "TÉLÉCHARGER", "IMPRIMER" */}
+                                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                  {/* 1. BOUTON VOIR */}
                                   <button
-                                    onClick={() =>
-                                      setPreviewQrItem({
-                                        title: table.tableNumber,
-                                        subtitle: zone.name,
-                                        propertyName: propertyObj?.name || "Hôtel Le Vignoble",
-                                        token: qr.token,
-                                        directUrl: `/order/${qr.token}`,
-                                        resourceType: "TABLE",
-                                      })
-                                    }
-                                    title="Aperçu & Imprimer le chevalet"
-                                    className="flex-1 py-1.5 px-2 rounded-lg bg-stone-900 text-white font-bold text-[11px] hover:bg-stone-800 flex items-center justify-center gap-1 shadow-sm"
+                                    onClick={() => setPreviewStandItem(standPayload)}
+                                    title="Voir le chevalet 8 cm x 14 cm"
+                                    className="py-1.5 px-2 rounded-lg bg-stone-900 text-white font-bold text-xs hover:bg-stone-800 flex items-center justify-center gap-1 shadow-sm"
                                   >
-                                    <Printer className="w-3 h-3 text-amber-400" />
-                                    <span>Chevalet</span>
+                                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Voir</span>
                                   </button>
 
+                                  {/* 2. BOUTON TÉLÉCHARGER */}
+                                  <button
+                                    onClick={() => handleDownloadStandSvg(standPayload)}
+                                    title="Télécharger le fichier SVG (8 cm x 14 cm)"
+                                    className="py-1.5 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center justify-center gap-1 border border-stone-200"
+                                  >
+                                    <Download className="w-3.5 h-3.5 text-stone-600" />
+                                    <span>Télécharger</span>
+                                  </button>
+
+                                  {/* 3. BOUTON IMPRIMER */}
+                                  <button
+                                    onClick={() => handlePrintStand(standPayload)}
+                                    title="Imprimer directement au format 8 cm x 14 cm"
+                                    className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-bold text-xs hover:brightness-110 flex items-center justify-center gap-1 shadow-sm"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    <span>Imprimer</span>
+                                  </button>
+                                </div>
+
+                                {/* Secondary quick links */}
+                                <div className="flex items-center justify-between pt-1 text-[11px] text-stone-500">
                                   <a
                                     href={`/order/${qr.token}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="Tester la page menu client"
-                                    className="p-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700"
+                                    className="text-amber-700 font-semibold hover:underline flex items-center gap-1"
                                   >
-                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    <ExternalLink className="w-3 h-3" />
+                                    <span>Tester le menu</span>
                                   </a>
 
-                                  <button
-                                    onClick={() => handleCopyLink(qr.token)}
-                                    title="Copier le lien direct"
-                                    className="p-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700"
-                                  >
-                                    {isCopied ? (
-                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5" />
-                                    )}
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleDeleteTable(table.id)}
-                                    title="Supprimer la table"
-                                    className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleCopyLink(qr.token)}
+                                      title="Copier le lien"
+                                      className="p-1 rounded text-stone-500 hover:text-stone-800"
+                                    >
+                                      {isCopied ? (
+                                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteTable(table.id)}
+                                      title="Supprimer la table"
+                                      className="p-1 rounded text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -460,10 +530,10 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-stone-200">
             <div>
               <h3 className="font-bold text-base text-stone-900">
-                Cartonnettes & QR Codes de Toutes les Chambres
+                Cartonnettes &amp; QR Codes de Toutes les Chambres (8 cm × 14 cm)
               </h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                Toutes les chambres du groupe possèdent d'office un QR code unique pour le room service 24/7.
+                Toutes les chambres d'hôtel ont d'office chacune leur QR code et leur cartonnette de chevet prête à imprimer.
               </p>
             </div>
             <div className="relative w-full sm:w-64">
@@ -483,6 +553,17 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
               const qr = qrService.getQrForRoom(room.id);
               const propertyObj = SEED_PROPERTIES.find((p) => p.id === room.propertyId);
               const isCopied = qr && copiedToken === qr.token;
+
+              const standPayload = {
+                propertyName: propertyObj?.name || "Hôtel Le Vignoble",
+                locationName: room.roomName, // e.g. "Suite Royale Le Vignoble"
+                numberLabel: `Chambre ${room.unitNumber}`,
+                token: qr?.token || "",
+                phone: propertyObj?.phone,
+                email: propertyObj?.email,
+                directUrl: qr?.directUrl || `/order/${qr?.token}`,
+                resourceType: "ROOM" as const,
+              };
 
               return (
                 <div
@@ -508,38 +589,55 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
 
                   {qr && (
                     <div className="space-y-2 pt-2 border-t border-stone-200/70">
-                      <div className="flex items-center gap-1.5">
+                      {/* THE 3 REQUESTED BUTTONS FOR ROOMS: "VOIR", "TÉLÉCHARGER", "IMPRIMER" */}
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {/* 1. BOUTON VOIR */}
                         <button
-                          onClick={() =>
-                            setPreviewQrItem({
-                              title: `Chambre ${room.unitNumber}`,
-                              subtitle: room.roomName,
-                              propertyName: propertyObj?.name || "Hôtel Le Vignoble",
-                              token: qr.token,
-                              directUrl: `/order/${qr.token}`,
-                              resourceType: "ROOM",
-                            })
-                          }
-                          className="flex-1 py-1.5 px-2 rounded-lg bg-stone-900 text-white font-bold text-xs hover:bg-stone-800 flex items-center justify-center gap-1 shadow-sm"
+                          onClick={() => setPreviewStandItem(standPayload)}
+                          title="Voir la cartonnette 8 cm x 14 cm"
+                          className="py-1.5 px-2 rounded-lg bg-stone-900 text-white font-bold text-xs hover:bg-stone-800 flex items-center justify-center gap-1 shadow-sm"
                         >
-                          <Printer className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Cartonnette</span>
+                          <Eye className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Voir</span>
                         </button>
 
+                        {/* 2. BOUTON TÉLÉCHARGER */}
+                        <button
+                          onClick={() => handleDownloadStandSvg(standPayload)}
+                          title="Télécharger le fichier SVG (8 cm x 14 cm)"
+                          className="py-1.5 px-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs flex items-center justify-center gap-1 border border-stone-200"
+                        >
+                          <Download className="w-3.5 h-3.5 text-stone-600" />
+                          <span>Télécharger</span>
+                        </button>
+
+                        {/* 3. BOUTON IMPRIMER */}
+                        <button
+                          onClick={() => handlePrintStand(standPayload)}
+                          title="Imprimer directement au format 8 cm x 14 cm"
+                          className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-bold text-xs hover:brightness-110 flex items-center justify-center gap-1 shadow-sm"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Imprimer</span>
+                        </button>
+                      </div>
+
+                      {/* Secondary quick links */}
+                      <div className="flex items-center justify-between pt-1 text-[11px] text-stone-500">
                         <a
                           href={`/order/${qr.token}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title="Tester le menu"
-                          className="p-2 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700"
+                          className="text-emerald-700 font-semibold hover:underline flex items-center gap-1"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Tester menu chambre</span>
                         </a>
 
                         <button
                           onClick={() => handleCopyLink(qr.token)}
-                          title="Copier le lien"
-                          className="p-2 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-700"
+                          title="Copier le lien direct"
+                          className="p-1 rounded text-stone-500 hover:text-stone-800"
                         >
                           {isCopied ? (
                             <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -607,7 +705,6 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
                         )}
                       </p>
 
-                      {/* Items details */}
                       <div className="flex flex-wrap gap-1.5 pt-1">
                         {order.items.map((it) => (
                           <span
@@ -647,7 +744,7 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
         </div>
       )}
 
-      {/* 6. MODAL: CREER UNE ZONE */}
+      {/* 6. MODAL: CRÉER UNE NOUVELLE ZONE */}
       {isNewZoneModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4">
@@ -819,7 +916,7 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
                   type="submit"
                   className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 shadow-sm"
                 >
-                  Créer & Générer QR
+                  Créer &amp; Générer QR
                 </button>
               </div>
             </form>
@@ -827,97 +924,170 @@ export function PromoterQrSitePlanManager({ activeUser }: PromoterQrSitePlanMana
         </div>
       )}
 
-      {/* 8. MODAL: APERÇU ET IMPRESSION DU CHEVALET DE TABLE / CARTONNETTE DE CHEVET */}
-      {previewQrItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-stone-900 border border-stone-800 rounded-3xl p-6 text-white shadow-2xl space-y-4">
+      {/* 8. MODAL HAUTE COUTURE: PRÉVISUALISATION ET IMPRESSION FORMAT EXACT 8 cm × 14 cm */}
+      {previewStandItem && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-stone-900 border border-stone-800 rounded-3xl p-6 text-white shadow-2xl space-y-4 my-auto">
+            {/* Modal Top Bar */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-800">
               <div>
-                <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
-                  Présentoir Prêt à Poser
+                <span className="text-[10px] uppercase font-bold text-[#d4af37] tracking-wider">
+                  Présentoir Haute Couture • Format Officiel 8 cm × 14 cm
                 </span>
                 <h3 className="font-bold text-base text-stone-100">
-                  {previewQrItem.title} • {previewQrItem.propertyName}
+                  {previewStandItem.numberLabel} • {previewStandItem.propertyName}
                 </h3>
               </div>
               <button
-                onClick={() => setPreviewQrItem(null)}
+                onClick={() => setPreviewStandItem(null)}
                 className="w-8 h-8 rounded-full bg-stone-800 flex items-center justify-center text-stone-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* The Printable Stand Preview */}
-            <div
-              id="printable-qr-stand"
-              className="bg-white text-stone-900 rounded-2xl p-6 text-center border-4 border-[#d4af37] shadow-xl relative overflow-hidden"
-            >
-              {/* Hotel Crest */}
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7c3c46] to-[#d4af37] text-white font-serif font-black text-base flex items-center justify-center mx-auto mb-2 shadow">
-                V
-              </div>
-
-              <h4 className="text-sm font-black font-serif uppercase tracking-widest text-stone-900">
-                HÔTEL LE VIGNOBLE
-              </h4>
-              <p className="text-[11px] font-semibold text-amber-800 mb-4">
-                {previewQrItem.propertyName}
-              </p>
-
-              {/* QR Code SVG */}
+            {/* THE EXACT 8 cm x 14 cm CARD PREVIEW */}
+            <div className="flex justify-center py-2">
               <div
-                className="w-48 h-48 mx-auto my-2 p-2 bg-white border-2 border-stone-200 rounded-xl shadow-inner flex items-center justify-center"
-                dangerouslySetInnerHTML={{
-                  __html: qrService.generateQrSvg(previewQrItem.token, 180),
+                id="stand-card-container"
+                className="print-only-stand bg-[#fdfbf7] text-stone-900 rounded-[14px] shadow-2xl relative overflow-hidden flex flex-col justify-between"
+                style={{
+                  width: "320px",
+                  height: "560px", // 8cm x 14cm proportion (ratio 8:14 = 0.5714)
+                  padding: "16px 14px",
+                  border: "4px solid #d4af37",
+                  boxSizing: "border-box",
                 }}
-              />
+              >
+                {/* Inner concentric thin border */}
+                <div className="absolute inset-1.5 rounded-[10px] border border-[#d4af37]/60 pointer-events-none" />
 
-              {/* Table / Room Title */}
-              <div className="mt-3 py-1 px-3 bg-stone-100 rounded-lg inline-block border border-stone-300">
-                <span className="text-xs font-black text-stone-900 uppercase">
-                  {previewQrItem.title}
-                </span>
+                {/* 1. LOGO & NOM DE L'AGENCE */}
+                <div className="text-center z-10 pt-1">
+                  {/* Official Royal Crest */}
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#7c3c46] to-[#4a151e] border-2 border-[#d4af37] flex items-center justify-center mx-auto mb-1.5 shadow-md">
+                    <span className="text-white font-serif font-black text-lg">V</span>
+                  </div>
+
+                  <h2 className="text-[12px] font-black font-serif uppercase tracking-[0.2em] text-[#181512] leading-tight">
+                    HÔTEL LE VIGNOBLE
+                  </h2>
+                  <p className="text-[11px] font-bold text-[#7c3c46] mt-0.5 leading-none">
+                    {previewStandItem.propertyName}
+                  </p>
+                </div>
+
+                {/* 2. EMPLACEMENT & 3. NUMÉRO */}
+                <div className="text-center z-10 my-1">
+                  <div className="inline-block px-3 py-0.5 rounded-full bg-[#f4ede1] border border-[#d4af37]/60 text-[10px] font-bold text-[#5a3d12] uppercase tracking-wide">
+                    {previewStandItem.locationName}
+                  </div>
+                  <div className="text-lg font-black text-[#181512] tracking-tight mt-0.5">
+                    {previewStandItem.numberLabel}
+                  </div>
+                </div>
+
+                {/* 4. CODE QR EN GRAND FORMAT AU MILIEU */}
+                <div className="text-center z-10 flex flex-col items-center">
+                  <div className="p-2 bg-white rounded-xl border border-stone-200 shadow-inner flex items-center justify-center">
+                    <div
+                      className="w-40 h-40 flex items-center justify-center"
+                      dangerouslySetInnerHTML={{
+                        __html: qrService.generateQrSvg(previewStandItem.token, 160),
+                      }}
+                    />
+                  </div>
+                  <p className="text-[10px] font-extrabold text-[#181512] mt-1.5 uppercase tracking-wide">
+                    Scannez pour commander
+                  </p>
+                  <p className="text-[8.5px] text-stone-500 font-medium">
+                    Boissons fraîches • Cuisine &amp; Repas • Cave à Vin
+                  </p>
+                </div>
+
+                {/* 5. CONTACTS DE L'AGENCE */}
+                <div className="text-center z-10 pt-1 border-t border-stone-200/80 text-[8.5px] text-stone-600 leading-tight">
+                  <p className="font-bold text-stone-800">Réception &amp; Room-Service 24h/24</p>
+                  <p className="font-extrabold text-[#7c3c46] text-[9.5px] mt-0.5">
+                    Tél / WhatsApp : {previewStandItem.phone || "+229 97 00 11 22"}
+                  </p>
+                  <p className="text-stone-500 mt-0.5">{previewStandItem.email || "contact@hotel-levignoble.bj"}</p>
+                </div>
+
+                {/* 6. MESSAGE EN BAS: "Merci pour votre Fidélité" */}
+                <div className="text-center z-10 pb-0.5">
+                  <div className="py-1 px-3 rounded-full bg-gradient-to-r from-[#7c3c46] via-[#631c28] to-[#7c3c46] border border-[#d4af37]/80 shadow-sm">
+                    <span className="text-[10px] font-bold font-serif text-white tracking-wider italic">
+                      ✦ Merci pour votre Fidélité ✦
+                    </span>
+                  </div>
+                </div>
               </div>
-
-              <p className="text-[11px] font-bold text-stone-800 mt-2">
-                Scannez avec votre appareil photo
-              </p>
-              <p className="text-[10px] text-stone-500 mt-0.5">
-                Pour commander boissons fraîches, repas chauds et grands crus de la cave.
-              </p>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={handlePrint}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:brightness-110 flex items-center justify-center gap-1.5 shadow-lg"
+            {/* Modal Bottom Actions */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-stone-800">
+              <a
+                href={previewStandItem.directUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Printer className="w-4 h-4" />
-                <span>Imprimer le chevalet</span>
+                <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                <span>Tester menu</span>
+              </a>
+
+              <button
+                onClick={() => handleDownloadStandSvg(previewStandItem)}
+                className="py-2.5 px-3 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <span>Télécharger SVG</span>
               </button>
 
               <button
-                onClick={() => {
-                  const svgData = qrService.generateQrSvg(previewQrItem.token, 400);
-                  const blob = new Blob([svgData], { type: "image/svg+xml" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `QR-${previewQrItem.title.replace(/\s+/g, "_")}.svg`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                className="px-3 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-bold flex items-center gap-1.5"
+                onClick={() => window.print()}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] to-amber-500 text-black font-bold text-xs uppercase tracking-wider hover:brightness-110 flex items-center justify-center gap-1.5 shadow-lg"
               >
-                <Download className="w-4 h-4" />
-                <span>SVG</span>
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimer (8×14)</span>
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Global Print Media Query Styles */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: 80mm 140mm;
+            margin: 0;
+          }
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Hide sidebar, headers, and everything except the stand container */
+          header, nav, aside, .no-print, button, form, .modal-backdrop {
+            display: none !important;
+          }
+          .print-only-stand {
+            width: 80mm !important;
+            height: 140mm !important;
+            max-width: 80mm !important;
+            max-height: 140mm !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

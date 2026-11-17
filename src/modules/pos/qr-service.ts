@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { SEED_PROPERTIES } from "../../lib/db/seed";
-import { generateQrSvgString } from "../../lib/qr/qr-generator";
+import { generateQrSvgString, generateQrMatrix } from "../../lib/qr/qr-generator";
 
 export type SpaceType =
   | "RESTAURANT"
@@ -42,6 +42,10 @@ export interface QrResourceRecord {
   id: string;
   propertyId: string;
   propertyName: string;
+  propertyCity?: string;
+  propertyPhone?: string;
+  propertyEmail?: string;
+  propertyAddress?: string;
   token: string;
   resourceType: "TABLE" | "ROOM";
   tableId?: string;
@@ -156,8 +160,29 @@ class QrService {
     });
   }
 
-  private getPropertyName(propertyId: string): string {
-    return SEED_PROPERTIES.find((p) => p.id === propertyId)?.name || "Hôtel Le Vignoble";
+  public getPropertyDetails(propertyId: string) {
+    const prop = SEED_PROPERTIES.find((p) => p.id === propertyId) || SEED_PROPERTIES[0];
+    return {
+      name: prop.name,
+      city: prop.city,
+      phone: prop.phone,
+      email: prop.email,
+      address: prop.address,
+    };
+  }
+
+  /**
+   * Deterministic token generation: Stable across all serverless restarts,
+   * lambdas and cold starts.
+   */
+  public getDeterministicToken(resourceType: "table" | "room", id: string): string {
+    const cleanId = id.replace(/-/g, "_");
+    const hash = crypto
+      .createHash("sha256")
+      .update(`hotelgest_vignoble_${resourceType}_${id}`)
+      .digest("hex")
+      .slice(0, 16);
+    return `hg_${resourceType}_${cleanId}_${hash}`;
   }
 
   public createTableQrResource(table: DiningTableRecord): QrResourceRecord {
@@ -165,11 +190,17 @@ class QrService {
     const existing = this.resources.find((r) => r.tableId === table.id && !r.revoked);
     if (existing) return existing;
 
-    const token = `hg_table_${table.id.replace(/-/g, "_")}_${crypto.randomBytes(8).toString("hex")}`;
+    const token = this.getDeterministicToken("table", table.id);
+    const prop = this.getPropertyDetails(table.propertyId);
+
     const resource: QrResourceRecord = {
-      id: `qr-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+      id: `qr-table-${table.id}`,
       propertyId: table.propertyId,
-      propertyName: this.getPropertyName(table.propertyId),
+      propertyName: prop.name,
+      propertyCity: prop.city,
+      propertyPhone: prop.phone,
+      propertyEmail: prop.email,
+      propertyAddress: prop.address,
       token,
       resourceType: "TABLE",
       tableId: table.id,
@@ -185,15 +216,20 @@ class QrService {
   }
 
   public createRoomQrResource(unit: RoomUnitRecord): QrResourceRecord {
-    // Check if an active token already exists for this room
     const existing = this.resources.find((r) => r.unitId === unit.id && !r.revoked);
     if (existing) return existing;
 
-    const token = `hg_room_${unit.id.replace(/-/g, "_")}_${crypto.randomBytes(8).toString("hex")}`;
+    const token = this.getDeterministicToken("room", unit.id);
+    const prop = this.getPropertyDetails(unit.propertyId);
+
     const resource: QrResourceRecord = {
-      id: `qr-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+      id: `qr-room-${unit.id}`,
       propertyId: unit.propertyId,
-      propertyName: this.getPropertyName(unit.propertyId),
+      propertyName: prop.name,
+      propertyCity: prop.city,
+      propertyPhone: prop.phone,
+      propertyEmail: prop.email,
+      propertyAddress: prop.address,
       token,
       resourceType: "ROOM",
       unitId: unit.id,
@@ -361,12 +397,86 @@ class QrService {
     return this.roomUnits.filter((u) => u.propertyId === propertyId);
   }
 
+  /**
+   * Resilient Token Resolution:
+   * 1. Check in-memory resources
+   * 2. Fallback pattern matching for ROOM tokens (e.g. hg_room_unit_101_664d22d61a15dea4)
+   * 3. Fallback pattern matching for TABLE tokens (e.g. hg_table_tbl_boh_01_...)
+   */
   public resolveToken(token: string): QrResourceRecord | null {
+    if (!token) return null;
+
+    // 1. Exact match in memory
     const resource = this.resources.find((r) => r.token === token);
-    if (!resource || resource.revoked) {
-      return null;
+    if (resource) {
+      if (resource.revoked) return null;
+      return resource;
     }
-    return resource;
+
+    // 2. Fallback matching for ROOM tokens: e.g. "hg_room_unit_101_664d22d61a15dea4"
+    if (token.startsWith("hg_room_")) {
+      const matchedRoom = this.roomUnits.find((u) => {
+        const cleanId = u.id.replace(/-/g, "_");
+        return token.includes(`hg_room_${cleanId}`) || token.includes(cleanId);
+      });
+
+      if (matchedRoom) {
+        const prop = this.getPropertyDetails(matchedRoom.propertyId);
+        const dynamicResource: QrResourceRecord = {
+          id: `qr-room-${matchedRoom.id}`,
+          propertyId: matchedRoom.propertyId,
+          propertyName: prop.name,
+          propertyCity: prop.city,
+          propertyPhone: prop.phone,
+          propertyEmail: prop.email,
+          propertyAddress: prop.address,
+          token,
+          resourceType: "ROOM",
+          unitId: matchedRoom.id,
+          unitNumber: matchedRoom.unitNumber,
+          roomName: matchedRoom.roomName,
+          directUrl: `/order/${token}`,
+          revoked: false,
+          createdAt: new Date(),
+        };
+        this.resources.push(dynamicResource);
+        return dynamicResource;
+      }
+    }
+
+    // 3. Fallback matching for TABLE tokens: e.g. "hg_table_tbl_boh_01_..."
+    if (token.startsWith("hg_table_")) {
+      const matchedTable = this.diningTables.find((t) => {
+        const cleanId = t.id.replace(/-/g, "_");
+        return token.includes(`hg_table_${cleanId}`) || token.includes(cleanId);
+      });
+
+      if (matchedTable) {
+        const prop = this.getPropertyDetails(matchedTable.propertyId);
+        const dynamicResource: QrResourceRecord = {
+          id: `qr-table-${matchedTable.id}`,
+          propertyId: matchedTable.propertyId,
+          propertyName: prop.name,
+          propertyCity: prop.city,
+          propertyPhone: prop.phone,
+          propertyEmail: prop.email,
+          propertyAddress: prop.address,
+          token,
+          resourceType: "TABLE",
+          tableId: matchedTable.id,
+          tableNumber: matchedTable.tableNumber,
+          spaceName: matchedTable.spaceName,
+          spaceType: matchedTable.spaceType,
+          directUrl: `/order/${token}`,
+          revoked: false,
+          createdAt: new Date(),
+        };
+        this.resources.push(dynamicResource);
+        return dynamicResource;
+      }
+    }
+
+    return null;
   }
 
   public revokeToken(token: string): boolean {
@@ -383,6 +493,121 @@ class QrService {
       ? `${window.location.origin}/order/${token}`
       : `https://hotelgestion.vercel.app/order/${token}`;
     return generateQrSvgString(fullUrl, { size });
+  }
+
+  /**
+   * Generates the complete 8 cm x 14 cm vector SVG stand ready for print
+   */
+  public generateStandSvg(data: {
+    propertyName: string;
+    locationName: string; // e.g. "Restaurant" or "Suite Royale Le Vignoble"
+    numberLabel: string;   // e.g. "Table 01" or "Chambre 101"
+    token: string;
+    phone?: string;
+    email?: string;
+  }): string {
+    const fullUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/order/${data.token}`
+      : `https://hotelgestion.vercel.app/order/${data.token}`;
+
+    const matrix = generateQrMatrix(fullUrl);
+    const matrixSize = matrix.length;
+    const margin = 4;
+    const viewBoxSize = matrixSize + margin * 2;
+
+    let pathData = "";
+    for (let r = 0; r < matrixSize; r++) {
+      for (let c = 0; c < matrixSize; c++) {
+        if (matrix[r][c]) {
+          pathData += `M${c + margin},${r + margin}h1v1h-1z `;
+        }
+      }
+    }
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1400" width="80mm" height="140mm" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, serif;">
+  <!-- Background with delicate gradient and concentric borders -->
+  <defs>
+    <linearGradient id="standBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fdfbf7"/>
+      <stop offset="100%" stop-color="#f8f4ec"/>
+    </linearGradient>
+    <linearGradient id="goldBorder" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#b8860b"/>
+      <stop offset="35%" stop-color="#d4af37"/>
+      <stop offset="65%" stop-color="#f5e1a4"/>
+      <stop offset="100%" stop-color="#aa771c"/>
+    </linearGradient>
+    <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c3c46"/>
+      <stop offset="100%" stop-color="#4a151e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base Plate (80mm x 140mm) -->
+  <rect x="0" y="0" width="800" height="1400" fill="url(#standBg)"/>
+
+  <!-- Outer Double-Bezel Gold Border -->
+  <rect x="18" y="18" width="764" height="1364" rx="24" fill="none" stroke="url(#goldBorder)" stroke-width="8"/>
+  <rect x="32" y="32" width="736" height="1336" rx="16" fill="none" stroke="#d4af37" stroke-width="2" stroke-opacity="0.6"/>
+
+  <!-- Corner Heraldic Ornaments -->
+  <circle cx="48" cy="48" r="6" fill="#d4af37"/>
+  <circle cx="752" cy="48" r="6" fill="#d4af37"/>
+  <circle cx="48" cy="1352" r="6" fill="#d4af37"/>
+  <circle cx="752" cy="1352" r="6" fill="#d4af37"/>
+
+  <!-- 1. TOP LOGO & MEDALLION -->
+  <g transform="translate(400, 115)">
+    <circle cx="0" cy="0" r="48" fill="url(#badgeGrad)" stroke="#d4af37" stroke-width="4"/>
+    <circle cx="0" cy="0" r="41" fill="none" stroke="#f5e1a4" stroke-width="1.5" stroke-dasharray="4,2"/>
+    <text x="0" y="14" font-family="serif" font-size="44" font-weight="900" fill="#ffffff" text-anchor="middle">V</text>
+  </g>
+
+  <!-- 2. AGENCY / PROPERTY NAME -->
+  <text x="400" y="200" font-family="serif" font-size="28" font-weight="900" letter-spacing="4" fill="#181512" text-anchor="middle">HÔTEL LE VIGNOBLE</text>
+  <text x="400" y="235" font-family="-apple-system, sans-serif" font-size="24" font-weight="700" fill="#7c3c46" text-anchor="middle">${data.propertyName}</text>
+
+  <!-- Thin decorative gold line -->
+  <line x1="260" y1="260" x2="540" y2="260" stroke="#d4af37" stroke-width="2"/>
+  <polygon points="400,256 405,260 400,264 395,260" fill="#d4af37"/>
+
+  <!-- 3. LOCATION & 4. NUMBER -->
+  <rect x="200" y="280" width="400" height="42" rx="21" fill="#f5ede0" stroke="#d4af37" stroke-width="1.5"/>
+  <text x="400" y="309" font-family="-apple-system, sans-serif" font-size="21" font-weight="700" fill="#5a3d12" text-anchor="middle">${data.locationName}</text>
+
+  <text x="400" y="380" font-family="-apple-system, sans-serif" font-size="42" font-weight="900" letter-spacing="1" fill="#181512" text-anchor="middle">${data.numberLabel}</text>
+
+  <!-- 5. GRAND FORMAT QR CODE -->
+  <g transform="translate(150, 410)">
+    <rect x="-10" y="-10" width="520" height="520" rx="20" fill="#ffffff" stroke="#e8ded1" stroke-width="4"/>
+    <rect x="-2" y="-2" width="504" height="504" rx="14" fill="none" stroke="#d4af37" stroke-width="2"/>
+    <svg x="10" y="10" width="480" height="480" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" shape-rendering="crispEdges">
+      <path d="${pathData}" fill="#181512"/>
+    </svg>
+  </g>
+
+  <!-- Scan Instruction -->
+  <text x="400" y="975" font-family="-apple-system, sans-serif" font-size="20" font-weight="800" fill="#181512" text-anchor="middle">Scannez pour commander</text>
+  <text x="400" y="1005" font-family="-apple-system, sans-serif" font-size="16" font-weight="500" fill="#78716c" text-anchor="middle">Boissons fraîches • Cuisine &amp; Repas • Cave à Vin</text>
+
+  <!-- Separator -->
+  <line x1="160" y1="1045" x2="640" y2="1045" stroke="#e7decb" stroke-width="1.5"/>
+
+  <!-- 6. CONTACTS DE L'AGENCE -->
+  <g transform="translate(400, 1085)" text-anchor="middle">
+    <text x="0" y="0" font-family="-apple-system, sans-serif" font-size="16" font-weight="700" fill="#44403c">Réception &amp; Room-Service 24h/24</text>
+    <text x="0" y="32" font-family="-apple-system, sans-serif" font-size="18" font-weight="800" fill="#7c3c46">Tél / WhatsApp : ${data.phone || "+229 97 00 11 22"}</text>
+    <text x="0" y="62" font-family="-apple-system, sans-serif" font-size="15" font-weight="500" fill="#78716c">${data.email || "contact@hotel-levignoble.bj"}</text>
+  </g>
+
+  <!-- 7. BOTTOM MESSAGE: "Merci pour votre Fidélité" -->
+  <rect x="120" y="1225" width="560" height="60" rx="30" fill="url(#badgeGrad)" stroke="#d4af37" stroke-width="2"/>
+  <text x="400" y="1263" font-family="serif" font-size="22" font-weight="700" font-style="italic" fill="#ffffff" letter-spacing="1" text-anchor="middle">✦ Merci pour votre Fidélité ✦</text>
+
+  <!-- Subtle scale indication at bottom edge -->
+  <text x="400" y="1362" font-family="monospace" font-size="11" fill="#a8a29e" text-anchor="middle">FORMAT OFFICIEL 8 cm × 14 cm • HÔTEL LE VIGNOBLE</text>
+</svg>`;
   }
 }
 
